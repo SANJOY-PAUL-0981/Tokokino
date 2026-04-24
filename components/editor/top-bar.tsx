@@ -19,6 +19,7 @@ import { toast } from "sonner"
 
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
+import { useEditor } from "@/lib/editor/store"
 import {
   Dialog,
   DialogContent,
@@ -46,6 +47,7 @@ import { cn } from "@/lib/utils"
 
 export function TopBar() {
   const [name, setName] = React.useState("Untitled capture")
+  const { undo, redo, canUndo, canRedo, reset } = useEditor()
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 border-b border-dashed border-border/70 bg-background px-2 sm:px-3">
@@ -72,8 +74,20 @@ export function TopBar() {
 
       {/* History cluster — desktop only */}
       <div className="ml-2 hidden xl:block">
-        <IconAction label="Undo" icon={RiArrowGoBackLine} shortcut="⌘Z" />
-        <IconAction label="Redo" icon={RiArrowGoForwardLine} shortcut="⌘⇧Z" />
+        <IconAction
+          label="Undo"
+          icon={RiArrowGoBackLine}
+          shortcut="⌘Z"
+          onClick={undo}
+          disabled={!canUndo}
+        />
+        <IconAction
+          label="Redo"
+          icon={RiArrowGoForwardLine}
+          shortcut="⌘⇧Z"
+          onClick={redo}
+          disabled={!canRedo}
+        />
       </div>
 
       {/* Open + Save — desktop only */}
@@ -90,7 +104,10 @@ export function TopBar() {
         <Button
           variant="outline"
           size="lg"
-          onClick={() => toast("Reset to defaults")}
+          onClick={() => {
+            reset()
+            toast("Reset to defaults")
+          }}
         >
           <RiRefreshLine />
           Reset
@@ -274,6 +291,7 @@ function SidebarNavItem({ active, onClick, icon: Icon, label, description }: {
 }
 
 function MobileOverflowMenu() {
+  const { undo, redo, canUndo, canRedo, reset } = useEditor()
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

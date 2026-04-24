@@ -5,21 +5,24 @@ import { Inspector } from "@/components/editor/inspector"
 import { IpadProSidebar } from "@/components/editor/ipad-pro-sidebar"
 import { MobileControls } from "@/components/editor/mobile-controls"
 import { TopBar } from "@/components/editor/top-bar"
+import { EditorProvider } from "@/lib/editor/store"
 
 export default function ScreenshotsPage() {
   return (
-    <div className="flex h-svh min-h-0 flex-col">
-      <TopBar />
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
-        <EffectsSidebar className="hidden xl:flex" />
-        <div className="relative flex min-h-0 flex-1">
-          <Canvas />
-          <FloatingToolbar />
-          <IpadProSidebar />
+    <EditorProvider>
+      <div className="flex h-svh min-h-0 flex-col">
+        <TopBar />
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+          <EffectsSidebar className="hidden xl:flex" />
+          <div className="relative flex min-h-0 flex-1">
+            <Canvas />
+            <FloatingToolbar />
+            <IpadProSidebar />
+          </div>
+          <Inspector className="hidden lg:flex" />
+          <MobileControls />
         </div>
-        <Inspector className="hidden lg:flex" />
-        <MobileControls />
       </div>
-    </div>
+    </EditorProvider>
   )
 }

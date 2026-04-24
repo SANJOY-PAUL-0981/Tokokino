@@ -8,31 +8,22 @@ import {
   RiRotateLockLine,
   RiUpload2Line,
   RiImageLine,
-  RiGradienterLine,
-  RiSunLine,
-  RiEqualizerLine,
-  RiGridLine,
-  RiFocus2Line,
-  RiArrowGoBackLine,
-  RiUnsplashLine,
-  RiMoonClearLine,
-  RiArrowRightLine,
-  RiFocus3Line,
 } from "@remixicon/react"
 import { AnimatePresence, motion } from "motion/react"
 
+import { EditableValue } from "@/components/editor/editable-value"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Slider } from "@/components/ui/slider"
-import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Button } from "@/components/ui/button"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import {
+  GRADIENT_PRESETS,
+  IMAGE_PRESETS,
+  SOLID_PRESETS,
+  useEditor,
+  type BgType,
+} from "@/lib/editor/store"
 
 export function Inspector({ className }: { className?: string }) {
   return (
@@ -43,18 +34,10 @@ export function Inspector({ className }: { className?: string }) {
             Inspector
           </span>
         </div>
-        <span className="tabular rounded border border-border/60 bg-secondary/60 px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-muted-foreground uppercase">
-          Browser
-        </span>
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="px-4 py-3 pb-24">
-          <Section icon={RiSunLine} title="Backdrop" defaultOpen>
-            <BackdropSection />
-          </Section>
-          <div className="my-3 h-px bg-border/50" />
-
           <Section icon={RiPaletteLine} title="Background" defaultOpen>
             <BackgroundSection />
           </Section>
@@ -67,11 +50,6 @@ export function Inspector({ className }: { className?: string }) {
 
           <Section icon={RiRotateLockLine} title="Tilt & Scale" defaultOpen>
             <TiltSection />
-          </Section>
-          <div className="my-3 h-px bg-border/50" />
-
-          <Section icon={RiMoonClearLine} title="Shadow" defaultOpen>
-            <ShadowSection />
           </Section>
         </div>
       </ScrollArea>
@@ -129,212 +107,58 @@ function Section({
   )
 }
 
-function SubHeader({
-  children,
-  trailing,
-}: {
-  children: React.ReactNode
-  trailing?: React.ReactNode
-}) {
-  return (
-    <div className="mb-2 flex items-center justify-between text-[11px] tracking-tight text-muted-foreground">
-      <span>{children}</span>
-      {trailing}
-    </div>
-  )
-}
-
-/* -------- Backdrop -------- */
-
-function BackdropSection() {
-  const [overlayOpacity, setOverlayOpacity] = React.useState(10)
-  const [overlayPosition, setOverlayPosition] = React.useState("overlay")
-  const [effectsEnabled, setEffectsEnabled] = React.useState(true)
-  const [noise, setNoise] = React.useState(10)
-  const [blur, setBlur] = React.useState(0)
-  const [saturation, setSaturation] = React.useState(100)
-  const [opacity, setOpacity] = React.useState(100)
-  const [selectedPatterns, setSelectedPatterns] = React.useState<number[]>([1])
-  const [patternIntensity, setPatternIntensity] = React.useState(50)
-  const [patternThickness, setPatternThickness] = React.useState(1)
-  const [patternColor, setPatternColor] = React.useState("#F04462")
-
-  const patterns = [
-    { id: 1, name: "Dots", cls: "bg-background [background-image:radial-gradient(oklch(from_var(--foreground)_l_c_h_/_0.2)_1px,_transparent_1px)] [background-size:8px_8px]" },
-    { id: 2, name: "Grid", cls: "bg-background [background-image:linear-gradient(oklch(from_var(--foreground)_l_c_h_/_0.15)_1px,_transparent_1px),linear-gradient(90deg,oklch(from_var(--foreground)_l_c_h_/_0.15)_1px,_transparent_1px)] [background-size:10px_10px]" },
-    { id: 3, name: "Diagonals", cls: "bg-background [background-image:repeating-linear-gradient(-45deg,oklch(from_var(--foreground)_l_c_h_/_0.12)_0_1px,transparent_1px_6px)]" },
-    { id: 4, name: "Noise", cls: "bg-background [background-image:radial-gradient(oklch(from_var(--foreground)_l_c_h_/_0.08)_1px,transparent_1px),radial-gradient(oklch(from_var(--foreground)_l_c_h_/_0.05)_1px,transparent_1px)] [background-size:7px_7px,11px_11px] [background-position:0_0,3px_3px]" },
-    { id: 5, name: "Mesh", cls: "bg-[conic-gradient(at_top_left,var(--tw-gradient-stops))] from-rose-200 via-emerald-400 to-rose-200" },
-    { id: 6, name: "Waves", cls: "bg-background [background-image:linear-gradient(30deg,#4466ff_12%,transparent_12.5%,transparent_87%,#4466ff_87.5%,#4466ff),linear-gradient(150deg,#4466ff_12%,transparent_12.5%,transparent_87%,#4466ff_87.5%,#4466ff),linear-gradient(30deg,#4466ff_12%,transparent_12.5%,transparent_87%,#4466ff_87.5%,#4466ff),linear-gradient(150deg,#4466ff_12%,transparent_12.5%,transparent_87%,#4466ff_87.5%,#4466ff),linear-gradient(60deg,#4466ff77_25%,transparent_25.5%,transparent_75%,#4466ff77_75%,#4466ff77),linear-gradient(60deg,#4466ff77_25%,transparent_25.5%,transparent_75%,#4466ff77_75%,#4466ff77)] [background-size:80px_140px]" },
-  ]
-
-  const shadowPatterns = [
-    { id: 0, cls: "bg-checker" },
-    { id: 1, cls: "bg-gradient-to-br from-white/0 via-black/20 to-black/40" },
-    { id: 2, cls: "bg-gradient-to-r from-black/20 via-transparent to-black/20" },
-    { id: 3, cls: "bg-[radial-gradient(circle,transparent_20%,black_100%)]" },
-    { id: 4, cls: "bg-[linear-gradient(45deg,rgba(0,0,0,0.1)_25%,transparent_25%,transparent_50%,rgba(0,0,0,0.1)_50%,rgba(0,0,0,0.1)_75%,transparent_75%,transparent)] bg-[length:20px_20px]" },
-    { id: 5, cls: "bg-gradient-to-t from-black/30 to-transparent" },
-  ]
-
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="default" size="sm" className="h-9 justify-start gap-2 px-3 font-medium cursor-pointer">
-            <RiSunLine className="size-4" />
-            <span>Overlay</span>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent side="left" align="start" className="w-[240px] space-y-4 bg-popover/95 backdrop-blur-md">
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] font-medium">Shadow Overlay</span>
-            <Button variant="ghost" size="icon" className="size-6 cursor-pointer">
-              <RiArrowGoBackLine className="size-3" />
-            </Button>
-          </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            {shadowPatterns.map((p) => (
-              <button key={p.id} className={cn("aspect-square rounded-md border border-border/60 cursor-pointer", p.cls)} />
-            ))}
-          </div>
-          <Button variant="secondary" size="sm" className="w-full text-[11px] h-8 cursor-pointer">
-            <RiArrowDownSLine className="mr-1 size-3" />
-            Show More
-          </Button>
-          <div className="space-y-3">
-            <div className="flex items-baseline justify-between">
-              <span className="text-[11px] text-muted-foreground">Opacity</span>
-              <span className="tabular font-mono text-[11px] text-foreground/80">{overlayOpacity}%</span>
-            </div>
-            <Slider value={[overlayOpacity]} onValueChange={([v]) => setOverlayOpacity(v)} max={100} className="cursor-pointer" />
-            <div className="space-y-2">
-              <span className="text-[11px] text-muted-foreground">Position</span>
-              <ToggleGroup type="single" value={overlayPosition} onValueChange={(v) => v && setOverlayPosition(v)} className="flex w-full bg-secondary/40 p-1">
-                <ToggleGroupItem value="overlay" className="flex-1 h-7 text-[10px] cursor-pointer">Overlay</ToggleGroupItem>
-                <ToggleGroupItem value="underlay" className="flex-1 h-7 text-[10px] cursor-pointer">Underlay</ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="default" size="sm" className="h-9 justify-start gap-2 px-3 font-medium cursor-pointer">
-            <RiEqualizerLine className="size-4" />
-            <span>Effects</span>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent side="left" align="start" className="w-[240px] space-y-4 bg-popover/95 backdrop-blur-md">
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] font-medium">Effects</span>
-            <Switch size="sm" checked={effectsEnabled} onCheckedChange={setEffectsEnabled} className="cursor-pointer" />
-          </div>
-          <div className="space-y-4">
-            <EffectSlider label="Noise" value={noise} onChange={setNoise} />
-            <EffectSlider label="Blur" value={blur} onChange={setBlur} max={20} />
-            <EffectSlider label="Saturation" value={saturation} onChange={setSaturation} max={200} />
-            <EffectSlider label="Opacity" value={opacity} onChange={setOpacity} />
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="default" size="sm" className="h-9 justify-start gap-2 px-3 font-medium cursor-pointer">
-            <RiGridLine className="size-4" />
-            <span>Pattern</span>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent side="left" align="start" className="w-[240px] space-y-4 bg-popover/95 backdrop-blur-md">
-           <span className="text-[13px] font-medium">Patterns</span>
-           <div className="grid grid-cols-3 gap-2">
-            {patterns.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => {
-                  setSelectedPatterns(prev => 
-                    prev.includes(p.id) ? prev.filter(v => v !== p.id) : [...prev, p.id]
-                  )
-                }}
-                className={cn(
-                  "relative aspect-square overflow-hidden rounded-md border transition-all cursor-pointer",
-                  selectedPatterns.includes(p.id)
-                    ? "border-foreground ring-1 ring-foreground/20"
-                    : "border-border/60 hover:border-foreground/30",
-                  p.cls
-                )}
-              />
-            ))}
-          </div>
-
-          <div className="space-y-4 pt-2 border-t border-border/40">
-            <div>
-              <div className="mb-2 flex items-baseline justify-between">
-                <span className="text-[11px] text-muted-foreground">Intensity</span>
-                <span className="tabular font-mono text-[11px] text-foreground/80">{patternIntensity}%</span>
-              </div>
-              <Slider value={[patternIntensity]} onValueChange={([v]) => setPatternIntensity(v)} max={100} className="cursor-pointer" />
-            </div>
-
-            <div>
-              <div className="mb-2 flex items-baseline justify-between">
-                <span className="text-[11px] text-muted-foreground">Thickness</span>
-                <span className="tabular font-mono text-[11px] text-foreground/80">{patternThickness}px</span>
-              </div>
-              <Slider value={[patternThickness]} onValueChange={([v]) => setPatternThickness(v)} min={1} max={10} step={0.5} className="cursor-pointer" />
-            </div>
-
-            <div>
-              <span className="text-[11px] text-muted-foreground block mb-2">Colour</span>
-              <div className="flex flex-wrap gap-1.5">
-                {["#F04462", "#7FB069", "#000000", "#FFFFFF", "#F87171", "#60A5FA"].map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setPatternColor(c)}
-                    className={cn(
-                      "size-5 rounded-full border border-border/60 cursor-pointer transition-transform hover:scale-110",
-                      patternColor === c && "ring-2 ring-primary ring-offset-1 ring-offset-popover"
-                    )}
-                    style={{ background: c }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      <Button variant="default" size="sm" className="h-9 justify-start gap-2 px-3 font-medium cursor-pointer">
-        <RiFocus2Line className="size-4" />
-        <span>Portrait</span>
-      </Button>
-    </div>
-  )
-}
-
 /* -------- Background -------- */
 
 function BackgroundSection() {
-  const [bgType, setBgType] = React.useState("image")
-  const [borderRadius, setBorderRadius] = React.useState(12)
+  const { background, setBackground, borderRadius, setBorderRadius } =
+    useEditor()
+  const fileRef = React.useRef<HTMLInputElement>(null)
 
-  const preMadeImages = [
-    { name: "Raycast", src: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=200&auto=format&fit=crop" },
-    { name: "Dark Gradient", src: "https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?q=80&w=200&auto=format&fit=crop" },
-    { name: "Texture", src: "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=200&auto=format&fit=crop" },
-    { name: "Abstract", src: "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=200&auto=format&fit=crop" },
-    { name: "Flow", src: "https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=200&auto=format&fit=crop" },
-    { name: "Noise", src: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=200&auto=format&fit=crop" },
-    { name: "Mesh", src: "https://images.unsplash.com/photo-1574169208507-84376144848b?q=80&w=200&auto=format&fit=crop" },
-    { name: "Linear", src: "https://images.unsplash.com/photo-1557682250-33bd709cbe85?q=80&w=200&auto=format&fit=crop" },
-    { name: "Soft", src: "https://images.unsplash.com/photo-1557682224-5b8590cd9ec5?q=80&w=200&auto=format&fit=crop" },
-  ]
+  const onUpload = (file: File) => {
+    if (!file.type.startsWith("image/")) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setBackground({ type: "image", value: reader.result })
+      }
+    }
+    reader.readAsDataURL(file)
+  }
 
   return (
     <div className="flex flex-col gap-6 pt-3">
-      <Tabs value={bgType} onValueChange={setBgType} className="w-full">
+      <Tabs
+        value={background.type}
+        onValueChange={(v) => {
+          const type = v as BgType
+          if (type === "none") setBackground({ type, value: "" })
+          else if (type === "solid")
+            setBackground({
+              type,
+              value:
+                background.type === "solid"
+                  ? background.value
+                  : SOLID_PRESETS[0],
+            })
+          else if (type === "gradient")
+            setBackground({
+              type,
+              value:
+                background.type === "gradient"
+                  ? background.value
+                  : GRADIENT_PRESETS[0],
+            })
+          else if (type === "image")
+            setBackground({
+              type,
+              value:
+                background.type === "image"
+                  ? background.value
+                  : IMAGE_PRESETS[0],
+            })
+        }}
+        className="w-full"
+      >
         <TabsList className="flex h-auto w-full justify-between bg-transparent p-0">
           <CircularTabTrigger value="none" label="None">
             <div className="size-full bg-checker" />
@@ -351,45 +175,131 @@ function BackgroundSection() {
         </TabsList>
 
         <TabsContent value="image" className="mt-6 space-y-4">
-          <div className="flex gap-2">
-            <Button variant="default" size="sm" className="h-9 flex-1 gap-2 cursor-pointer">
-              <RiUnsplashLine className="size-4" />
-              <span className="text-[11px] font-medium">Unsplash</span>
-            </Button>
-            <Button variant="default" size="sm" className="h-9 flex-1 gap-2 cursor-pointer">
-              <RiUpload2Line className="size-4" />
-              <span className="text-[11px] font-medium">Upload</span>
-            </Button>
-          </div>
-          
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              if (f) onUpload(f)
+              e.target.value = ""
+            }}
+          />
+          <Button
+            variant="default"
+            size="sm"
+            className="h-9 w-full gap-2 cursor-pointer"
+            onClick={() => fileRef.current?.click()}
+          >
+            <RiUpload2Line className="size-4" />
+            <span className="text-[11px] font-medium">Upload</span>
+          </Button>
+
           <div className="grid grid-cols-3 gap-x-2 gap-y-4">
-            {preMadeImages.map((img, i) => (
-              <button key={i} className="group flex flex-col gap-1.5 text-left cursor-pointer">
-                <div className="aspect-square overflow-hidden rounded-lg border border-border/60 transition-all group-hover:border-foreground/40">
-                  <img src={img.src} alt={img.name} className="h-full w-full object-cover transition-transform group-hover:scale-110" />
-                </div>
-                <span className="truncate text-[9px] font-medium text-muted-foreground group-hover:text-foreground">
-                  {img.name}
-                </span>
-              </button>
-            ))}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="gradient" className="mt-6">
-          <div className="grid grid-cols-4 gap-2">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <button key={i} className="aspect-square rounded-md border border-border/60 bg-gradient-to-br from-rose-400 to-emerald-400 transition-transform hover:-translate-y-0.5 cursor-pointer" />
-            ))}
+            {IMAGE_PRESETS.map((src, i) => {
+              const active =
+                background.type === "image" && background.value === src
+              return (
+                <button
+                  key={i}
+                  onClick={() =>
+                    setBackground({ type: "image", value: src })
+                  }
+                  className="group flex flex-col gap-1.5 text-left cursor-pointer"
+                >
+                  <div
+                    className={cn(
+                      "aspect-square overflow-hidden rounded-lg border transition-all",
+                      active
+                        ? "border-foreground/60 ring-1 ring-foreground/30"
+                        : "border-border/60 group-hover:border-foreground/40"
+                    )}
+                  >
+                    <img
+                      src={src}
+                      alt=""
+                      className="h-full w-full object-cover transition-transform group-hover:scale-110"
+                    />
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </TabsContent>
 
-        <TabsContent value="solid" className="mt-6">
-           <div className="grid grid-cols-6 gap-2">
-            {["#000000", "#ffffff", "#f87171", "#fbbf24", "#34d399", "#60a5fa"].map((c) => (
-              <button key={c} className="aspect-square rounded-md border border-border/60 transition-transform hover:-translate-y-0.5 cursor-pointer" style={{ background: c }} />
-            ))}
+        <TabsContent value="gradient" className="mt-6">
+          <div className="grid grid-cols-4 gap-2">
+            {GRADIENT_PRESETS.map((g) => {
+              const active =
+                background.type === "gradient" && background.value === g
+              return (
+                <button
+                  key={g}
+                  onClick={() => setBackground({ type: "gradient", value: g })}
+                  style={{ background: g }}
+                  className={cn(
+                    "aspect-square rounded-md border transition-transform hover:-translate-y-0.5 cursor-pointer",
+                    active
+                      ? "border-foreground ring-1 ring-foreground/40"
+                      : "border-border/60"
+                  )}
+                />
+              )
+            })}
           </div>
+        </TabsContent>
+
+        <TabsContent value="solid" className="mt-6 space-y-3">
+          <div className="grid grid-cols-6 gap-2">
+            {SOLID_PRESETS.map((c) => {
+              const active =
+                background.type === "solid" && background.value === c
+              return (
+                <button
+                  key={c}
+                  onClick={() => setBackground({ type: "solid", value: c })}
+                  style={{ background: c }}
+                  className={cn(
+                    "aspect-square rounded-md border transition-transform hover:-translate-y-0.5 cursor-pointer",
+                    active
+                      ? "border-foreground ring-1 ring-foreground/40"
+                      : "border-border/60"
+                  )}
+                />
+              )
+            })}
+          </div>
+          <label className="flex items-center gap-2 rounded-md border border-border/60 bg-secondary/40 px-2 py-1.5">
+            <span className="text-[11px] text-muted-foreground">Custom</span>
+            <input
+              type="color"
+              value={
+                background.type === "solid" && /^#/.test(background.value)
+                  ? background.value
+                  : "#000000"
+              }
+              onChange={(e) =>
+                setBackground({ type: "solid", value: e.target.value })
+              }
+              className="h-6 w-8 cursor-pointer rounded bg-transparent"
+            />
+            <input
+              type="text"
+              value={background.type === "solid" ? background.value : ""}
+              onChange={(e) =>
+                setBackground({ type: "solid", value: e.target.value })
+              }
+              className="tabular flex-1 bg-transparent font-mono text-[11px] outline-none"
+              placeholder="#000000"
+            />
+          </label>
+        </TabsContent>
+
+        <TabsContent value="none" className="mt-6">
+          <p className="rounded-md border border-dashed border-border/60 bg-secondary/20 px-3 py-4 text-center text-[11px] text-muted-foreground">
+            Transparent background
+          </p>
         </TabsContent>
       </Tabs>
 
@@ -398,9 +308,20 @@ function BackgroundSection() {
       <div>
         <div className="mb-2 flex items-baseline justify-between">
           <span className="text-[11px] text-muted-foreground">Radius</span>
-          <span className="tabular font-mono text-[11px] text-foreground/80">{borderRadius}px</span>
+          <EditableValue
+            value={borderRadius}
+            onChange={setBorderRadius}
+            min={0}
+            max={48}
+            suffix="px"
+          />
         </div>
-        <Slider value={[borderRadius]} onValueChange={([v]) => setBorderRadius(v)} max={48} className="cursor-pointer" />
+        <Slider
+          value={[borderRadius]}
+          onValueChange={([v]) => setBorderRadius(v)}
+          max={48}
+          className="cursor-pointer"
+        />
       </div>
     </div>
   )
@@ -408,8 +329,8 @@ function BackgroundSection() {
 
 function CircularTabTrigger({ value, label, children }: { value: string, label: string, children: React.ReactNode }) {
   return (
-    <TabsTrigger 
-      value={value} 
+    <TabsTrigger
+      value={value}
       className="group flex h-auto flex-col items-center gap-1.5 bg-transparent p-0 data-[state=active]:!bg-transparent data-[state=active]:!shadow-none data-[state=active]:!border-none cursor-pointer"
     >
       <div className={cn(
@@ -425,34 +346,26 @@ function CircularTabTrigger({ value, label, children }: { value: string, label: 
   )
 }
 
-function EffectSlider({ label, value, onChange, max = 100 }: { label: string, value: number, onChange: (v: number) => void, max?: number }) {
-  return (
-    <div>
-      <div className="mb-2 flex items-baseline justify-between">
-        <span className="text-[11px] text-muted-foreground">{label}</span>
-        <span className="tabular font-mono text-[11px] text-foreground/80">{value}{max === 100 ? "%" : ""}</span>
-      </div>
-      <Slider value={[value]} onValueChange={([v]) => onChange(v)} max={max} className="cursor-pointer" />
-    </div>
-  )
-}
-
 /* -------- Padding -------- */
 
 function PaddingSection() {
-  const [inset, setInset] = React.useState(90)
-  const quick = [40, 80, 120, 160]
+  const { padding, setPadding } = useEditor()
+  const quick = [16, 40, 80, 120]
   return (
     <>
       <div className="mb-2 flex items-baseline justify-between">
         <span className="text-[11px] text-muted-foreground">Inset</span>
-        <span className="tabular font-mono text-[11px] text-foreground/80">
-          {inset}px
-        </span>
+        <EditableValue
+          value={padding}
+          onChange={setPadding}
+          min={0}
+          max={240}
+          suffix="px"
+        />
       </div>
       <Slider
-        value={[inset]}
-        onValueChange={([v]) => setInset(v)}
+        value={[padding]}
+        onValueChange={([v]) => setPadding(v)}
         max={240}
         className="mb-3 cursor-pointer"
       />
@@ -460,10 +373,10 @@ function PaddingSection() {
         {quick.map((q) => (
           <button
             key={q}
-            onClick={() => setInset(q)}
+            onClick={() => setPadding(q)}
             className={cn(
               "tabular h-8 rounded-md border font-mono text-[11px] transition-colors cursor-pointer",
-              inset === q
+              padding === q
                 ? "border-primary/30 bg-primary text-white"
                 : "border-border/60 bg-secondary/40 text-foreground/80 hover:border-foreground/25"
             )}
@@ -479,20 +392,33 @@ function PaddingSection() {
 /* -------- Tilt & Scale -------- */
 
 function TiltSection() {
-  const [rx, setRx] = React.useState(6)
-  const [ry, setRy] = React.useState(-10)
-  const [rz, setRz] = React.useState(-2)
-  const [scale, setScale] = React.useState(95)
+  const { tilt, setTilt, scale, setScale } = useEditor()
   return (
     <>
-      <DegreeRow label="Rotate X" value={rx} onChange={setRx} />
-      <DegreeRow label="Rotate Y" value={ry} onChange={setRy} />
-      <DegreeRow label="Rotate Z" value={rz} onChange={setRz} />
+      <DegreeRow
+        label="Rotate X"
+        value={tilt.rx}
+        onChange={(v) => setTilt({ ...tilt, rx: v })}
+      />
+      <DegreeRow
+        label="Rotate Y"
+        value={tilt.ry}
+        onChange={(v) => setTilt({ ...tilt, ry: v })}
+      />
+      <DegreeRow
+        label="Rotate Z"
+        value={tilt.rz}
+        onChange={(v) => setTilt({ ...tilt, rz: v })}
+      />
       <div className="mb-2 flex items-baseline justify-between">
         <span className="text-[11px] text-muted-foreground">Scale</span>
-        <span className="tabular font-mono text-[11px] text-foreground/80">
-          {scale}%
-        </span>
+        <EditableValue
+          value={scale}
+          onChange={setScale}
+          min={10}
+          max={300}
+          suffix="%"
+        />
       </div>
       <Slider
         value={[scale]}
@@ -518,9 +444,13 @@ function DegreeRow({
     <div className="mb-3">
       <div className="mb-2 flex items-baseline justify-between">
         <span className="text-[11px] text-muted-foreground">{label}</span>
-        <span className="tabular font-mono text-[11px] text-foreground/80">
-          {value}°
-        </span>
+        <EditableValue
+          value={value}
+          onChange={onChange}
+          min={-180}
+          max={180}
+          suffix="°"
+        />
       </div>
       <Slider
         value={[value]}
@@ -532,109 +462,3 @@ function DegreeRow({
     </div>
   )
 }
-
-/* -------- Shadow -------- */
-
-function ShadowSection() {
-  const [type, setType] = React.useState("spread")
-  const [intensity, setIntensity] = React.useState(40)
-  const [lightSource, setLightSource] = React.useState("0-0")
-
-  const types = [
-    { id: "none", label: "None", icon: (
-      <div className="size-full rounded-sm bg-background p-1.5">
-         <div className="size-full rounded-sm border-2 border-dashed border-border" />
-      </div>
-    )},
-    { id: "spread", label: "Spread", icon: (
-      <div className="size-full rounded-sm bg-background p-1.5 shadow-[4px_4px_8px_-2px_rgba(0,0,0,0.2)]">
-        <div className="size-full rounded-sm bg-white border border-border/20" />
-      </div>
-    )},
-    { id: "hug", label: "Hug", icon: (
-      <div className="size-full rounded-sm bg-background p-1.5 shadow-[0_0_12px_-2px_rgba(0,0,0,0.3)]">
-        <div className="size-full rounded-sm bg-white border border-border/20" />
-      </div>
-    )},
-  ]
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-2">
-        {types.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setType(t.id)}
-            className={cn(
-              "flex flex-col items-center gap-1.5 rounded-lg border p-1.5 transition-all cursor-pointer",
-              type === t.id 
-                ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20" 
-                : "border-border/60 bg-secondary/20 hover:border-foreground/30"
-            )}
-          >
-            <div className="aspect-square w-full">
-              {t.icon}
-            </div>
-            <span className={cn(
-              "text-[9px] font-medium",
-              type === t.id ? "text-primary" : "text-muted-foreground"
-            )}>{t.label}</span>
-          </button>
-        ))}
-      </div>
-
-      <div>
-        <div className="mb-2 flex items-baseline justify-between">
-          <span className="text-[11px] text-muted-foreground">Intensity</span>
-          <span className="tabular font-mono text-[11px] text-foreground/80">{intensity}%</span>
-        </div>
-        <Slider value={[intensity]} onValueChange={([v]) => setIntensity(v)} max={100} className="cursor-pointer" />
-      </div>
-
-      <div>
-        <SubHeader>Light Source</SubHeader>
-        <div className="mt-2 flex justify-center">
-          <div className="grid grid-cols-5 gap-1.5">
-            {LIGHT_POSITIONS.map((pos) => {
-              const isActive = lightSource === pos.id
-              return (
-                <button
-                  key={pos.id}
-                  onClick={() => setLightSource(pos.id)}
-                  className={cn(
-                    "flex size-8 items-center justify-center rounded-md border transition-all cursor-pointer",
-                    isActive
-                      ? "border-primary bg-primary text-white"
-                      : "border-border/60 bg-secondary/40 text-muted-foreground hover:border-foreground/30"
-                  )}
-                >
-                  {pos.isCenter ? (
-                    <RiFocus3Line className="size-3.5" />
-                  ) : (
-                    <RiArrowRightLine
-                      className="size-3.5"
-                      style={{ transform: `rotate(${pos.angle}deg)` }}
-                    />
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-const LIGHT_POSITIONS = Array.from({ length: 25 }, (_, i) => {
-  const r = Math.floor(i / 5)
-  const c = i % 5
-  const dx = c - 2
-  const dy = r - 2
-  const isCenter = dx === 0 && dy === 0
-  return {
-    id: isCenter ? "center" : `${r}-${c}`,
-    isCenter,
-    angle: isCenter ? 0 : (Math.atan2(dy, dx) * 180) / Math.PI,
-  }
-})

@@ -2,7 +2,10 @@
 
 import * as React from "react"
 
-import { AspectPopover } from "@/components/editor/aspect-popover"
+import {
+  AspectPopover,
+  findAspectOption,
+} from "@/components/editor/aspect-popover"
 import {
   FramePopover,
   type FrameOrientation,
@@ -10,6 +13,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { PRESETS } from "@/lib/editor/types"
+import { useEditor } from "@/lib/editor/store"
 
 export function EffectsSidebar({
   className,
@@ -18,7 +22,8 @@ export function EffectsSidebar({
   className?: string
   stacked?: boolean
 }) {
-  const [aspect, setAspect] = React.useState<string>("16-10")
+  const { aspect, setAspect, background, setBackground } = useEditor()
+
   const [customSize, setCustomSize] = React.useState<{
     w: number
     h: number
@@ -28,7 +33,7 @@ export function EffectsSidebar({
   const [orientation, setOrientation] =
     React.useState<FrameOrientation>("horizontal")
 
-  const [preset, setPreset] = React.useState<string>("paper-tilt")
+  const [preset, setPreset] = React.useState<string>("")
 
   return (
     <aside className={cn("flex h-full min-h-0 w-[268px] shrink-0 flex-col border-r border-dashed border-border/70 bg-sidebar", className)}>
@@ -43,10 +48,22 @@ export function EffectsSidebar({
           <div>
             <SectionHeader>Aspect</SectionHeader>
             <AspectPopover
-              value={aspect}
+              value={aspect.id}
               onChange={(id, custom) => {
-                setAspect(id)
-                setCustomSize(custom ?? null)
+                if (custom) {
+                  setAspect({ id, w: custom.w, h: custom.h })
+                  setCustomSize(custom)
+                  return
+                }
+                const opt = findAspectOption(id)
+                if (opt) {
+                  setAspect({
+                    id,
+                    w: opt.w || 1920,
+                    h: opt.h || 1200,
+                  })
+                  setCustomSize(null)
+                }
               }}
             />
             {customSize ? (
@@ -98,11 +115,15 @@ export function EffectsSidebar({
             )}
           >
             {PRESETS.map((p) => {
-              const isActive = preset === p.id
+              const isActive =
+                preset === p.id && background.value === p.preview
               return (
                 <li key={p.id}>
                   <button
-                    onClick={() => setPreset(p.id)}
+                    onClick={() => {
+                      setPreset(p.id)
+                      setBackground({ type: "gradient", value: p.preview })
+                    }}
                     className="group block w-full text-left"
                   >
                     <div

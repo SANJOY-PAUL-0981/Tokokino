@@ -191,6 +191,10 @@ const SECTIONS: AspectSection[] = [
 
 const ALL_OPTIONS = SECTIONS.flatMap((s) => s.options)
 
+export function findAspectOption(id: string) {
+  return ALL_OPTIONS.find((o) => o.id === id)
+}
+
 export function AspectPopover({
   value,
   onChange,
