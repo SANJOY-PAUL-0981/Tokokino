@@ -7,7 +7,15 @@ import { toast } from "sonner"
 
 import { CornerMarkers } from "@/components/editor/corner-marker"
 import { cn } from "@/lib/utils"
-import { backgroundCss, useEditor } from "@/lib/editor/store"
+import {
+  backgroundCss,
+  effectsFilterCss,
+  patternCssFor,
+  useEditor,
+} from "@/lib/editor/store"
+
+const NOISE_DATA_URL =
+  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.85'/></svg>\")"
 
 export function Canvas() {
   const {
@@ -16,11 +24,17 @@ export function Canvas() {
     background,
     padding,
     borderRadius,
+    border,
+    backdrop,
     tilt,
     scale,
     setScreenshot,
   } = useEditor()
   const [isDragOver, setIsDragOver] = React.useState(false)
+  const [naturalDims, setNaturalDims] = React.useState<{
+    w: number
+    h: number
+  } | null>(null)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   const readFile = React.useCallback(
@@ -31,14 +45,16 @@ export function Canvas() {
       }
       const reader = new FileReader()
       reader.onload = () => {
-        if (typeof reader.result === "string") setScreenshot(reader.result)
+        if (typeof reader.result === "string") {
+          setScreenshot(reader.result)
+          setNaturalDims(null)
+        }
       }
       reader.readAsDataURL(file)
     },
     [setScreenshot]
   )
 
-  // Paste from clipboard
   React.useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items
@@ -58,7 +74,11 @@ export function Canvas() {
     return () => window.removeEventListener("paste", onPaste)
   }, [readFile])
 
-  const aspectRatio = `${aspect.w || 16} / ${aspect.h || 10}`
+  const isAuto = aspect.id === "auto" || aspect.w === 0 || aspect.h === 0
+  const autoDims = isAuto && naturalDims ? naturalDims : null
+  const aw = autoDims ? autoDims.w : aspect.w || 16
+  const ah = autoDims ? autoDims.h : aspect.h || 10
+  const aspectRatio = `${aw} / ${ah}`
 
   const transform = [
     `perspective(1400px)`,
@@ -67,6 +87,20 @@ export function Canvas() {
     `rotateZ(${tilt.rz}deg)`,
     `scale(${scale / 100})`,
   ].join(" ")
+
+  const imgStyle: React.CSSProperties = {
+    borderRadius,
+    transform,
+    transformStyle: "preserve-3d",
+  }
+  if (border.color && border.width > 0) {
+    imgStyle.outline = `${border.width}px solid ${border.color}`
+    imgStyle.outlineOffset = "0px"
+  }
+
+  const effectsFilter = effectsFilterCss(backdrop.effects)
+  const noiseEnabled = backdrop.effects.noise > 0
+  const noiseOpacity = noiseEnabled ? backdrop.effects.noise / 100 : 0
 
   return (
     <section className="relative flex flex-1 items-center justify-center border-b border-dashed border-border/70 bg-background px-4 py-4 sm:px-8 dark:bg-black">
@@ -87,10 +121,10 @@ export function Canvas() {
         initial={{ opacity: 0, scale: 0.985, y: 6 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        style={{ aspectRatio, ...backgroundCss(background) }}
+        style={{ aspectRatio }}
         className={cn(
           "relative flex w-full max-w-[1100px] items-center justify-center overflow-hidden rounded-2xl ring-1 ring-border/60",
-          aspect.h > aspect.w && "max-w-[min(70vh,720px)]"
+          ah > aw && "max-w-[min(70vh,720px)]"
         )}
         onDragOver={(e) => {
           e.preventDefault()
@@ -104,6 +138,46 @@ export function Canvas() {
           if (file) readFile(file)
         }}
       >
+        {/* Background layer — receives filter effects */}
+        <div
+          aria-hidden
+          className={cn(
+            "absolute inset-0",
+            background.type === "none" && "bg-transparency-checker"
+          )}
+          style={{
+            ...backgroundCss(background),
+            filter: effectsFilter,
+          }}
+        />
+
+        {/* Pattern overlays */}
+        {backdrop.pattern.ids.map((id) => (
+          <div
+            key={id}
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              ...patternCssFor(
+                id,
+                backdrop.pattern.color,
+                backdrop.pattern.thickness
+              ),
+              opacity: backdrop.pattern.intensity / 100,
+            }}
+          />
+        ))}
+
+        {/* Noise overlay */}
+        {noiseEnabled ? (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 mix-blend-overlay"
+            style={{ backgroundImage: NOISE_DATA_URL, opacity: noiseOpacity }}
+          />
+        ) : null}
+
+        {/* Content */}
         <div
           className="relative flex h-full w-full items-center justify-center"
           style={{ padding }}
@@ -112,11 +186,14 @@ export function Canvas() {
             <img
               src={screenshot}
               alt="Screenshot"
-              style={{
-                borderRadius,
-                transform,
-                transformStyle: "preserve-3d",
+              onLoad={(e) => {
+                const el = e.currentTarget
+                setNaturalDims({
+                  w: el.naturalWidth,
+                  h: el.naturalHeight,
+                })
               }}
+              style={imgStyle}
               className="max-h-full max-w-full object-contain shadow-2xl transition-transform"
             />
           ) : (

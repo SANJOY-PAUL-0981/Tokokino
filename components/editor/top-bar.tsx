@@ -316,7 +316,12 @@ function MobileOverflowMenu() {
           <RiSaveLine />
           Save
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => toast("Reset to defaults")}>
+        <DropdownMenuItem
+          onClick={() => {
+            reset()
+            toast("Reset to defaults")
+          }}
+        >
           <RiRefreshLine />
           Reset
         </DropdownMenuItem>
@@ -329,11 +334,11 @@ function MobileOverflowMenu() {
         <DropdownMenuLabel className="label-eyebrow !px-2 !py-1.5">
           History
         </DropdownMenuLabel>
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={undo} disabled={!canUndo}>
           <RiArrowGoBackLine />
           Undo
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={redo} disabled={!canRedo}>
           <RiArrowGoForwardLine />
           Redo
         </DropdownMenuItem>
@@ -359,19 +364,27 @@ function IconAction({
   label,
   icon: Icon,
   shortcut,
+  onClick,
+  disabled,
 }: {
   label: string
   icon: React.ComponentType<{ className?: string }>
   shortcut?: string
+  onClick?: () => void
+  disabled?: boolean
 }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <button
           aria-label={label}
+          aria-disabled={disabled || undefined}
+          onClick={disabled ? undefined : onClick}
           className={cn(
             "inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors",
-            "hover:bg-accent hover:text-foreground"
+            "hover:bg-accent hover:text-foreground",
+            disabled &&
+              "cursor-not-allowed opacity-40 hover:bg-transparent hover:text-muted-foreground"
           )}
         >
           <Icon className="size-3.5" />

@@ -57,11 +57,7 @@ export function EffectsSidebar({
                 }
                 const opt = findAspectOption(id)
                 if (opt) {
-                  setAspect({
-                    id,
-                    w: opt.w || 1920,
-                    h: opt.h || 1200,
-                  })
+                  setAspect({ id, w: opt.w, h: opt.h })
                   setCustomSize(null)
                 }
               }}
