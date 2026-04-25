@@ -1790,12 +1790,54 @@ const BORDER_PRESETS = [
 const DEFAULT_BORDER_COLOR = BORDER_PRESETS[0]
 
 function BorderSection() {
-  const { border, setBorder, borderRadius, setBorderRadius } = useEditor()
+  const { border, setBorder, borderRadius, setBorderRadius, background, screenshot } = useEditor()
   const enabled = border.color !== null
   const currentColor = border.color || DEFAULT_BORDER_COLOR
+
+  const [dynamicColors, setDynamicColors] = React.useState<string[]>([])
+
+  React.useEffect(() => {
+    let active = true
+    async function loadColors() {
+      let url = null
+      if (background.type === "image") {
+        url = background.value
+      } else if (screenshot) {
+        url = screenshot
+      }
+
+      if (url) {
+        try {
+          const colors = await sampleImageColorsRaw(url, 4)
+          if (active) setDynamicColors(colors)
+        } catch {
+          if (active) setDynamicColors([])
+        }
+      } else if (background.type === "gradient" || background.type === "solid") {
+        const matches = background.value.match(/#[0-9a-fA-F]{3,8}/g) ?? []
+        if (active) setDynamicColors(matches.slice(0, 4))
+      } else {
+        if (active) setDynamicColors([])
+      }
+    }
+    loadColors()
+    return () => {
+      active = false
+    }
+  }, [background, screenshot])
+
+  const presets = dynamicColors.length > 0
+    ? ["#ffffff", "#0f172a", ...dynamicColors]
+    : [...BORDER_PRESETS]
+
+  while (presets.length < 6) {
+    presets.push(BORDER_PRESETS[presets.length])
+  }
+  const finalPresets = presets.slice(0, 6)
+
   const isCustom =
     enabled &&
-    !BORDER_PRESETS.some((c) => c.toLowerCase() === currentColor.toLowerCase())
+    !finalPresets.some((c) => c.toLowerCase() === currentColor.toLowerCase())
 
   const thumbBg = "bg-[#d1d5db]"
   
@@ -1911,12 +1953,13 @@ function BorderSection() {
         </div>
         <SubHeader>Color</SubHeader>
         <div className="grid grid-cols-3 gap-2 px-1 py-1">
-          {BORDER_PRESETS.map((c) => {
+          {finalPresets.map((c, i) => {
             const active =
               enabled && currentColor.toLowerCase() === c.toLowerCase()
             return (
               <div key={c} className="relative">
                 <button
+                  key={c + i}
                   onClick={() => setBorder({ ...border, color: c })}
                   className={cn(
                     "aspect-square w-full overflow-hidden rounded-xl border cursor-pointer",

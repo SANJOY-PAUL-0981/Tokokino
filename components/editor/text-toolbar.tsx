@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/tooltip"
 import {
   FONT_FAMILIES,
+  sampleImageColorsRaw,
   type BorderStyle,
   type TextAlign,
   type TextElement,
