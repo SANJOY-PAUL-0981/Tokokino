@@ -447,8 +447,15 @@ export function Canvas() {
                   if (activeTool !== "pointer") return
                   e.stopPropagation()
                   setIsScreenshotSelected(true)
+                  setSelectedTextId(null)
                 }}
-                onPointerDown={startScreenshotDrag}
+                onPointerDown={(e) => {
+                  if (document.activeElement instanceof HTMLElement) {
+                    document.activeElement.blur()
+                  }
+                  setSelectedTextId(null)
+                  startScreenshotDrag(e)
+                }}
                 onPointerMove={moveScreenshot}
                 onPointerUp={stopScreenshotDrag}
                 onPointerCancel={stopScreenshotDrag}
@@ -474,8 +481,8 @@ export function Canvas() {
                 )}
               />
               
-              {/* Hover Actions — tracks image center */}
-              {activeTool === "pointer" && placementDims && (
+              {/* Hover Actions — tracks image center, hidden during text editing */}
+              {activeTool === "pointer" && placementDims && !selectedTextId && (
                 <div
                   className={cn(
                     "pointer-events-none absolute z-50 flex items-center justify-center gap-3 opacity-0 transition-opacity group-hover/screenshot:opacity-100",

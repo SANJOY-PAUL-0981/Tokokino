@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/tooltip"
 import {
   type EditorTool,
-  pickContrastColor,
   SCREENSHOT_POSITIONS,
   type ScreenshotPosition,
   useEditor,
@@ -43,7 +42,6 @@ export function FloatingToolbar() {
     setScreenshotPosition,
     addText,
     setSelectedTextId,
-    updateText,
     screenshot,
     background,
   } = useEditor()
@@ -53,11 +51,7 @@ export function FloatingToolbar() {
       const newId = addText()
       setSelectedTextId(newId)
       setActiveTool("pointer")
-      pickContrastColor(screenshot, background)
-        .then((color) => updateText(newId, { color }))
-        .catch(() => {
-          /* ignore — keep default color */
-        })
+      // Color auto-detection is handled by TextElementView's mount effect
       return
     }
     setActiveTool(id)

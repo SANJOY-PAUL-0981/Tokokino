@@ -81,16 +81,28 @@ export type TextElement = {
 }
 
 export const FONT_FAMILIES: { id: string; label: string; css: string }[] = [
-  { id: "inter", label: "Inter", css: "Inter, sans-serif" },
-  { id: "geist", label: "Geist", css: "Geist, ui-sans-serif, sans-serif" },
-  { id: "system", label: "System", css: "system-ui, sans-serif" },
-  { id: "serif", label: "Serif", css: "Georgia, 'Times New Roman', serif" },
+  { id: "inter", label: "Inter", css: "var(--font-inter), Inter, sans-serif" },
+  { id: "geist", label: "Geist", css: "var(--font-sans), Geist, ui-sans-serif, sans-serif" },
+  { id: "poppins", label: "Poppins", css: "var(--font-poppins), sans-serif" },
+  { id: "roboto", label: "Roboto", css: "var(--font-roboto), sans-serif" },
+  { id: "outfit", label: "Outfit", css: "var(--font-outfit), sans-serif" },
+  { id: "space-grotesk", label: "Space Grotesk", css: "var(--font-space-grotesk), sans-serif" },
+  { id: "nunito", label: "Nunito", css: "var(--font-nunito), sans-serif" },
+  { id: "raleway", label: "Raleway", css: "var(--font-raleway), sans-serif" },
+  { id: "oswald", label: "Oswald", css: "var(--font-oswald), sans-serif" },
+  { id: "playfair", label: "Playfair", css: "var(--font-playfair), serif" },
+  { id: "lora", label: "Lora", css: "var(--font-lora), serif" },
+  { id: "serif", label: "System Serif", css: "Georgia, 'Times New Roman', serif" },
+  { id: "dancing-script", label: "Dancing Script", css: "var(--font-dancing-script), cursive" },
+  { id: "caveat", label: "Caveat", css: "var(--font-caveat), cursive" },
   {
     id: "mono",
     label: "Mono",
-    css: "ui-monospace, 'JetBrains Mono', 'Courier New', monospace",
+    css: "var(--font-mono), ui-monospace, 'JetBrains Mono', 'Courier New', monospace",
   },
+  { id: "fira-code", label: "Fira Code", css: "var(--font-fira-code), monospace" },
   { id: "rounded", label: "Rounded", css: "'SF Pro Rounded', Inter, sans-serif" },
+  { id: "system", label: "System", css: "system-ui, sans-serif" },
 ]
 
 export type EditorTool =
@@ -485,7 +497,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
                 id,
                 content: "Double-click to edit",
                 xPct: 50,
-                yPct: 50,
+                yPct: 85,
                 rotation: 0,
                 fontSize: 18,
                 fontFamily: FONT_FAMILIES[0].css,
@@ -1034,31 +1046,124 @@ export async function pickContrastColor(
   screenshot: string | null,
   background: Background
 ): Promise<string> {
+  // Fallback: prioritize background luminance for text contrast.
   let lum: number | null = null
-  if (screenshot) {
+  if (background.type === "solid") {
+    lum = hexLuminance(background.value)
+  } else if (background.type === "gradient") {
+    const matches = background.value.match(/#[0-9a-fA-F]{3,8}/g) ?? []
+    if (matches.length) {
+      lum =
+        matches.reduce((s, h) => s + hexLuminance(h), 0) / matches.length
+    }
+  } else if (background.type === "image") {
+    try {
+      lum = await imageAverageLuminance(background.value)
+    } catch {
+      /* ignore */
+    }
+  }
+  if (lum === null && screenshot) {
     try {
       lum = await imageAverageLuminance(screenshot)
     } catch {
       /* ignore */
     }
   }
-  if (lum === null) {
-    if (background.type === "solid") {
-      lum = hexLuminance(background.value)
-    } else if (background.type === "gradient") {
-      const matches = background.value.match(/#[0-9a-fA-F]{3,8}/g) ?? []
-      if (matches.length) {
-        lum =
-          matches.reduce((s, h) => s + hexLuminance(h), 0) / matches.length
-      }
-    } else if (background.type === "image") {
-      try {
-        lum = await imageAverageLuminance(background.value)
-      } catch {
-        /* ignore */
-      }
-    }
-  }
   if (lum === null) return "#ffffff"
   return lum > 0.5 ? "#000000" : "#ffffff"
 }
+
+/**
+ * Sample image luminance at a specific region (relX, relY in 0–1 range).
+ * Samples a small area around the point for a reliable reading.
+ */
+async function sampleImageLuminanceAtPoint(
+  url: string,
+  relX: number,
+  relY: number,
+  radius = 20
+): Promise<number> {
+  return new Promise<number>((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+    img.onload = () => {
+      try {
+        const cx = Math.round(relX * img.naturalWidth)
+        const cy = Math.round(relY * img.naturalHeight)
+        const sx = Math.max(0, cx - radius)
+        const sy = Math.max(0, cy - radius)
+        const sw = Math.min(radius * 2, img.naturalWidth - sx)
+        const sh = Math.min(radius * 2, img.naturalHeight - sy)
+        const canvas = document.createElement("canvas")
+        canvas.width = sw
+        canvas.height = sh
+        const ctx = canvas.getContext("2d")
+        if (!ctx) return reject(new Error("no ctx"))
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh)
+        const { data } = ctx.getImageData(0, 0, sw, sh)
+        let sum = 0
+        let count = 0
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i + 3] < 128) continue
+          sum += relativeLuminance(data[i], data[i + 1], data[i + 2])
+          count++
+        }
+        resolve(count ? sum / count : 0.5)
+      } catch (err) {
+        reject(err)
+      }
+    }
+    img.onerror = () => reject(new Error("image load failed"))
+    img.src = url
+  })
+}
+
+/**
+ * Position-aware contrast color picker.
+ * Uses `elementsFromPoint` to detect whether the text sits over the screenshot
+ * or the background, then samples the correct source at that exact region.
+ */
+export async function pickContrastColorAtPosition(
+  canvasEl: HTMLElement | null,
+  xPct: number,
+  yPct: number,
+  screenshot: string | null,
+  background: Background
+): Promise<string> {
+  if (canvasEl) {
+    const rect = canvasEl.getBoundingClientRect()
+    const clientX = rect.left + (xPct / 100) * rect.width
+    const clientY = rect.top + (yPct / 100) * rect.height
+
+    // Find all elements stacked at this point (topmost first)
+    const elements = document.elementsFromPoint(clientX, clientY)
+    const imgEl = elements.find(
+      (el) =>
+        el instanceof HTMLImageElement &&
+        el.getAttribute("alt") === "Screenshot"
+    ) as HTMLImageElement | undefined
+
+    if (imgEl && screenshot) {
+      const imgRect = imgEl.getBoundingClientRect()
+      const relX = Math.max(
+        0,
+        Math.min(1, (clientX - imgRect.left) / imgRect.width)
+      )
+      const relY = Math.max(
+        0,
+        Math.min(1, (clientY - imgRect.top) / imgRect.height)
+      )
+      try {
+        const lum = await sampleImageLuminanceAtPoint(screenshot, relX, relY)
+        return lum > 0.5 ? "#000000" : "#ffffff"
+      } catch {
+        // fall through to background
+      }
+    }
+  }
+
+  // Not over screenshot or no canvas — fall back to background-based detection
+  return pickContrastColor(null, background)
+}
+

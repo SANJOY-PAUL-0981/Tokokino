@@ -4,7 +4,7 @@ import * as React from "react"
 import { RiRefreshLine } from "@remixicon/react"
 
 import { TextToolbar } from "@/components/editor/text-toolbar"
-import { type TextElement, pickContrastColor, useEditor } from "@/lib/editor/store"
+import { type TextElement, pickContrastColorAtPosition, useEditor } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
 
 type Props = {
@@ -59,6 +59,7 @@ export function TextElementView({ text, canvasRef }: Props) {
   const isSelected = selectedTextId === text.id
   const [editingRequested, setEditingRequested] = React.useState(false)
   const [isDragging, setIsDragging] = React.useState(false)
+  const [isRotateSnapped, setIsRotateSnapped] = React.useState(false)
   const isEditing = isSelected && editingRequested
   const elRef = React.useRef<HTMLDivElement>(null)
   const editorRef = React.useRef<HTMLDivElement>(null)
@@ -102,6 +103,25 @@ export function TextElementView({ text, canvasRef }: Props) {
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
   }, [isSelected, isEditing, text.id, deleteText, setSelectedTextId])
+
+  // Auto-detect contrast color on mount (for newly added text) and when
+  // background changes, as long as user hasn't manually chosen a color.
+  React.useEffect(() => {
+    if (!text.autoColor) return
+    const canvas = canvasRef.current
+    // Small delay to ensure DOM is laid out for elementsFromPoint
+    const timer = setTimeout(() => {
+      pickContrastColorAtPosition(canvas, text.xPct, text.yPct, screenshot, background)
+        .then((color) => {
+          if (color !== text.color) {
+            updateText(text.id, { color, autoColor: true })
+          }
+        })
+        .catch(() => { /* ignore */ })
+    }, 50)
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [background, screenshot])
 
   /* ---- Drag (move) ---- */
 
@@ -175,9 +195,10 @@ export function TextElementView({ text, canvasRef }: Props) {
           xPct: clamp(x, -20, 120),
           yPct: clamp(y, -20, 120),
         })
-        // Auto-detect contrast color if user hasn't manually set one
+        // Auto-detect contrast color based on what's beneath the text
         if (t.autoColor !== false) {
-          pickContrastColor(screenshot, background)
+          const canvas = canvasRef.current
+          pickContrastColorAtPosition(canvas, clamp(x, -20, 120), clamp(y, -20, 120), screenshot, background)
             .then((color) => updateText(t.id, { color, autoColor: true }))
             .catch(() => { /* ignore */ })
         }
@@ -185,7 +206,7 @@ export function TextElementView({ text, canvasRef }: Props) {
     }
     dragRef.current = null
     setIsDragging(false)
-  }, [updateText, screenshot, background])
+  }, [updateText, screenshot, background, canvasRef])
 
   /* ---- Rotate ---- */
 
@@ -213,14 +234,30 @@ export function TextElementView({ text, canvasRef }: Props) {
     const angle = Math.atan2(e.clientY - rot.centerY, e.clientX - rot.centerX)
     const delta = ((angle - rot.startAngle) * 180) / Math.PI
     let next = rot.startRotation + delta
-    if (e.shiftKey) next = Math.round(next / 15) * 15
-    updateText(textRef.current.id, { rotation: ((next % 360) + 360) % 360 })
+    
+    next = ((next % 360) + 360) % 360
+    let snapped = false
+
+    if (e.shiftKey) {
+      next = Math.round(next / 15) * 15
+      if (next % 90 === 0) snapped = true
+    } else {
+      const nearest90 = Math.round(next / 90) * 90
+      if (Math.abs(next - nearest90) < 4 || Math.abs(next - nearest90 + 360) < 4) {
+        next = nearest90 % 360
+        snapped = true
+      }
+    }
+
+    setIsRotateSnapped(snapped)
+    updateText(textRef.current.id, { rotation: next })
   }, [updateText])
 
   const endRotate = React.useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
     const rot = rotateRef.current
     if (!rot || rot.pointerId !== e.pointerId) return
     rotateRef.current = null
+    setIsRotateSnapped(false)
   }, [])
 
   /* ---- Resize ---- */
@@ -457,6 +494,14 @@ export function TextElementView({ text, canvasRef }: Props) {
     >
       {isSelected && !isEditing ? (
         <>
+          {/* Snapping Guidelines */}
+          {isRotateSnapped && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-[-1] flex items-center justify-center">
+              <div className="absolute w-[4000px] border-t border-dashed border-[#9BCD64]/95" />
+              <div className="absolute h-[4000px] border-l border-dashed border-[#9BCD64]/95" />
+            </div>
+          )}
+
           {/* Toolbar */}
           <div
             className="absolute bottom-full left-1/2 z-10 mb-3"
