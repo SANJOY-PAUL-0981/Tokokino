@@ -18,7 +18,12 @@ export type BackdropEffects = {
   noise: number
   blur: number
   brightness: number
+  contrast: number
   saturation: number
+  hue: number
+  grayscale: number
+  sepia: number
+  invert: number
   opacity: number
 }
 
@@ -51,9 +56,74 @@ export type Overlay = {
   position: OverlayPosition
 }
 
+export type EditorTool =
+  | "pointer"
+  | "crop"
+  | "text"
+  | "arrow"
+  | "position"
+  | "layers"
+  | "enhance"
+
+export type ScreenshotPosition =
+  | "center"
+  | "0-0"
+  | "0-1"
+  | "0-2"
+  | "0-3"
+  | "0-4"
+  | "1-0"
+  | "1-1"
+  | "1-2"
+  | "1-3"
+  | "1-4"
+  | "2-0"
+  | "2-1"
+  | "2-3"
+  | "2-4"
+  | "3-0"
+  | "3-1"
+  | "3-2"
+  | "3-3"
+  | "3-4"
+  | "4-0"
+  | "4-1"
+  | "4-2"
+  | "4-3"
+  | "4-4"
+
+export const SCREENSHOT_POSITIONS = Array.from({ length: 25 }, (_, i) => {
+  const row = Math.floor(i / 5)
+  const col = i % 5
+  const dx = col - 2
+  const dy = row - 2
+  const isCenter = dx === 0 && dy === 0
+  return {
+    id: (isCenter ? "center" : `${row}-${col}`) as ScreenshotPosition,
+    isCenter,
+    row,
+    col,
+    angle: isCenter ? 0 : (Math.atan2(dy, dx) * 180) / Math.PI,
+  }
+})
+
+export function screenshotPositionAnchor(position: ScreenshotPosition): {
+  x: number
+  y: number
+} {
+  if (position === "center") return { x: 50, y: 50 }
+  const [row, col] = position.split("-").map(Number)
+  if (!Number.isFinite(row) || !Number.isFinite(col)) return { x: 50, y: 50 }
+  return {
+    x: Math.max(0, Math.min(4, col)) * 25,
+    y: Math.max(0, Math.min(4, row)) * 25,
+  }
+}
+
 export const OVERLAY_COUNT = 100
 
 export type EditorState = {
+  activeTool: EditorTool
   screenshot: string | null
   aspect: AspectState
   background: Background
@@ -64,6 +134,9 @@ export type EditorState = {
   backdrop: Backdrop
   tilt: Tilt
   scale: number
+  canvasZoom: number
+  screenshotPosition: ScreenshotPosition
+  screenshotOffset: { x: number; y: number }
   shadow: Shadow
   overlay: Overlay
 }
@@ -129,11 +202,12 @@ export const DEFAULT_IMAGE_BACKGROUND =
   BACKGROUND_LIBRARY[0]?.items[0]?.full ?? ""
 
 const DEFAULT_STATE: EditorState = {
+  activeTool: "pointer",
   screenshot: null,
   aspect: { id: "16-10", w: 1920, h: 1200 },
   background: {
-    type: "gradient",
-    value: GRADIENT_PRESETS[2],
+    type: "image",
+    value: DEFAULT_IMAGE_BACKGROUND,
   },
   padding: 96,
   borderRadius: 12,
@@ -143,7 +217,12 @@ const DEFAULT_STATE: EditorState = {
       noise: 0,
       blur: 0,
       brightness: 100,
+      contrast: 100,
       saturation: 100,
+      hue: 0,
+      grayscale: 0,
+      sepia: 0,
+      invert: 0,
       opacity: 100,
     },
     pattern: {
@@ -155,6 +234,9 @@ const DEFAULT_STATE: EditorState = {
   },
   tilt: { rx: 0, ry: 0, rz: 0 },
   scale: 100,
+  canvasZoom: 100,
+  screenshotPosition: "center",
+  screenshotOffset: { x: 0, y: 0 },
   shadow: {
     type: "drop",
     intensity: 40,
@@ -248,6 +330,7 @@ function reducer(state: HistoryState, action: Action): HistoryState {
 }
 
 type Ctx = EditorState & {
+  setActiveTool: (t: EditorTool) => void
   setScreenshot: (s: string | null) => void
   setAspect: (a: AspectState) => void
   setBackground: (b: Background) => void
@@ -259,6 +342,9 @@ type Ctx = EditorState & {
   setBackdropPattern: (p: BackdropPattern) => void
   setTilt: (t: Tilt) => void
   setScale: (n: number) => void
+  setCanvasZoom: (n: number) => void
+  setScreenshotPosition: (p: ScreenshotPosition) => void
+  setScreenshotOffset: (o: { x: number; y: number }) => void
   setShadow: (s: Shadow) => void
   setOverlay: (o: Overlay) => void
   reset: () => void
@@ -284,7 +370,16 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: "SET", patch, group })
     return {
       ...state.present,
-      setScreenshot: (s) => set({ screenshot: s }, null),
+      setActiveTool: (t) => set({ activeTool: t }, null),
+      setScreenshot: (s) =>
+        set(
+          {
+            screenshot: s,
+            screenshotPosition: "center",
+            screenshotOffset: { x: 0, y: 0 },
+          },
+          null
+        ),
       setAspect: (a) => set({ aspect: a }, "aspect"),
       setBackground: (b) => set({ background: b }, "background"),
       setPadding: (n) => set({ padding: n }, "padding"),
@@ -304,6 +399,13 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
         ),
       setTilt: (t) => set({ tilt: t }, "tilt"),
       setScale: (n) => set({ scale: n }, "scale"),
+      setCanvasZoom: (n) => set({ canvasZoom: n }, "canvasZoom"),
+      setScreenshotPosition: (p) =>
+        set(
+          { screenshotPosition: p, screenshotOffset: { x: 0, y: 0 } },
+          "screenshotPosition"
+        ),
+      setScreenshotOffset: (o) => set({ screenshotOffset: o }, "screenshotOffset"),
       setShadow: (s) => set({ shadow: s }, "shadow"),
       setOverlay: (o) => set({ overlay: o }, "overlay"),
       reset: () => dispatch({ type: "RESET" }),
@@ -441,7 +543,12 @@ export function effectsFilterCss(e: BackdropEffects): string | undefined {
   const parts: string[] = []
   if (e.blur > 0) parts.push(`blur(${e.blur}px)`)
   if (e.brightness !== 100) parts.push(`brightness(${e.brightness}%)`)
+  if (e.contrast !== 100) parts.push(`contrast(${e.contrast}%)`)
   if (e.saturation !== 100) parts.push(`saturate(${e.saturation}%)`)
+  if (e.hue !== 0) parts.push(`hue-rotate(${e.hue}deg)`)
+  if (e.grayscale > 0) parts.push(`grayscale(${e.grayscale}%)`)
+  if (e.sepia > 0) parts.push(`sepia(${e.sepia}%)`)
+  if (e.invert > 0) parts.push(`invert(${e.invert}%)`)
   if (e.opacity !== 100) parts.push(`opacity(${e.opacity}%)`)
   return parts.length ? parts.join(" ") : undefined
 }

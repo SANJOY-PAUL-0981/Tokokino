@@ -2,14 +2,8 @@
 
 import * as React from "react"
 import {
-  RiArrowDownLine,
-  RiArrowLeftDownLine,
-  RiArrowLeftLine,
-  RiArrowLeftUpLine,
-  RiArrowRightDownLine,
   RiArrowRightLine,
   RiArrowRightUpLine,
-  RiArrowUpLine,
   RiCrop2Line,
   RiCursorLine,
   RiDragMove2Line,
@@ -31,17 +25,26 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  type EditorTool,
+  SCREENSHOT_POSITIONS,
+  type ScreenshotPosition,
+  useEditor,
+} from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
 
-type Tool = "pointer" | "crop" | "text" | "arrow" | "position" | "layers" | "enhance"
-
 export function FloatingToolbar() {
-  const [active, setActive] = React.useState<Tool>("pointer")
-  const [zoom, setZoom] = React.useState(100)
-  const [position, setPosition] = React.useState("center")
+  const {
+    activeTool,
+    setActiveTool,
+    canvasZoom,
+    setCanvasZoom,
+    screenshotPosition,
+    setScreenshotPosition,
+  } = useEditor()
 
   const items: {
-    id: Tool
+    id: EditorTool
     label: string
     icon: React.ComponentType<{ className?: string }>
   }[] = [
@@ -58,7 +61,7 @@ export function FloatingToolbar() {
     <div className="pointer-events-none absolute bottom-4 left-1/2 w-full max-w-[calc(100vw-1.5rem)] -translate-x-1/2 px-3 sm:w-auto sm:px-0">
       <div className="pointer-events-auto flex items-center gap-0.5 overflow-x-auto rounded-xl border border-border/70 bg-popover/90 p-1 shadow-lg backdrop-blur-md [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((it) => {
-          const isActive = active === it.id
+          const isActive = activeTool === it.id
           const Icon = it.icon
 
           if (it.id === "layers") {
@@ -66,7 +69,7 @@ export function FloatingToolbar() {
               <Popover key={it.id}>
                 <PopoverTrigger asChild>
                   <button
-                    onClick={() => setActive(it.id)}
+                    onClick={() => setActiveTool(it.id)}
                     aria-label={it.label}
                     className={cn(
                       "inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer",
@@ -93,7 +96,7 @@ export function FloatingToolbar() {
               <Popover key={it.id}>
                 <PopoverTrigger asChild>
                   <button
-                    onClick={() => setActive(it.id)}
+                    onClick={() => setActiveTool(it.id)}
                     aria-label={it.label}
                     className={cn(
                       "inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer",
@@ -107,23 +110,33 @@ export function FloatingToolbar() {
                   side="top"
                   align="center"
                   sideOffset={10}
-                  className="w-40 p-3 border-border/60 bg-popover/95 backdrop-blur-md"
+                  className="w-52 p-3 border-border/60 bg-popover/95 backdrop-blur-md"
                 >
                   <div className="flex flex-col gap-2">
                     <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Position</span>
-                    <div className="grid grid-cols-3 gap-1">
-                      {POSITION_ITEMS.map((pos) => (
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {SCREENSHOT_POSITIONS.map((pos) => (
                         <button
                           key={pos.id}
-                          onClick={() => setPosition(pos.id)}
+                          onClick={() =>
+                            setScreenshotPosition(pos.id as ScreenshotPosition)
+                          }
+                          aria-label={`Move screenshot to ${positionLabel(pos.id)}`}
                           className={cn(
-                            "flex aspect-square items-center justify-center rounded-md border transition-all cursor-pointer",
-                            position === pos.id
+                            "flex size-8 items-center justify-center rounded-md border transition-all cursor-pointer",
+                            screenshotPosition === pos.id
                               ? "border-primary bg-primary text-white"
                               : "border-border/60 bg-secondary/40 text-muted-foreground hover:border-foreground/30"
                           )}
                         >
-                          <pos.icon className="size-3.5" />
+                          {pos.isCenter ? (
+                            <RiFocus3Line className="size-3.5" />
+                          ) : (
+                            <RiArrowRightLine
+                              className="size-3.5"
+                              style={{ transform: `rotate(${pos.angle}deg)` }}
+                            />
+                          )}
                         </button>
                       ))}
                     </div>
@@ -137,7 +150,7 @@ export function FloatingToolbar() {
             <Tooltip key={it.id}>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => setActive(it.id)}
+                  onClick={() => setActiveTool(it.id)}
                   aria-label={it.label}
                   className={cn(
                     "inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer",
@@ -158,7 +171,7 @@ export function FloatingToolbar() {
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              onClick={() => setZoom((z) => Math.max(25, z - 10))}
+              onClick={() => setCanvasZoom(Math.max(25, canvasZoom - 10))}
               aria-label="Zoom out"
               className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer"
             >
@@ -169,16 +182,16 @@ export function FloatingToolbar() {
         </Tooltip>
 
         <button
-          onClick={() => setZoom(100)}
+          onClick={() => setCanvasZoom(100)}
           className="tabular min-w-[3.25rem] rounded-md px-1 py-1.5 font-mono text-[11px] text-foreground/85 hover:bg-accent cursor-pointer"
         >
-          {zoom}%
+          {canvasZoom}%
         </button>
 
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              onClick={() => setZoom((z) => Math.min(400, z + 10))}
+              onClick={() => setCanvasZoom(Math.min(200, canvasZoom + 10))}
               aria-label="Zoom in"
               className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer"
             >
@@ -191,7 +204,7 @@ export function FloatingToolbar() {
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              onClick={() => setZoom(100)}
+              onClick={() => setCanvasZoom(100)}
               aria-label="Fit"
               className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer"
             >
@@ -205,15 +218,14 @@ export function FloatingToolbar() {
   )
 }
 
-const POSITION_ITEMS = [
-  { id: "top-left", icon: RiArrowLeftUpLine },
-  { id: "top", icon: RiArrowUpLine },
-  { id: "top-right", icon: RiArrowRightUpLine },
-  { id: "left", icon: RiArrowLeftLine },
-  { id: "center", icon: RiFocus3Line },
-  { id: "right", icon: RiArrowRightLine },
-  { id: "bottom-left", icon: RiArrowLeftDownLine },
-  { id: "bottom", icon: RiArrowDownLine },
-  { id: "bottom-right", icon: RiArrowRightDownLine },
-]
-
+function positionLabel(id: ScreenshotPosition) {
+  if (id === "center") return "center"
+  const [row, col] = id.split("-").map(Number)
+  const vertical = ["top", "upper middle", "middle", "lower middle", "bottom"][
+    row
+  ]
+  const horizontal = ["left", "left middle", "center", "right middle", "right"][
+    col
+  ]
+  return `${vertical} ${horizontal}`
+}

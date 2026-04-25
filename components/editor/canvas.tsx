@@ -13,6 +13,7 @@ import {
   overlayUrl,
   patternCssFor,
   shadowCss,
+  screenshotPositionAnchor,
   useEditor,
 } from "@/lib/editor/store"
 
@@ -21,6 +22,7 @@ const NOISE_DATA_URL =
 
 export function Canvas() {
   const {
+    activeTool,
     screenshot,
     aspect,
     background,
@@ -30,10 +32,14 @@ export function Canvas() {
     backdrop,
     tilt,
     scale,
+    canvasZoom,
+    screenshotPosition,
+    screenshotOffset,
     shadow,
     overlay,
     canvasBorderRadius,
     setScreenshot,
+    setScreenshotOffset,
   } = useEditor()
   React.useEffect(() => {
     document.documentElement.style.setProperty("--canvas-border-radius", `${canvasBorderRadius}px`)
@@ -44,7 +50,75 @@ export function Canvas() {
     w: number
     h: number
   } | null>(null)
+  const [placementDims, setPlacementDims] = React.useState<{
+    stageW: number
+    stageH: number
+    imgW: number
+    imgH: number
+  } | null>(null)
+  const [isScreenshotSelected, setIsScreenshotSelected] = React.useState(false)
+  const [isScreenshotDragging, setIsScreenshotDragging] = React.useState(false)
+  const [centerGuides, setCenterGuides] = React.useState({
+    x: false,
+    y: false,
+  })
   const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const stageRef = React.useRef<HTMLDivElement>(null)
+  const imageRef = React.useRef<HTMLImageElement>(null)
+  const dragRef = React.useRef<{
+    pointerId: number
+    startClientX: number
+    startClientY: number
+    startOffsetX: number
+    startOffsetY: number
+    baseLeft: number
+    baseTop: number
+    stageW: number
+    stageH: number
+    imgW: number
+    imgH: number
+  } | null>(null)
+
+  const measurePlacement = React.useCallback(() => {
+    const stage = stageRef.current
+    const image = imageRef.current
+    if (!stage || !image) return
+
+    const next = {
+      stageW: stage.clientWidth,
+      stageH: stage.clientHeight,
+      imgW: image.offsetWidth,
+      imgH: image.offsetHeight,
+    }
+
+    if (!next.stageW || !next.stageH || !next.imgW || !next.imgH) return
+
+    setPlacementDims((prev) => {
+      if (
+        prev?.stageW === next.stageW &&
+        prev.stageH === next.stageH &&
+        prev.imgW === next.imgW &&
+        prev.imgH === next.imgH
+      ) {
+        return prev
+      }
+      return next
+    })
+  }, [])
+
+  React.useEffect(() => {
+    if (!screenshot) return
+    measurePlacement()
+
+    const stage = stageRef.current
+    const image = imageRef.current
+    if (!stage || !image) return
+
+    const observer = new ResizeObserver(measurePlacement)
+    observer.observe(stage)
+    observer.observe(image)
+    return () => observer.disconnect()
+  }, [measurePlacement, screenshot])
 
   const readFile = React.useCallback(
     (file: File) => {
@@ -96,6 +170,7 @@ export function Canvas() {
     `rotateZ(${tilt.rz}deg)`,
     `scale(${scale / 100})`,
   ].join(" ")
+  const screenshotAnchor = screenshotPositionAnchor(screenshotPosition)
 
   // For portrait ratios, cap width so the canvas never overflows vertically.
   // Formula: maxWidth = (availableVh * aw/ah) where availableVh ≈ 82vh
@@ -105,6 +180,25 @@ export function Canvas() {
     : "1100px"
 
   const computedShadow = shadowCss(shadow)
+  const scaleFactor = scale / 100
+  const positionX = screenshotAnchor.x / 100
+  const positionY = screenshotAnchor.y / 100
+  const positionedStyle: React.CSSProperties | null = placementDims
+    ? screenshotPlacementStyle(
+        placementDims,
+        scaleFactor,
+        positionX,
+        positionY
+      )
+    : null
+  const screenshotLeft =
+    typeof positionedStyle?.left === "number"
+      ? positionedStyle.left + screenshotOffset.x
+      : undefined
+  const screenshotTop =
+    typeof positionedStyle?.top === "number"
+      ? positionedStyle.top + screenshotOffset.y
+      : undefined
   const imgStyle: React.CSSProperties = {
     borderRadius,
     transform,
@@ -119,6 +213,65 @@ export function Canvas() {
   const effectsFilter = effectsFilterCss(backdrop.effects)
   const noiseEnabled = backdrop.effects.noise > 0
   const noiseOpacity = noiseEnabled ? backdrop.effects.noise / 100 : 0
+  const canDragScreenshot = activeTool === "pointer" && positionedStyle
+
+  const startScreenshotDrag = (e: React.PointerEvent<HTMLImageElement>) => {
+    if (!canDragScreenshot || !placementDims) return
+
+    e.preventDefault()
+    e.stopPropagation()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setIsScreenshotSelected(true)
+    setIsScreenshotDragging(true)
+    dragRef.current = {
+      pointerId: e.pointerId,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      startOffsetX: screenshotOffset.x,
+      startOffsetY: screenshotOffset.y,
+      baseLeft: positionedStyle.left as number,
+      baseTop: positionedStyle.top as number,
+      stageW: placementDims.stageW,
+      stageH: placementDims.stageH,
+      imgW: placementDims.imgW,
+      imgH: placementDims.imgH,
+    }
+  }
+
+  const moveScreenshot = (e: React.PointerEvent<HTMLImageElement>) => {
+    const drag = dragRef.current
+    if (!drag || drag.pointerId !== e.pointerId) return
+
+    e.preventDefault()
+
+    const pointerScale = canvasZoom / 100
+    let nextX =
+      drag.startOffsetX + (e.clientX - drag.startClientX) / pointerScale
+    let nextY =
+      drag.startOffsetY + (e.clientY - drag.startClientY) / pointerScale
+    const centerX = drag.baseLeft + nextX + drag.imgW / 2
+    const centerY = drag.baseTop + nextY + drag.imgH / 2
+    const targetX = drag.stageW / 2
+    const targetY = drag.stageH / 2
+    const snap = 8
+    const snapX = Math.abs(centerX - targetX) <= snap
+    const snapY = Math.abs(centerY - targetY) <= snap
+
+    if (snapX) nextX += targetX - centerX
+    if (snapY) nextY += targetY - centerY
+
+    setCenterGuides({ x: snapX, y: snapY })
+    setScreenshotOffset({ x: nextX, y: nextY })
+  }
+
+  const stopScreenshotDrag = (e: React.PointerEvent<HTMLImageElement>) => {
+    const drag = dragRef.current
+    if (!drag || drag.pointerId !== e.pointerId) return
+
+    dragRef.current = null
+    setIsScreenshotDragging(false)
+    setCenterGuides({ x: false, y: false })
+  }
 
   return (
     <section className="relative flex flex-1 items-center justify-center border-b border-dashed border-border/70 bg-background px-4 py-4 sm:px-8 dark:bg-black">
@@ -135,36 +288,53 @@ export function Canvas() {
         }}
       />
 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.985, y: 6 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        style={{ aspectRatio, borderRadius: "var(--canvas-border-radius)", maxWidth: canvasMaxWidth }}
-        className="relative flex w-full items-center justify-center overflow-hidden ring-1 ring-border/60"
-        onDragOver={(e) => {
-          e.preventDefault()
-          setIsDragOver(true)
-        }}
-        onDragLeave={() => setIsDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault()
-          setIsDragOver(false)
-          const file = e.dataTransfer.files?.[0]
-          if (file) readFile(file)
-        }}
+      <div
+        className="flex w-full items-center justify-center transition-transform duration-200 ease-out"
+        style={{ transform: `scale(${canvasZoom / 100})` }}
       >
-        {/* Background layer — receives filter effects */}
-        <div
-          aria-hidden
-          className={cn(
-            "absolute inset-0",
-            background.type === "none" && "bg-transparency-checker"
-          )}
-          style={{
-            ...backgroundCss(background),
-            filter: effectsFilter,
+        <motion.div
+          initial={{ opacity: 0, scale: 0.985, y: 6 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          style={{ aspectRatio, borderRadius: "var(--canvas-border-radius)", maxWidth: canvasMaxWidth }}
+          className="relative flex w-full items-center justify-center overflow-hidden ring-1 ring-border/60"
+          onDragOver={(e) => {
+            e.preventDefault()
+            setIsDragOver(true)
           }}
-        />
+          onDragLeave={() => setIsDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault()
+            setIsDragOver(false)
+            const file = e.dataTransfer.files?.[0]
+            if (file) readFile(file)
+          }}
+        >
+          {centerGuides.x ? (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 left-1/2 z-30 -translate-x-1/2 border-l border-dashed border-[#9BCD64]/95"
+            />
+          ) : null}
+          {centerGuides.y ? (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-1/2 z-30 -translate-y-1/2 border-t border-dashed border-[#9BCD64]/95"
+            />
+          ) : null}
+
+          {/* Background layer — receives filter effects */}
+          <div
+            aria-hidden
+            className={cn(
+              "absolute inset-0",
+              background.type === "none" && "bg-transparency-checker"
+            )}
+            style={{
+              ...backgroundCss(background),
+              filter: effectsFilter,
+            }}
+          />
 
         {/* Pattern overlays */}
         {backdrop.pattern.ids.map((id) => (
@@ -210,19 +380,59 @@ export function Canvas() {
           style={{ padding }}
         >
           {screenshot ? (
-            <img
-              src={screenshot}
-              alt="Screenshot"
-              onLoad={(e) => {
-                const el = e.currentTarget
-                setNaturalDims({
-                  w: el.naturalWidth,
-                  h: el.naturalHeight,
-                })
+            <div
+              ref={stageRef}
+              className="relative h-full w-full"
+              onPointerDown={(e) => {
+                if (e.target === e.currentTarget) {
+                  setIsScreenshotSelected(false)
+                }
               }}
-              style={imgStyle}
-              className="max-h-full max-w-full object-contain transition-transform"
-            />
+            >
+              <img
+                ref={imageRef}
+                src={screenshot}
+                alt="Screenshot"
+                draggable={false}
+                onLoad={(e) => {
+                  const el = e.currentTarget
+                  setNaturalDims({
+                    w: el.naturalWidth,
+                    h: el.naturalHeight,
+                  })
+                  measurePlacement()
+                }}
+                onClick={(e) => {
+                  if (activeTool !== "pointer") return
+                  e.stopPropagation()
+                  setIsScreenshotSelected(true)
+                }}
+                onPointerDown={startScreenshotDrag}
+                onPointerMove={moveScreenshot}
+                onPointerUp={stopScreenshotDrag}
+                onPointerCancel={stopScreenshotDrag}
+                style={{
+                  ...imgStyle,
+                  left: screenshotLeft ?? "50%",
+                  top: screenshotTop ?? "50%",
+                  ...(positionedStyle
+                    ? null
+                    : {
+                        transform: `translate(-50%, -50%) ${transform}`,
+                      }),
+                }}
+                className={cn(
+                  "absolute max-h-full max-w-full object-contain select-none",
+                  isScreenshotDragging
+                    ? "cursor-grabbing transition-none"
+                    : "transition-all duration-300 ease-out",
+                  activeTool === "pointer" && "cursor-grab",
+                  isScreenshotSelected &&
+                    activeTool === "pointer" &&
+                    "ring-2 ring-blue-400/90"
+                )}
+              />
+            </div>
           ) : (
             <div
               data-drag-over={isDragOver}
@@ -266,6 +476,34 @@ export function Canvas() {
           />
         ) : null}
       </motion.div>
+      </div>
     </section>
   )
+}
+
+function screenshotPlacementStyle(
+  dims: {
+    stageW: number
+    stageH: number
+    imgW: number
+    imgH: number
+  },
+  scaleFactor: number,
+  positionX: number,
+  positionY: number
+): React.CSSProperties {
+  const visualW = dims.imgW * scaleFactor
+  const visualH = dims.imgH * scaleFactor
+  const overflowX = Math.min(visualW * 0.18, dims.stageW * 0.24)
+  const overflowY = Math.min(visualH * 0.18, dims.stageH * 0.24)
+
+  const visualLeft =
+    -overflowX + (dims.stageW - visualW + overflowX * 2) * positionX
+  const visualTop =
+    -overflowY + (dims.stageH - visualH + overflowY * 2) * positionY
+
+  return {
+    left: visualLeft + (visualW - dims.imgW) / 2,
+    top: visualTop + (visualH - dims.imgH) / 2,
+  }
 }

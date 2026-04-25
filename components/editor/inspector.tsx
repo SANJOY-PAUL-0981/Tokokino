@@ -12,9 +12,11 @@ import {
   RiGradienterLine,
   RiGridLine,
   RiLayoutGrid2Line,
+  RiMacLine,
   RiMoonClearLine,
   RiPaletteLine,
   RiRefreshLine,
+  RiLoader4Line,
   RiRotateLockLine,
   RiImageLine,
   RiSunLine,
@@ -321,18 +323,7 @@ function BackdropSection() {
         </PopoverTrigger>
         <PopoverContent side="left" align="start" className="w-[240px] space-y-4 bg-popover/95 backdrop-blur-md">
           <span className="text-[13px] font-medium">Effects</span>
-          <div className="space-y-4">
-            <EffectSlider
-              label="Noise"
-              value={effects.noise}
-              onChange={(v) => setEffects({ noise: v })}
-            />
-            <EffectSlider
-              label="Blur"
-              value={effects.blur}
-              onChange={(v) => setEffects({ blur: v })}
-              max={20}
-            />
+          <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1 [scrollbar-width:thin]">
             <EffectSlider
               label="Brightness"
               value={effects.brightness}
@@ -340,10 +331,50 @@ function BackdropSection() {
               max={200}
             />
             <EffectSlider
+              label="Contrast"
+              value={effects.contrast}
+              onChange={(v) => setEffects({ contrast: v })}
+              max={200}
+            />
+            <EffectSlider
               label="Saturation"
               value={effects.saturation}
               onChange={(v) => setEffects({ saturation: v })}
               max={200}
+            />
+            <EffectSlider
+              label="Hue"
+              value={effects.hue}
+              onChange={(v) => setEffects({ hue: v })}
+              max={360}
+              suffix="°"
+            />
+            <EffectSlider
+              label="Grayscale"
+              value={effects.grayscale}
+              onChange={(v) => setEffects({ grayscale: v })}
+            />
+            <EffectSlider
+              label="Sepia"
+              value={effects.sepia}
+              onChange={(v) => setEffects({ sepia: v })}
+            />
+            <EffectSlider
+              label="Invert"
+              value={effects.invert}
+              onChange={(v) => setEffects({ invert: v })}
+            />
+            <EffectSlider
+              label="Blur"
+              value={effects.blur}
+              onChange={(v) => setEffects({ blur: v })}
+              max={20}
+              suffix="px"
+            />
+            <EffectSlider
+              label="Noise"
+              value={effects.noise}
+              onChange={(v) => setEffects({ noise: v })}
             />
             <EffectSlider
               label="Opacity"
@@ -689,7 +720,24 @@ const OverlayThumb = React.memo(function OverlayThumb({
   )
 })
 
-function EffectSlider({ label, value, onChange, onValueCommit, max = 100 }: { label: string, value: number, onChange: (v: number) => void, onValueCommit?: (v: number) => void, max?: number }) {
+function EffectSlider({
+  label,
+  value,
+  onChange,
+  onValueCommit,
+  min = 0,
+  max = 100,
+  suffix,
+}: {
+  label: string
+  value: number
+  onChange: (v: number) => void
+  onValueCommit?: (v: number) => void
+  min?: number
+  max?: number
+  suffix?: string
+}) {
+  const resolvedSuffix = suffix ?? (max === 100 ? "%" : "")
   return (
     <div>
       <div className="mb-2 flex items-baseline justify-between">
@@ -697,15 +745,16 @@ function EffectSlider({ label, value, onChange, onValueCommit, max = 100 }: { la
         <EditableValue
           value={value}
           onChange={onChange}
-          min={0}
+          min={min}
           max={max}
-          suffix={max === 100 ? "%" : ""}
+          suffix={resolvedSuffix}
         />
       </div>
       <Slider
         value={[value]}
         onValueChange={([v]) => onChange(v)}
         onValueCommit={onValueCommit ? ([v]) => onValueCommit(v) : undefined}
+        min={min}
         max={max}
         className="cursor-pointer"
       />
@@ -715,9 +764,28 @@ function EffectSlider({ label, value, onChange, onValueCommit, max = 100 }: { la
 
 /* -------- Background -------- */
 
+type UnsplashResult = {
+  id: string
+  alt: string
+  thumb: string
+  full: string
+  downloadLocation: string
+  photographer: string
+  photographerUrl: string
+}
+
 function BackgroundSection() {
   const { background, setBackground, screenshot } = useEditor()
   const fileRef = React.useRef<HTMLInputElement>(null)
+  const [unsplashQuery, setUnsplashQuery] = React.useState("abstract gradient")
+  const [unsplashStatus, setUnsplashStatus] = React.useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle")
+  const [unsplashError, setUnsplashError] = React.useState<string | null>(null)
+  const [unsplashResults, setUnsplashResults] = React.useState<
+    UnsplashResult[]
+  >([])
+  const [unsplashOpen, setUnsplashOpen] = React.useState(false)
   const [autoResult, setAutoResult] = React.useState<{
     key: string
     gradients: string[]
@@ -767,6 +835,47 @@ function BackgroundSection() {
       }
     }
     reader.readAsDataURL(file)
+  }
+
+  const searchUnsplash = async () => {
+    const query = unsplashQuery.trim()
+    if (!query) return
+
+    setUnsplashStatus("loading")
+    setUnsplashError(null)
+    try {
+      const response = await fetch(
+        `/api/unsplash/search?q=${encodeURIComponent(query)}`
+      )
+      const data = (await response.json()) as
+        | { results: UnsplashResult[] }
+        | { error?: string }
+
+      if (!response.ok || !("results" in data)) {
+        throw new Error(
+          "error" in data && data.error
+            ? data.error
+            : "Unable to search Unsplash"
+        )
+      }
+
+      setUnsplashResults(data.results)
+      setUnsplashStatus("ready")
+      setUnsplashOpen(true)
+    } catch (error) {
+      setUnsplashStatus("error")
+      setUnsplashError(
+        error instanceof Error ? error.message : "Unable to search Unsplash"
+      )
+    }
+  }
+
+  const selectUnsplashImage = (photo: UnsplashResult) => {
+    setBackground({ type: "image", value: photo.full })
+    setUnsplashOpen(false)
+    void fetch(
+      `/api/unsplash/download?url=${encodeURIComponent(photo.downloadLocation)}`
+    )
   }
 
   const customSolid =
@@ -970,10 +1079,93 @@ function BackgroundSection() {
             }}
           />
           <div className="flex gap-2">
-            <Button variant="default" size="sm" className="h-9 flex-1 gap-2 cursor-pointer">
-              <RiUnsplashLine className="size-4" />
-              <span className="text-[11px] font-medium">Unsplash</span>
-            </Button>
+            <Popover open={unsplashOpen} onOpenChange={setUnsplashOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-9 flex-1 gap-2 bg-[#9BCD64] text-[#10220e] hover:bg-[#8ec25a] cursor-pointer"
+                >
+                  <RiUnsplashLine className="size-4" />
+                  <span className="text-[11px] font-medium">Unsplash</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                side="left"
+                align="start"
+                sideOffset={10}
+                className="w-[320px] space-y-3 border-border/60 bg-popover/95 p-3 backdrop-blur-md"
+              >
+                <div>
+                  <p className="text-[12px] font-medium">Search Unsplash</p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    Pick a landscape photo as the canvas background.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    value={unsplashQuery}
+                    onChange={(e) => setUnsplashQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void searchUnsplash()
+                    }}
+                    placeholder="Search backgrounds"
+                    className="h-9 min-w-0 flex-1 rounded-md border border-border/60 bg-secondary/30 px-3 text-[12px] outline-none transition-colors placeholder:text-muted-foreground focus:border-[#9BCD64]/70"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 min-w-[92px] cursor-pointer disabled:cursor-not-allowed"
+                    onClick={searchUnsplash}
+                    disabled={unsplashStatus === "loading"}
+                  >
+                    {unsplashStatus === "loading" ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <RiLoader4Line className="size-3.5 animate-spin" />
+                        Searching...
+                      </span>
+                    ) : (
+                      "Search"
+                    )}
+                  </Button>
+                </div>
+                {unsplashStatus === "error" ? (
+                  <p className="rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-[11px] text-destructive">
+                    {unsplashError}
+                  </p>
+                ) : null}
+                <div className="grid max-h-[300px] grid-cols-3 gap-2 overflow-y-auto px-1 py-1 [scrollbar-width:thin]">
+                  {unsplashResults.length > 0 ? (
+                    unsplashResults.map((photo) => (
+                      <button
+                        key={photo.id}
+                        onClick={() => selectUnsplashImage(photo)}
+                        title={`Photo by ${photo.photographer}`}
+                        className={cn(
+                          "aspect-square overflow-hidden rounded-lg border cursor-pointer transition-colors",
+                          background.type === "image" &&
+                            background.value === photo.full
+                            ? "border-transparent ring-1 ring-[#9BCD64]/60 ring-offset-1 ring-offset-popover"
+                            : "border-border/60 hover:border-foreground/30"
+                        )}
+                      >
+                        <img
+                          src={photo.thumb}
+                          alt={photo.alt}
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover"
+                        />
+                      </button>
+                    ))
+                  ) : (
+                    <p className="col-span-3 rounded-lg border border-dashed border-border/60 px-3 py-8 text-center text-[11px] text-muted-foreground">
+                      Search to load Unsplash photos.
+                    </p>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
             <Button
               variant="default"
               size="sm"
@@ -1327,9 +1519,10 @@ function BackgroundLibrary({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-1 rounded-md bg-secondary/40 p-1">
+      <div className="grid grid-cols-3 gap-1 rounded-md bg-secondary/40 p-1">
         {categories.map((c) => {
           const active = c.key === category.key
+          const CategoryIcon = backgroundCategoryIcon(c.key)
           return (
             <button
               key={c.key}
@@ -1338,12 +1531,13 @@ function BackgroundLibrary({
                 setExpanded(false)
               }}
               className={cn(
-                "h-9 shrink-0 rounded-[5px] px-3 text-[11px] font-medium transition-colors cursor-pointer",
+                "flex h-9 items-center justify-center gap-1.5 rounded-[5px] px-3 text-[11px] font-medium transition-colors cursor-pointer",
                 active
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
+              <CategoryIcon className="size-3.5 shrink-0" />
               {c.label}
             </button>
           )
@@ -1398,6 +1592,23 @@ function BackgroundLibrary({
       ) : null}
     </div>
   )
+}
+
+function backgroundCategoryIcon(key: string) {
+  switch (key) {
+    case "mesh":
+      return RiGridLine
+    case "lines":
+      return RiEqualizerLine
+    case "gradient":
+      return RiGradienterLine
+    case "raycast":
+      return RiFocus2Line
+    case "mac":
+      return RiMacLine
+    default:
+      return RiImageLine
+  }
 }
 
 function BackgroundTile({
