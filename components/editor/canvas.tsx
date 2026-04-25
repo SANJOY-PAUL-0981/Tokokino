@@ -7,6 +7,7 @@ import { toast } from "sonner"
 
 import { CornerMarkers } from "@/components/editor/corner-marker"
 import { CropModal } from "@/components/editor/crop-modal"
+import { TextElementView } from "@/components/editor/text-element"
 import { cn } from "@/lib/utils"
 import {
   backgroundCss,
@@ -43,7 +44,20 @@ export function Canvas() {
     setScreenshot,
     setScreenshotOffset,
     setScreenshotPosition,
+    texts,
+    selectedTextId,
+    setSelectedTextId,
   } = useEditor()
+  const canvasRef = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    if (!selectedTextId) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedTextId(null)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [selectedTextId, setSelectedTextId])
   React.useEffect(() => {
     document.documentElement.style.setProperty("--canvas-border-radius", `${canvasBorderRadius}px`)
   }, [canvasBorderRadius])
@@ -318,11 +332,13 @@ export function Canvas() {
         style={{ transform: `scale(${isPreviewMode ? 1 : canvasZoom / 100})` }}
       >
         <motion.div
+          ref={canvasRef}
           initial={{ opacity: 0, scale: 0.985, y: 6 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           style={{ aspectRatio, borderRadius: "var(--canvas-border-radius)", maxWidth: canvasMaxWidth }}
           className="relative flex w-full items-center justify-center overflow-hidden ring-1 ring-border/60"
+          onClick={() => setSelectedTextId(null)}
           onDragOver={(e) => {
             e.preventDefault()
             setIsDragOver(true)
@@ -565,10 +581,15 @@ export function Canvas() {
             }}
           />
         ) : null}
+
+        {/* Text elements */}
+        {texts.map((t) => (
+          <TextElementView key={t.id} text={t} canvasRef={canvasRef} />
+        ))}
       </motion.div>
       </div>
 
-      <CropModal 
+      <CropModal
         open={isCropModalOpen}
         onOpenChange={setIsCropModalOpen}
         screenshotUrl={screenshot}

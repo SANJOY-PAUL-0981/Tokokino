@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/tooltip"
 import {
   type EditorTool,
+  pickContrastColor,
   SCREENSHOT_POSITIONS,
   type ScreenshotPosition,
   useEditor,
@@ -40,7 +41,27 @@ export function FloatingToolbar() {
     setCanvasZoom,
     screenshotPosition,
     setScreenshotPosition,
+    addText,
+    setSelectedTextId,
+    updateText,
+    screenshot,
+    background,
   } = useEditor()
+
+  const handleToolClick = (id: EditorTool) => {
+    if (id === "text") {
+      const newId = addText()
+      setSelectedTextId(newId)
+      setActiveTool("pointer")
+      pickContrastColor(screenshot, background)
+        .then((color) => updateText(newId, { color }))
+        .catch(() => {
+          /* ignore — keep default color */
+        })
+      return
+    }
+    setActiveTool(id)
+  }
 
   const items: {
     id: EditorTool
@@ -67,7 +88,7 @@ export function FloatingToolbar() {
               <Popover key={it.id}>
                 <PopoverTrigger asChild>
                   <button
-                    onClick={() => setActiveTool(it.id)}
+                    onClick={() => handleToolClick(it.id)}
                     aria-label={it.label}
                     className={cn(
                       "inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer",
@@ -94,7 +115,7 @@ export function FloatingToolbar() {
               <Popover key={it.id}>
                 <PopoverTrigger asChild>
                   <button
-                    onClick={() => setActiveTool(it.id)}
+                    onClick={() => handleToolClick(it.id)}
                     aria-label={it.label}
                     className={cn(
                       "inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer",
@@ -148,7 +169,7 @@ export function FloatingToolbar() {
             <Tooltip key={it.id}>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => setActiveTool(it.id)}
+                  onClick={() => handleToolClick(it.id)}
                   aria-label={it.label}
                   className={cn(
                     "inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer",

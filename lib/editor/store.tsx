@@ -58,6 +58,41 @@ export type Overlay = {
   position: OverlayPosition
 }
 
+export type TextAlign = "left" | "center" | "right"
+
+export type TextElement = {
+  id: string
+  content: string
+  xPct: number
+  yPct: number
+  rotation: number
+  fontSize: number
+  fontFamily: string
+  fontWeight: number
+  color: string
+  align: TextAlign
+  borderColor: string | null
+  borderWidth: number
+  borderStyle: BorderStyle
+  zIndex: number
+  widthPx: number | null
+  heightPx: number | null
+  autoColor: boolean
+}
+
+export const FONT_FAMILIES: { id: string; label: string; css: string }[] = [
+  { id: "inter", label: "Inter", css: "Inter, sans-serif" },
+  { id: "geist", label: "Geist", css: "Geist, ui-sans-serif, sans-serif" },
+  { id: "system", label: "System", css: "system-ui, sans-serif" },
+  { id: "serif", label: "Serif", css: "Georgia, 'Times New Roman', serif" },
+  {
+    id: "mono",
+    label: "Mono",
+    css: "ui-monospace, 'JetBrains Mono', 'Courier New', monospace",
+  },
+  { id: "rounded", label: "Rounded", css: "'SF Pro Rounded', Inter, sans-serif" },
+]
+
 export type EditorTool =
   | "pointer"
   | "crop"
@@ -141,6 +176,7 @@ export type EditorState = {
   screenshotOffset: { x: number; y: number }
   shadow: Shadow
   overlay: Overlay
+  texts: TextElement[]
 }
 
 const OVERLAY_BASE_URL =
@@ -251,6 +287,7 @@ const DEFAULT_STATE: EditorState = {
     opacity: 50,
     position: "overlay",
   },
+  texts: [],
 }
 
 const HISTORY_LIMIT = 100
@@ -264,8 +301,12 @@ type HistoryState = {
   lastTs: number
 }
 
+type SetPatch =
+  | Partial<EditorState>
+  | ((state: EditorState) => Partial<EditorState>)
+
 type Action =
-  | { type: "SET"; patch: Partial<EditorState>; group: string | null }
+  | { type: "SET"; patch: SetPatch; group: string | null }
   | { type: "UNDO" }
   | { type: "REDO" }
   | { type: "RESET" }
@@ -273,7 +314,11 @@ type Action =
 function reducer(state: HistoryState, action: Action): HistoryState {
   switch (action.type) {
     case "SET": {
-      const present = { ...state.present, ...action.patch }
+      const patch =
+        typeof action.patch === "function"
+          ? action.patch(state.present)
+          : action.patch
+      const present = { ...state.present, ...patch }
       const now = Date.now()
       const canMerge =
         action.group !== null &&
@@ -349,6 +394,14 @@ type Ctx = EditorState & {
   setScreenshotOffset: (o: { x: number; y: number }) => void
   setShadow: (s: Shadow) => void
   setOverlay: (o: Overlay) => void
+  addText: () => string
+  updateText: (id: string, patch: Partial<TextElement>) => void
+  deleteText: (id: string) => void
+  duplicateText: (id: string) => string | null
+  bringTextToFront: (id: string) => void
+  sendTextToBack: (id: string) => void
+  selectedTextId: string | null
+  setSelectedTextId: (id: string | null) => void
   reset: () => void
   undo: () => void
   redo: () => void
@@ -369,10 +422,19 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
     lastTs: 0,
   })
   const [isPreviewMode, setIsPreviewMode] = React.useState(false)
+  const [selectedTextId, setSelectedTextId] = React.useState<string | null>(null)
 
   const value: Ctx = React.useMemo(() => {
-    const set = (patch: Partial<EditorState>, group: string | null) =>
+    const set = (patch: SetPatch, group: string | null) =>
       dispatch({ type: "SET", patch, group })
+    const makeId = () =>
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `t-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const computeNextZ = (texts: TextElement[]) =>
+      (texts.length ? Math.max(...texts.map((t) => t.zIndex)) : 0) + 1
+    const computeMinZ = (texts: TextElement[]) =>
+      (texts.length ? Math.min(...texts.map((t) => t.zIndex)) : 1) - 1
     return {
       ...state.present,
       setActiveTool: (t) => set({ activeTool: t }, null),
@@ -413,6 +475,84 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
       setScreenshotOffset: (o) => set({ screenshotOffset: o }, "screenshotOffset"),
       setShadow: (s) => set({ shadow: s }, "shadow"),
       setOverlay: (o) => set({ overlay: o }, "overlay"),
+      addText: () => {
+        const id = makeId()
+        set(
+          (s) => ({
+            texts: [
+              ...s.texts,
+              {
+                id,
+                content: "Double-click to edit",
+                xPct: 50,
+                yPct: 50,
+                rotation: 0,
+                fontSize: 18,
+                fontFamily: FONT_FAMILIES[0].css,
+                fontWeight: 500,
+                color: "#ffffff",
+                align: "left",
+                borderColor: null,
+                borderWidth: 1,
+                borderStyle: "solid",
+                zIndex: computeNextZ(s.texts),
+                widthPx: null,
+                heightPx: null,
+                autoColor: true,
+              },
+            ],
+          }),
+          null
+        )
+        return id
+      },
+      updateText: (id, patch) => {
+        set(
+          (s) => ({
+            texts: s.texts.map((t) =>
+              t.id === id ? { ...t, ...patch } : t
+            ),
+          }),
+          `text-${id}`
+        )
+      },
+      deleteText: (id) => {
+        set((s) => ({ texts: s.texts.filter((t) => t.id !== id) }), null)
+      },
+      duplicateText: (id) => {
+        const copyId = makeId()
+        set((s) => {
+          const src = s.texts.find((t) => t.id === id)
+          if (!src) return { texts: s.texts }
+          const copy: TextElement = {
+            ...src,
+            id: copyId,
+            xPct: Math.min(95, src.xPct + 4),
+            yPct: Math.min(95, src.yPct + 4),
+            zIndex: computeNextZ(s.texts),
+          }
+          return { texts: [...s.texts, copy] }
+        }, null)
+        return copyId
+      },
+      bringTextToFront: (id) => {
+        set((s) => {
+          const z = computeNextZ(s.texts)
+          return {
+            texts: s.texts.map((t) => (t.id === id ? { ...t, zIndex: z } : t)),
+          }
+        }, null)
+      },
+      sendTextToBack: (id) => {
+        set((s) => {
+          const z = computeMinZ(s.texts)
+          return {
+            texts: s.texts.map((t) => (t.id === id ? { ...t, zIndex: z } : t)),
+          }
+        }, null)
+      },
+      selectedTextId,
+      setSelectedTextId,
       reset: () => dispatch({ type: "RESET" }),
       undo: () => dispatch({ type: "UNDO" }),
       redo: () => dispatch({ type: "REDO" }),
@@ -421,7 +561,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
       isPreviewMode,
       setIsPreviewMode,
     }
-  }, [state, isPreviewMode])
+  }, [state, isPreviewMode, selectedTextId])
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -838,3 +978,87 @@ export function backgroundCss(bg: Background): React.CSSProperties {
 
 export const AUTO_PLACEHOLDER_GRADIENT =
   "linear-gradient(135deg, #1f2937, #4b5563)"
+
+function srgbChannel(c: number): number {
+  const x = c / 255
+  return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)
+}
+
+function relativeLuminance(r: number, g: number, b: number): number {
+  return 0.2126 * srgbChannel(r) + 0.7152 * srgbChannel(g) + 0.0722 * srgbChannel(b)
+}
+
+function hexLuminance(hex: string): number {
+  const { r, g, b } = hexToRgb(hex)
+  return relativeLuminance(r, g, b)
+}
+
+const imageLuminanceCache = new Map<string, number>()
+
+async function imageAverageLuminance(url: string): Promise<number> {
+  const cached = imageLuminanceCache.get(url)
+  if (cached !== undefined) return cached
+  const result = await new Promise<number>((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+    img.onload = () => {
+      try {
+        const size = 32
+        const canvas = document.createElement("canvas")
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext("2d")
+        if (!ctx) return reject(new Error("no ctx"))
+        ctx.drawImage(img, 0, 0, size, size)
+        const { data } = ctx.getImageData(0, 0, size, size)
+        let sum = 0
+        let count = 0
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i + 3] < 128) continue
+          sum += relativeLuminance(data[i], data[i + 1], data[i + 2])
+          count++
+        }
+        resolve(count ? sum / count : 0.5)
+      } catch (err) {
+        reject(err)
+      }
+    }
+    img.onerror = () => reject(new Error("image load failed"))
+    img.src = url
+  })
+  imageLuminanceCache.set(url, result)
+  return result
+}
+
+export async function pickContrastColor(
+  screenshot: string | null,
+  background: Background
+): Promise<string> {
+  let lum: number | null = null
+  if (screenshot) {
+    try {
+      lum = await imageAverageLuminance(screenshot)
+    } catch {
+      /* ignore */
+    }
+  }
+  if (lum === null) {
+    if (background.type === "solid") {
+      lum = hexLuminance(background.value)
+    } else if (background.type === "gradient") {
+      const matches = background.value.match(/#[0-9a-fA-F]{3,8}/g) ?? []
+      if (matches.length) {
+        lum =
+          matches.reduce((s, h) => s + hexLuminance(h), 0) / matches.length
+      }
+    } else if (background.type === "image") {
+      try {
+        lum = await imageAverageLuminance(background.value)
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  if (lum === null) return "#ffffff"
+  return lum > 0.5 ? "#000000" : "#ffffff"
+}
