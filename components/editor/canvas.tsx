@@ -35,6 +35,10 @@ export function Canvas() {
     canvasBorderRadius,
     setScreenshot,
   } = useEditor()
+  React.useEffect(() => {
+    document.documentElement.style.setProperty("--canvas-border-radius", `${canvasBorderRadius}px`)
+  }, [canvasBorderRadius])
+
   const [isDragOver, setIsDragOver] = React.useState(false)
   const [naturalDims, setNaturalDims] = React.useState<{
     w: number
@@ -93,6 +97,13 @@ export function Canvas() {
     `scale(${scale / 100})`,
   ].join(" ")
 
+  // For portrait ratios, cap width so the canvas never overflows vertically.
+  // Formula: maxWidth = (availableVh * aw/ah) where availableVh ≈ 82vh
+  const isPortrait = ah > aw
+  const canvasMaxWidth = isPortrait
+    ? `min(${Math.round(82 * aw / ah)}vh, ${Math.round(820 * aw / ah)}px)`
+    : "1100px"
+
   const computedShadow = shadowCss(shadow)
   const imgStyle: React.CSSProperties = {
     borderRadius,
@@ -128,11 +139,8 @@ export function Canvas() {
         initial={{ opacity: 0, scale: 0.985, y: 6 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        style={{ aspectRatio, borderRadius: canvasBorderRadius }}
-        className={cn(
-          "relative flex w-full max-w-[1100px] items-center justify-center overflow-hidden ring-1 ring-border/60",
-          ah > aw && "max-w-[min(70vh,720px)]"
-        )}
+        style={{ aspectRatio, borderRadius: "var(--canvas-border-radius)", maxWidth: canvasMaxWidth }}
+        className="relative flex w-full items-center justify-center overflow-hidden ring-1 ring-border/60"
         onDragOver={(e) => {
           e.preventDefault()
           setIsDragOver(true)

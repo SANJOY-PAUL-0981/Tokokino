@@ -104,6 +104,10 @@
   * {
     @apply border-border outline-ring/50;
     }
+  *:focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
+    }
   body {
     @apply bg-background text-foreground;
     }

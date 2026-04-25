@@ -10,7 +10,8 @@
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
-    "build:thumbs": "node scripts/build-overlay-thumbs.mjs"
+    "build:thumbs": "node scripts/build-overlay-thumbs.mjs",
+    "build:backgrounds": "node scripts/build-background-thumbs.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

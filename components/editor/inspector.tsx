@@ -39,8 +39,9 @@ import {
 import { cn } from "@/lib/utils"
 import {
   BACKDROP_PATTERNS,
+  BACKGROUND_LIBRARY,
+  DEFAULT_IMAGE_BACKGROUND,
   GRADIENT_PRESETS,
-  IMAGE_PRESETS,
   SOLID_PRESETS,
   AUTO_PLACEHOLDER_GRADIENT,
   OVERLAY_COUNT,
@@ -51,6 +52,7 @@ import {
   sampleImageColors,
   sampleImageColorsRaw,
   useEditor,
+  type BackgroundEntry,
   type BgType,
 } from "@/lib/editor/store"
 
@@ -184,6 +186,8 @@ function BackdropSection() {
   } = useEditor()
   const { effects, pattern } = backdrop
   const [imageColors, setImageColors] = React.useState<string[] | null>(null)
+  const [localRadius, setLocalRadius] = React.useState(canvasBorderRadius)
+  React.useEffect(() => { setLocalRadius(canvasBorderRadius) }, [canvasBorderRadius])
 
   const isImageBackground = background.type === "image"
 
@@ -507,8 +511,12 @@ function BackdropSection() {
     <div className="pt-2">
       <EffectSlider
         label="Canvas Radius"
-        value={canvasBorderRadius}
-        onChange={setCanvasBorderRadius}
+        value={localRadius}
+        onChange={(v) => {
+          setLocalRadius(v)
+          document.documentElement.style.setProperty("--canvas-border-radius", `${v}px`)
+        }}
+        onValueCommit={setCanvasBorderRadius}
         max={80}
       />
     </div>
@@ -681,7 +689,7 @@ const OverlayThumb = React.memo(function OverlayThumb({
   )
 })
 
-function EffectSlider({ label, value, onChange, max = 100 }: { label: string, value: number, onChange: (v: number) => void, max?: number }) {
+function EffectSlider({ label, value, onChange, onValueCommit, max = 100 }: { label: string, value: number, onChange: (v: number) => void, onValueCommit?: (v: number) => void, max?: number }) {
   return (
     <div>
       <div className="mb-2 flex items-baseline justify-between">
@@ -694,7 +702,13 @@ function EffectSlider({ label, value, onChange, max = 100 }: { label: string, va
           suffix={max === 100 ? "%" : ""}
         />
       </div>
-      <Slider value={[value]} onValueChange={([v]) => onChange(v)} max={max} className="cursor-pointer" />
+      <Slider
+        value={[value]}
+        onValueChange={([v]) => onChange(v)}
+        onValueCommit={onValueCommit ? ([v]) => onValueCommit(v) : undefined}
+        max={max}
+        className="cursor-pointer"
+      />
     </div>
   )
 }
@@ -912,7 +926,7 @@ function BackgroundSection() {
               value:
                 background.type === "image"
                   ? background.value
-                  : IMAGE_PRESETS[0],
+                  : DEFAULT_IMAGE_BACKGROUND,
             })
           else if (type === "auto")
             setBackground({
@@ -926,21 +940,21 @@ function BackgroundSection() {
         className="w-full"
       >
         <TabsList className="flex h-auto w-full justify-between bg-transparent p-0">
-          <CircularTabTrigger value="none" label="None">
+          <BgTabTrigger value="none" label="None">
             <div className="size-full bg-checker" />
-          </CircularTabTrigger>
-          <CircularTabTrigger value="auto" label="Auto">
+          </BgTabTrigger>
+          <BgTabTrigger value="auto" label="Auto">
             <div className="size-full bg-[conic-gradient(from_180deg_at_50%_50%,#f87171,#fbbf24,#34d399,#60a5fa,#a78bfa,#f472b6,#f87171)]" />
-          </CircularTabTrigger>
-          <CircularTabTrigger value="solid" label="Solid">
+          </BgTabTrigger>
+          <BgTabTrigger value="solid" label="Solid">
             <div className="size-full bg-white" />
-          </CircularTabTrigger>
-          <CircularTabTrigger value="gradient" label="Gradient">
+          </BgTabTrigger>
+          <BgTabTrigger value="gradient" label="Gradient">
             <div className="size-full bg-gradient-to-br from-primary/60 to-primary" />
-          </CircularTabTrigger>
-          <CircularTabTrigger value="image" label="Image">
-            <RiImageLine className="size-4 text-muted-foreground group-data-[state=active]:text-primary-foreground" />
-          </CircularTabTrigger>
+          </BgTabTrigger>
+          <BgTabTrigger value="image" label="Image">
+            <RiImageLine className="size-4 text-muted-foreground group-data-[state=active]:text-foreground" />
+          </BgTabTrigger>
         </TabsList>
 
         <TabsContent value="image" className="mt-6 space-y-4">
@@ -971,36 +985,10 @@ function BackgroundSection() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 px-1 py-1">
-            {IMAGE_PRESETS.map((src, i) => {
-              const active =
-                background.type === "image" && background.value === src
-              return (
-                <button
-                  key={i}
-                  onClick={() =>
-                    setBackground({ type: "image", value: src })
-                  }
-                  className="group flex flex-col gap-1.5 text-left cursor-pointer"
-                >
-                  <div
-                    className={cn(
-                      "aspect-square overflow-hidden rounded-lg border",
-                      active
-                        ? "border-transparent ring-1 ring-primary/35 ring-offset-1 ring-offset-sidebar"
-                        : "border-border/60"
-                    )}
-                  >
-                    <img
-                      src={src}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                </button>
-              )
-            })}
-          </div>
+          <BackgroundLibrary
+            activeUrl={background.type === "image" ? background.value : null}
+            onSelect={(value) => setBackground({ type: "image", value })}
+          />
         </TabsContent>
 
         <TabsContent value="gradient" className="mt-6">
@@ -1286,22 +1274,160 @@ function BackgroundSection() {
   )
 }
 
-function CircularTabTrigger({ value, label, children }: { value: string, label: string, children: React.ReactNode }) {
+
+function BgTabTrigger({ value, label, children }: { value: string; label: string; children: React.ReactNode }) {
   return (
     <TabsTrigger
       value={value}
-      className="group flex h-auto flex-col items-center gap-1.5 bg-transparent p-0 data-[state=active]:!bg-transparent data-[state=active]:!shadow-none data-[state=active]:!border-none cursor-pointer"
+      className="group flex h-auto flex-col items-center gap-2 bg-transparent p-0 border-none shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none focus-visible:outline-none focus-visible:ring-0 cursor-pointer"
     >
-      <div className={cn(
-        "flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/60 transition-all group-hover:border-primary/40 group-data-[state=active]:border-transparent",
-        value === "image" && "group-data-[state=active]:bg-primary"
-      )}>
+      <div className="relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full transition-all duration-150 group-data-[state=active]:ring-2 group-data-[state=active]:ring-primary group-data-[state=active]:ring-offset-2 group-data-[state=active]:ring-offset-sidebar">
         {children}
       </div>
-      <span className="text-[10px] font-medium text-muted-foreground group-data-[state=active]:text-foreground">
+      <span className="text-[10px] font-medium text-muted-foreground transition-colors group-data-[state=active]:text-foreground">
         {label}
       </span>
     </TabsTrigger>
+  )
+}
+
+const BACKGROUND_PREVIEW_COUNT = 8
+
+function BackgroundLibrary({
+  activeUrl,
+  onSelect,
+}: {
+  activeUrl: string | null
+  onSelect: (value: string) => void
+}) {
+  const categories = BACKGROUND_LIBRARY
+  const [activeKey, setActiveKey] = React.useState<string>(() => {
+    const found = categories.find((c) =>
+      c.items.some((item) => item.full === activeUrl)
+    )
+    return found?.key ?? categories[0]?.key ?? ""
+  })
+  const [expanded, setExpanded] = React.useState(false)
+
+  const category = categories.find((c) => c.key === activeKey) ?? categories[0]
+
+  if (!category) {
+    return (
+      <p className="rounded-xl border border-dashed border-border/60 bg-secondary/20 px-3 py-4 text-center text-[11px] text-muted-foreground">
+        No backgrounds available. Run <code>pnpm build:backgrounds</code>.
+      </p>
+    )
+  }
+
+  const items = category.items
+  const visible = expanded ? items : items.slice(0, BACKGROUND_PREVIEW_COUNT)
+  const hidden = items.slice(BACKGROUND_PREVIEW_COUNT)
+  const peek = hidden[0] ?? null
+  const showExpandTile = !expanded && hidden.length > 0
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-1 rounded-md bg-secondary/40 p-1">
+        {categories.map((c) => {
+          const active = c.key === category.key
+          return (
+            <button
+              key={c.key}
+              onClick={() => {
+                setActiveKey(c.key)
+                setExpanded(false)
+              }}
+              className={cn(
+                "h-9 shrink-0 rounded-[5px] px-3 text-[11px] font-medium transition-colors cursor-pointer",
+                active
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {c.label}
+            </button>
+          )
+        })}
+      </div>
+
+      <div
+        className={cn(
+          "grid grid-cols-3 gap-2 px-1 py-1",
+          expanded && "max-h-[280px] overflow-y-auto pr-1 [scrollbar-width:thin]"
+        )}
+      >
+        {visible.map((item) => (
+          <BackgroundTile
+            key={item.id}
+            item={item}
+            active={activeUrl === item.full}
+            onClick={() => onSelect(item.full)}
+          />
+        ))}
+        {showExpandTile ? (
+          <button
+            onClick={() => setExpanded(true)}
+            title={`Show all ${items.length} ${category.label.toLowerCase()} backgrounds`}
+            className="group relative aspect-square overflow-hidden rounded-lg border border-border/60 cursor-pointer transition-colors hover:border-foreground/30"
+          >
+            {peek ? (
+              <img
+                src={peek.thumb}
+                alt=""
+                aria-hidden
+                className="h-full w-full scale-110 object-cover blur-sm"
+              />
+            ) : (
+              <div className="h-full w-full bg-secondary/40" />
+            )}
+            <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-black/45 text-white">
+              <RiArrowRightLine className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+              <span className="text-[9px] font-semibold">+{hidden.length}</span>
+            </span>
+          </button>
+        ) : null}
+      </div>
+
+      {expanded ? (
+        <button
+          onClick={() => setExpanded(false)}
+          className="text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+        >
+          Show less
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+function BackgroundTile({
+  item,
+  active,
+  onClick,
+}: {
+  item: BackgroundEntry
+  active: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={item.name}
+      className={cn(
+        "aspect-square overflow-hidden rounded-lg border cursor-pointer transition-colors",
+        active
+          ? "border-transparent ring-1 ring-primary/40 ring-offset-1 ring-offset-sidebar"
+          : "border-border/60 hover:border-foreground/30"
+      )}
+    >
+      <img
+        src={item.thumb}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        className="h-full w-full object-cover"
+      />
+    </button>
   )
 }
 
@@ -1649,39 +1775,67 @@ function DegreeRow({
   )
 }
 
+const SHADOW_COLOR_PRESETS = [
+  "#000000",
+  "#1e293b",
+  "#7c3aed",
+  "#2563eb",
+  "#0891b2",
+  "#059669",
+  "#d97706",
+  "#dc2626",
+]
+
 /* -------- Shadow -------- */
 
 function ShadowSection() {
   const { shadow, setShadow } = useEditor()
-  const { type, intensity, lightSource } = shadow
+  const { type, intensity, lightSource, color = "#000000" } = shadow
 
-  const setType = (t: "none" | "drop" | "glow") =>
-    setShadow({ ...shadow, type: t })
-  const setIntensity = (n: number) =>
-    setShadow({ ...shadow, intensity: n })
-  const setLightSource = (id: string) =>
-    setShadow({ ...shadow, lightSource: id })
+  const setType = (t: typeof shadow.type) => setShadow({ ...shadow, type: t })
+  const setIntensity = (n: number) => setShadow({ ...shadow, intensity: n })
+  const setLightSource = (id: string) => setShadow({ ...shadow, lightSource: id })
+  const setColor = (c: string) => setShadow({ ...shadow, color: c })
+
+  const thumbBg = "bg-[#d1d5db]"
+  const thumbCard = "rounded-[3px] bg-white"
 
   const types = [
     { id: "none" as const, label: "None", icon: (
-      <div className="size-full rounded-sm bg-background p-1.5">
-         <div className="size-full rounded-sm border-2 border-dashed border-border" />
+      <div className={cn("size-full rounded-sm p-3", thumbBg)}>
+        <div className="size-full rounded-[3px] border-2 border-dashed border-gray-400" />
       </div>
     )},
     { id: "drop" as const, label: "Drop", icon: (
-      <div className="size-full rounded-sm bg-background p-1.5 shadow-[4px_4px_8px_-2px_rgba(0,0,0,0.2)]">
-        <div className="size-full rounded-sm bg-white border border-border/20" />
+      <div className={cn("size-full rounded-sm p-3 pb-4 pr-4", thumbBg)}>
+        <div className={cn("size-full shadow-[5px_5px_8px_0px_rgba(0,0,0,0.45)]", thumbCard)} />
+      </div>
+    )},
+    { id: "soft" as const, label: "Soft", icon: (
+      <div className={cn("size-full rounded-sm px-3 pt-2 pb-5", thumbBg)}>
+        <div className={cn("size-full shadow-[0_8px_20px_2px_rgba(0,0,0,0.3)]", thumbCard)} />
+      </div>
+    )},
+    { id: "hard" as const, label: "Hard", icon: (
+      <div className={cn("size-full rounded-sm p-3 pb-4 pr-4", thumbBg)}>
+        <div className={cn("size-full shadow-[5px_5px_0px_0px_rgba(0,0,0,0.75)]", thumbCard)} />
       </div>
     )},
     { id: "glow" as const, label: "Glow", icon: (
-      <div className="size-full rounded-sm bg-background p-1.5 shadow-[0_0_12px_-2px_rgba(0,0,0,0.3)]">
-        <div className="size-full rounded-sm bg-white border border-border/20" />
+      <div className={cn("size-full rounded-sm p-3", thumbBg)}>
+        <div className={cn("size-full shadow-[0_0_14px_3px_rgba(0,0,0,0.35)]", thumbCard)} />
+      </div>
+    )},
+    { id: "float" as const, label: "Float", icon: (
+      <div className={cn("size-full rounded-sm px-3 pt-2 pb-5", thumbBg)}>
+        <div className={cn("size-full shadow-[0_4px_6px_0px_rgba(0,0,0,0.25),0_12px_20px_0px_rgba(0,0,0,0.2)]", thumbCard)} />
       </div>
     )},
   ]
 
   const isDisabled = type === "none"
-  const lightSourceDisabled = isDisabled || type === "glow"
+  const lightSourceDisabled = isDisabled || type === "glow" || type === "float"
+  const isCustomColor = !SHADOW_COLOR_PRESETS.includes(color)
 
   return (
     <div className="space-y-4">
@@ -1697,15 +1851,63 @@ function ShadowSection() {
                 : "border-border/60 bg-secondary/20 hover:border-foreground/30"
             )}
           >
-            <div className="aspect-square w-full">
-              {t.icon}
-            </div>
+            <div className="aspect-square w-full">{t.icon}</div>
             <span className={cn(
               "text-[9px] font-medium",
               type === t.id ? "text-primary" : "text-muted-foreground"
             )}>{t.label}</span>
           </button>
         ))}
+      </div>
+
+      <div className={cn(isDisabled && "pointer-events-none opacity-50")}>
+        <SubHeader>Color</SubHeader>
+        <div className="grid grid-cols-3 gap-2 px-1 py-1">
+          {SHADOW_COLOR_PRESETS.map((c) => {
+            const active = color === c && !isCustomColor
+            return (
+              <div key={c} className="relative">
+                <button
+                  onClick={() => setColor(c)}
+                  className={cn(
+                    "aspect-square w-full overflow-hidden rounded-xl border cursor-pointer",
+                    active
+                      ? "border-transparent ring-1 ring-primary/35 ring-offset-1 ring-offset-sidebar"
+                      : "border-border/60"
+                  )}
+                >
+                  <span className="block size-full rounded-[inherit]" style={{ background: c }} />
+                </button>
+              </div>
+            )
+          })}
+          <div className="relative">
+            <ColorPickerPopover value={isCustomColor ? color : "#000000"} onChange={setColor}>
+              <button
+                className={cn(
+                  "relative aspect-square w-full overflow-hidden rounded-xl border cursor-pointer",
+                  isCustomColor
+                    ? "border-transparent ring-1 ring-primary/35 ring-offset-1 ring-offset-sidebar"
+                    : "border-border/60"
+                )}
+                aria-label="Custom shadow color"
+              >
+                <span
+                  className="block size-full rounded-[inherit]"
+                  style={{
+                    background: isCustomColor ? color : "transparent",
+                    backgroundImage: isCustomColor
+                      ? undefined
+                      : "conic-gradient(from 180deg at 50% 50%, #f87171, #fbbf24, #34d399, #60a5fa, #a78bfa, #f472b6, #f87171)",
+                  }}
+                />
+                <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/35 text-white">
+                  <RiGradienterLine className="size-3.5" />
+                </span>
+              </button>
+            </ColorPickerPopover>
+          </div>
+        </div>
       </div>
 
       <div className={cn(isDisabled && "pointer-events-none opacity-50")}>

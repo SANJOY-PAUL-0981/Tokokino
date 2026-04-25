@@ -2,6 +2,8 @@
 
 import * as React from "react"
 
+import BACKGROUND_DATA from "./backgrounds-data.json"
+
 export type AspectState = { id: string; w: number; h: number }
 
 export type BgType = "none" | "solid" | "gradient" | "image" | "auto"
@@ -32,12 +34,13 @@ export type Backdrop = {
   pattern: BackdropPattern
 }
 
-export type ShadowType = "none" | "drop" | "glow"
+export type ShadowType = "none" | "drop" | "soft" | "hard" | "glow" | "float"
 
 export type Shadow = {
   type: ShadowType
   intensity: number
   lightSource: string
+  color: string
 }
 
 export type OverlayPosition = "overlay" | "underlay"
@@ -106,17 +109,24 @@ export const SOLID_PRESETS = [
   "#ec4899",
 ]
 
-export const IMAGE_PRESETS = [
-  "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?q=80&w=1200&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=1200&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=1200&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1200&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1200&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1574169208507-84376144848b?q=80&w=1200&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1557682250-33bd709cbe85?q=80&w=1200&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1557682224-5b8590cd9ec5?q=80&w=1200&auto=format&fit=crop",
-]
+export type BackgroundEntry = {
+  id: string
+  name: string
+  full: string
+  thumb: string
+}
+
+export type BackgroundCategory = {
+  key: string
+  label: string
+  items: BackgroundEntry[]
+}
+
+export const BACKGROUND_LIBRARY: BackgroundCategory[] =
+  BACKGROUND_DATA as BackgroundCategory[]
+
+export const DEFAULT_IMAGE_BACKGROUND =
+  BACKGROUND_LIBRARY[0]?.items[0]?.full ?? ""
 
 const DEFAULT_STATE: EditorState = {
   screenshot: null,
@@ -149,6 +159,7 @@ const DEFAULT_STATE: EditorState = {
     type: "drop",
     intensity: 40,
     lightSource: "center",
+    color: "#000000",
   },
   overlay: {
     id: null,
@@ -435,36 +446,84 @@ export function effectsFilterCss(e: BackdropEffects): string | undefined {
   return parts.length ? parts.join(" ") : undefined
 }
 
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const c = hex.replace("#", "")
+  if (c.length === 3) {
+    return {
+      r: parseInt(c[0] + c[0], 16),
+      g: parseInt(c[1] + c[1], 16),
+      b: parseInt(c[2] + c[2], 16),
+    }
+  }
+  return {
+    r: parseInt(c.slice(0, 2), 16),
+    g: parseInt(c.slice(2, 4), 16),
+    b: parseInt(c.slice(4, 6), 16),
+  }
+}
+
+function shadowRgba(color: string, opacity: number): string {
+  const { r, g, b } = hexToRgb(color || "#000000")
+  return `rgba(${r}, ${g}, ${b}, ${opacity.toFixed(3)})`
+}
+
 export function shadowCss(shadow: Shadow): string | undefined {
   if (shadow.type === "none" || shadow.intensity <= 0) return undefined
   const intensity = shadow.intensity / 100
+  const color = shadow.color || "#000000"
 
   if (shadow.type === "glow") {
     const blur = 30 + intensity * 90
     const spread = intensity * 8
     const opacity = 0.18 + intensity * 0.42
-    return `0 0 ${blur}px ${spread}px rgba(0, 0, 0, ${opacity.toFixed(3)})`
+    return `0 0 ${blur}px ${spread}px ${shadowRgba(color, opacity)}`
   }
 
-  // drop shadow — directional, opposite the light source
-  let dx = 0
-  let dy = 0
+  if (shadow.type === "soft") {
+    let dx = 0, dy = 0
+    if (shadow.lightSource !== "center") {
+      const [r, c] = shadow.lightSource.split("-").map(Number)
+      if (Number.isFinite(r) && Number.isFinite(c)) { dx = -(c - 2); dy = -(r - 2) }
+    }
+    const unit = intensity * 10
+    const blur = 40 + intensity * 80
+    const spread = intensity * 4
+    const opacity = 0.1 + intensity * 0.2
+    return `${(dx * unit).toFixed(1)}px ${(dy * unit).toFixed(1)}px ${blur.toFixed(1)}px ${spread.toFixed(1)}px ${shadowRgba(color, opacity)}`
+  }
+
+  if (shadow.type === "hard") {
+    let dx = 0, dy = 0
+    if (shadow.lightSource !== "center") {
+      const [r, c] = shadow.lightSource.split("-").map(Number)
+      if (Number.isFinite(r) && Number.isFinite(c)) { dx = -(c - 2); dy = -(r - 2) }
+    }
+    const unit = intensity * 12
+    const opacity = 0.25 + intensity * 0.45
+    return `${(dx * unit).toFixed(1)}px ${(dy * unit).toFixed(1)}px 0px 0px ${shadowRgba(color, opacity)}`
+  }
+
+  if (shadow.type === "float") {
+    const opacity1 = 0.12 + intensity * 0.18
+    const opacity2 = 0.08 + intensity * 0.12
+    const blur1 = 15 + intensity * 25
+    const blur2 = 40 + intensity * 60
+    const dy1 = 4 + intensity * 12
+    const dy2 = 8 + intensity * 20
+    return `0 ${dy1.toFixed(1)}px ${blur1.toFixed(1)}px 0px ${shadowRgba(color, opacity1)}, 0 ${dy2.toFixed(1)}px ${blur2.toFixed(1)}px 0px ${shadowRgba(color, opacity2)}`
+  }
+
+  // drop — directional, opposite the light source
+  let dx = 0, dy = 0
   if (shadow.lightSource !== "center") {
     const [r, c] = shadow.lightSource.split("-").map(Number)
-    if (Number.isFinite(r) && Number.isFinite(c)) {
-      dx = -(c - 2)
-      dy = -(r - 2)
-    }
+    if (Number.isFinite(r) && Number.isFinite(c)) { dx = -(c - 2); dy = -(r - 2) }
   }
   const unit = intensity * 16
-  const offsetX = dx * unit
-  const offsetY = dy * unit
   const blur = 20 + intensity * 60
   const spread = -2
   const opacity = 0.15 + intensity * 0.35
-  return `${offsetX.toFixed(1)}px ${offsetY.toFixed(1)}px ${blur.toFixed(
-    1
-  )}px ${spread}px rgba(0, 0, 0, ${opacity.toFixed(3)})`
+  return `${(dx * unit).toFixed(1)}px ${(dy * unit).toFixed(1)}px ${blur.toFixed(1)}px ${spread}px ${shadowRgba(color, opacity)}`
 }
 
 function hexToHsl(hex: string): { h: number; s: number; l: number } | null {
