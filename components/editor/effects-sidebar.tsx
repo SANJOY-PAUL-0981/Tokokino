@@ -10,9 +10,7 @@ import {
   FramePopover,
   type FrameOrientation,
 } from "@/components/editor/frame-popover"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { PRESETS } from "@/lib/editor/types"
 import { useEditor } from "@/lib/editor/store"
 
 export function EffectsSidebar({
@@ -22,7 +20,7 @@ export function EffectsSidebar({
   className?: string
   stacked?: boolean
 }) {
-  const { aspect, setAspect, background, setBackground } = useEditor()
+  const { aspect, setAspect } = useEditor()
 
   const [customSize, setCustomSize] = React.useState<{
     w: number
@@ -32,8 +30,6 @@ export function EffectsSidebar({
   const [frame, setFrame] = React.useState<string>("browser")
   const [orientation, setOrientation] =
     React.useState<FrameOrientation>("horizontal")
-
-  const [preset, setPreset] = React.useState<string>("")
 
   return (
     <aside className={cn("flex h-full min-h-0 w-[268px] shrink-0 flex-col border-r border-dashed border-border/70 bg-sidebar", className)}>
@@ -87,94 +83,14 @@ export function EffectsSidebar({
         </div>
       </div>
 
-      <div className="mx-4 h-px bg-border/60" />
-
-      {/* Scrollable Presets */}
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="shrink-0 px-4 pt-4 pb-2">
-          <SectionHeader
-            trailing={
-              <span className="tabular font-mono text-[10px] text-muted-foreground">
-                {PRESETS.length}
-              </span>
-            }
-          >
-            Presets
-          </SectionHeader>
-        </div>
-
-        <ScrollArea className="min-h-0 flex-1">
-          <ul
-            className={cn(
-              "grid grid-cols-3 gap-2 px-4 pb-5 xl:flex xl:flex-col xl:gap-3",
-              stacked && "!flex !flex-col !gap-3"
-            )}
-          >
-            {PRESETS.map((p) => {
-              const isActive =
-                preset === p.id && background.value === p.preview
-              return (
-                <li key={p.id}>
-                  <button
-                    onClick={() => {
-                      setPreset(p.id)
-                      setBackground({ type: "gradient", value: p.preview })
-                    }}
-                    className="group block w-full text-left"
-                  >
-                    <div
-                      className={cn(
-                        "relative flex aspect-[16/10] items-center justify-center overflow-hidden rounded-xl border p-3 transition-colors xl:aspect-auto xl:h-[112px] xl:p-4",
-                        stacked && "!aspect-auto !h-[112px] !p-4",
-                        isActive
-                          ? "border-foreground/40"
-                          : "border-border/60 hover:border-foreground/20"
-                      )}
-                      style={{ background: p.preview }}
-                    >
-                      <div
-                        className={cn(
-                          "h-[62%] w-[72%] rounded-md bg-background/90 shadow-sm ring-1 ring-black/5",
-                          p.id === "paper-tilt" && "rotate-[-3deg]"
-                        )}
-                      />
-                    </div>
-                    <div className="mt-1.5 flex items-baseline justify-between gap-2">
-                      <span
-                        className={cn(
-                          "truncate text-[11px] xl:text-[12px]",
-                          stacked && "!text-[12px]",
-                          isActive ? "text-foreground" : "text-foreground/80"
-                        )}
-                      >
-                        {p.name}
-                      </span>
-                      <span className="tabular font-mono text-[10px] text-muted-foreground">
-                        {p.index}
-                      </span>
-                    </div>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </ScrollArea>
-      </div>
     </aside>
   )
 }
 
-function SectionHeader({
-  children,
-  trailing,
-}: {
-  children: React.ReactNode
-  trailing?: React.ReactNode
-}) {
+function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-2.5 flex items-center justify-between">
+    <div className="mb-2.5">
       <span className="label-eyebrow">{children}</span>
-      {trailing}
     </div>
   )
 }

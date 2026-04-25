@@ -79,13 +79,13 @@ export function Inspector({ className }: { className?: string }) {
           </Section>
           <div className="my-3 h-px bg-border/50" />
 
-          <Section icon={RiBrushLine} title="Border" defaultOpen>
-            <BorderSection />
+          <Section icon={RiSunLine} title="Backdrop">
+            <BackdropSection />
           </Section>
           <div className="my-3 h-px bg-border/50" />
 
-          <Section icon={RiSunLine} title="Backdrop">
-            <BackdropSection />
+          <Section icon={RiBrushLine} title="Border" defaultOpen>
+            <BorderSection />
           </Section>
           <div className="my-3 h-px bg-border/50" />
 
@@ -426,7 +426,7 @@ function BackdropSection() {
                   }
                   style={patternCssFor(p.id, pattern.color, pattern.thickness)}
                   className={cn(
-                    "relative aspect-square overflow-hidden rounded-md border bg-secondary/40 transition-all cursor-pointer",
+                    "relative aspect-square overflow-hidden rounded-md border bg-neutral-900 transition-all cursor-pointer",
                     selected
                       ? "border-foreground ring-1 ring-foreground/30"
                       : "border-border/60 hover:border-foreground/30"

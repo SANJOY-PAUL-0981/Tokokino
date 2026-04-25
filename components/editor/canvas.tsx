@@ -1,11 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { RiImage2Line } from "@remixicon/react"
+import { RiAddLine, RiGlobeLine, RiSettings4Line, RiCameraLine, RiCropLine } from "@remixicon/react"
 import { motion } from "motion/react"
 import { toast } from "sonner"
 
 import { CornerMarkers } from "@/components/editor/corner-marker"
+import { CropModal } from "@/components/editor/crop-modal"
 import { cn } from "@/lib/utils"
 import {
   backgroundCss,
@@ -58,6 +59,7 @@ export function Canvas() {
   } | null>(null)
   const [isScreenshotSelected, setIsScreenshotSelected] = React.useState(false)
   const [isScreenshotDragging, setIsScreenshotDragging] = React.useState(false)
+  const [isCropModalOpen, setIsCropModalOpen] = React.useState(false)
   const [centerGuides, setCenterGuides] = React.useState({
     x: false,
     y: false,
@@ -65,6 +67,22 @@ export function Canvas() {
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const stageRef = React.useRef<HTMLDivElement>(null)
   const imageRef = React.useRef<HTMLImageElement>(null)
+  const suppressTransitionRef = React.useRef(false)
+  const [, forceRender] = React.useState(0)
+  const prevPaddingRef = React.useRef(padding)
+  React.useEffect(() => {
+    if (prevPaddingRef.current !== padding) {
+      prevPaddingRef.current = padding
+      suppressTransitionRef.current = true
+      forceRender((n) => n + 1)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          suppressTransitionRef.current = false
+          forceRender((n) => n + 1)
+        })
+      })
+    }
+  }, [padding])
   const dragRef = React.useRef<{
     pointerId: number
     startClientX: number
@@ -274,7 +292,7 @@ export function Canvas() {
   }
 
   return (
-    <section className="relative flex flex-1 items-center justify-center border-b border-dashed border-border/70 bg-background px-4 py-4 sm:px-8 dark:bg-black">
+    <section className="relative z-0 flex flex-1 items-center justify-center overflow-hidden border-b border-dashed border-border/70 bg-background px-4 py-4 sm:px-8 dark:bg-black">
       <CornerMarkers className="text-border" size={12} />
       <input
         ref={fileInputRef}
@@ -382,7 +400,7 @@ export function Canvas() {
           {screenshot ? (
             <div
               ref={stageRef}
-              className="relative h-full w-full"
+              className="relative h-full w-full group/screenshot"
               onPointerDown={(e) => {
                 if (e.target === e.currentTarget) {
                   setIsScreenshotSelected(false)
@@ -423,7 +441,7 @@ export function Canvas() {
                 }}
                 className={cn(
                   "absolute max-h-full max-w-full object-contain select-none",
-                  isScreenshotDragging
+                  isScreenshotDragging || suppressTransitionRef.current
                     ? "cursor-grabbing transition-none"
                     : "transition-all duration-300 ease-out",
                   activeTool === "pointer" && "cursor-grab",
@@ -432,33 +450,87 @@ export function Canvas() {
                     "ring-2 ring-blue-400/90"
                 )}
               />
+              
+              {/* Hover Crop Button — tracks image center */}
+              {activeTool === "pointer" && placementDims && (
+                <div
+                  className={cn(
+                    "pointer-events-none absolute z-50 opacity-0 transition-opacity group-hover/screenshot:opacity-100",
+                    isScreenshotDragging || suppressTransitionRef.current
+                      ? "transition-none"
+                      : "transition-[opacity,left,top] duration-300 ease-out"
+                  )}
+                  style={{
+                    left: (screenshotLeft ?? placementDims.stageW / 2 - placementDims.imgW / 2) + placementDims.imgW / 2,
+                    top: (screenshotTop ?? placementDims.stageH / 2 - placementDims.imgH / 2) + placementDims.imgH / 2,
+                    transform: "translate(-50%, -50%)",
+                  }}
+                >
+                  <button
+                    onClick={() => setIsCropModalOpen(true)}
+                    className="pointer-events-auto flex size-12 items-center justify-center rounded-full bg-black/70 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110 hover:bg-black/90"
+                  >
+                    <RiCropLine className="size-5" />
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div
               data-drag-over={isDragOver}
               className={cn(
-                "relative flex h-full w-full flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-foreground/25 bg-background/60 text-center backdrop-blur-sm transition-colors",
-                "data-[drag-over=true]:border-foreground/60 data-[drag-over=true]:bg-foreground/10"
+                "relative flex h-full w-full flex-col items-center justify-center gap-6 text-center transition-all duration-300",
+                "text-white/90",
+                "data-[drag-over=true]:scale-[1.02]"
               )}
             >
-              <div className="flex size-10 items-center justify-center rounded-xl border border-border/70 bg-background shadow-sm">
-                <RiImage2Line className="size-4 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-[14px] font-medium">Drop a screenshot</p>
-                <p className="mt-1 text-[12px] text-muted-foreground">
-                  or{" "}
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-foreground underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground"
-                  >
-                    browse
-                  </button>{" "}
-                  · paste with{" "}
-                  <kbd className="inline-flex h-4 min-w-4 items-center justify-center rounded border border-border px-1 font-mono text-[10px]">
-                    ⌘V
+              <div 
+                className="flex flex-col items-center gap-5 cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <RiAddLine className="size-20 font-light text-white/70 stroke-[0.5]" />
+                <h3 className="text-xl font-medium tracking-wide drop-shadow-sm">Drag & drop, click to browse, or paste</h3>
+                
+                <div className="flex items-center gap-2 text-white/80">
+                  <kbd className="inline-flex h-8 items-center justify-center rounded-lg border border-white/20 bg-white/10 px-2.5 font-mono text-sm backdrop-blur-md shadow-sm">
+                    ⌘ V
                   </kbd>
-                </p>
+                  <span className="text-base">to paste</span>
+                </div>
+              </div>
+
+              <div className="flex w-full max-w-xs items-center gap-4 py-2">
+                <div className="h-px flex-1 bg-white/20"></div>
+                <span className="text-sm text-white/50">or</span>
+                <div className="h-px flex-1 bg-white/20"></div>
+              </div>
+
+              <div className="flex w-full max-w-[380px] flex-col items-stretch gap-3">
+                <div className="flex h-[52px] w-full items-center gap-3 rounded-2xl border border-white/20 bg-white/10 px-4 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.1)] transition-colors hover:bg-white/15 focus-within:bg-white/20 focus-within:border-white/30">
+                  <RiGlobeLine className="size-5 text-white/60" />
+                  <input 
+                    type="text" 
+                    placeholder="Enter website URL..." 
+                    className="flex-1 bg-transparent text-base text-white placeholder:text-white/60 focus:outline-none"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+                <div className="flex w-full gap-3">
+                  <button 
+                    className="group flex h-[52px] flex-1 gap-2.5 px-6 items-center justify-center rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.1)] transition-all hover:bg-white/20 hover:scale-[1.02] hover:shadow-[0_8px_32px_rgba(255,255,255,0.1)]"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <RiCameraLine className="size-5 text-white/80 transition-transform group-hover:scale-110" />
+                    <span className="text-white font-medium tracking-wide">Capture Screenshot</span>
+                  </button>
+                  <button 
+                    className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.1)] transition-all hover:bg-white/20 hover:scale-[1.02]"
+                    onClick={(e) => e.stopPropagation()}
+                    title="Settings"
+                  >
+                    <RiSettings4Line className="size-5 text-white/80 transition-transform hover:rotate-90" />
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -477,6 +549,13 @@ export function Canvas() {
         ) : null}
       </motion.div>
       </div>
+
+      <CropModal 
+        open={isCropModalOpen}
+        onOpenChange={setIsCropModalOpen}
+        screenshotUrl={screenshot}
+        onCrop={setScreenshot}
+      />
     </section>
   )
 }
