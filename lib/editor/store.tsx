@@ -58,6 +58,13 @@ export type Overlay = {
   position: OverlayPosition
 }
 
+export type PortraitMode = "off" | "soft" | "studio" | "spot" | "frame" | "iris"
+
+export type Portrait = {
+  mode: PortraitMode
+  intensity: number
+}
+
 export type AssetElement = {
   id: string
   src: string
@@ -198,6 +205,7 @@ export type EditorState = {
   screenshotOffset: { x: number; y: number }
   shadow: Shadow
   overlay: Overlay
+  portrait: Portrait
   texts: TextElement[]
   assets: AssetElement[]
 }
@@ -396,6 +404,10 @@ const DEFAULT_STATE: EditorState = {
     opacity: 50,
     position: "overlay",
   },
+  portrait: {
+    mode: "off",
+    intensity: 60,
+  },
   texts: [],
   assets: [],
 }
@@ -504,6 +516,7 @@ type Ctx = EditorState & {
   setScreenshotOffset: (o: { x: number; y: number }) => void
   setShadow: (s: Shadow) => void
   setOverlay: (o: Overlay) => void
+  setPortrait: (p: Portrait) => void
   addText: () => string
   updateText: (id: string, patch: Partial<TextElement>) => void
   deleteText: (id: string) => void
@@ -597,6 +610,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
       setScreenshotOffset: (o) => set({ screenshotOffset: o }, "screenshotOffset"),
       setShadow: (s) => set({ shadow: s }, "shadow"),
       setOverlay: (o) => set({ overlay: o }, "overlay"),
+      setPortrait: (p) => set({ portrait: p }, "portrait"),
       addText: () => {
         const id = makeId()
         set(

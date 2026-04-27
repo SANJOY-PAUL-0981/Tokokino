@@ -23,6 +23,43 @@ import {
 const NOISE_DATA_URL =
   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.85'/></svg>\")"
 
+function portraitOverlayCss(
+  mode: import("@/lib/editor/store").PortraitMode,
+  intensity: number
+): React.CSSProperties | null {
+  if (mode === "off") return null
+  const t = Math.max(0, Math.min(100, intensity)) / 100
+  switch (mode) {
+    case "soft":
+      return {
+        background: `radial-gradient(ellipse at center, transparent ${40 + t * 10}%, rgba(0,0,0,${0.45 * t}) 100%)`,
+        mixBlendMode: "multiply",
+      }
+    case "studio":
+      return {
+        background: `radial-gradient(ellipse 70% 60% at 50% 45%, transparent 0%, transparent ${20 + t * 10}%, rgba(0,0,0,${0.85 * t}) 100%)`,
+        mixBlendMode: "multiply",
+      }
+    case "spot":
+      return {
+        background: `radial-gradient(circle at 50% 45%, rgba(255,255,255,${0.18 * t}) 0%, transparent ${25 + t * 15}%), radial-gradient(circle at 50% 45%, transparent ${30 + t * 10}%, rgba(0,0,0,${0.7 * t}) 100%)`,
+        mixBlendMode: "normal",
+      }
+    case "frame":
+      return {
+        boxShadow: `inset 0 0 ${80 * t}px ${30 * t}px rgba(0,0,0,${0.7 * t})`,
+        background: "transparent",
+      }
+    case "iris":
+      return {
+        background: `radial-gradient(circle at 50% 50%, transparent ${35 + t * 15}%, rgba(0,0,0,${0.55 * t}) ${55 + t * 10}%, rgba(0,0,0,${0.95 * t}) 100%)`,
+        mixBlendMode: "multiply",
+      }
+    default:
+      return null
+  }
+}
+
 export function Canvas() {
   const {
     activeTool,
@@ -40,6 +77,7 @@ export function Canvas() {
     screenshotOffset,
     shadow,
     overlay,
+    portrait,
     canvasBorderRadius,
     isPreviewMode,
     setScreenshot,
@@ -408,6 +446,19 @@ export function Canvas() {
             style={{ backgroundImage: NOISE_DATA_URL, opacity: noiseOpacity }}
           />
         ) : null}
+
+        {/* Portrait mode (vignette/spotlight) — sits above background, below screenshot */}
+        {(() => {
+          const portraitStyle = portraitOverlayCss(portrait.mode, portrait.intensity)
+          if (!portraitStyle) return null
+          return (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0"
+              style={portraitStyle}
+            />
+          )
+        })()}
 
         {/* Underlay (above background, below screenshot) */}
         {overlay.id !== null && overlay.position === "underlay" ? (

@@ -10,7 +10,7 @@ import { MobileControls } from "@/components/editor/mobile-controls"
 import { TopBar } from "@/components/editor/top-bar"
 import { EditorProvider, useEditor } from "@/lib/editor/store"
 import { Button } from "@/components/ui/button"
-import { RiEyeCloseLine } from "@remixicon/react"
+import { RiEyeLine } from "@remixicon/react"
 import { motion, AnimatePresence } from "motion/react"
 
 function EditorLayout() {
@@ -41,13 +41,13 @@ function EditorLayout() {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="fixed top-4 right-4 z-50"
+                className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
               >
                 <Button
                   onClick={() => setIsPreviewMode(false)}
-                  className="rounded-full shadow-xl bg-black/80 text-white hover:bg-black backdrop-blur-md px-5 cursor-pointer"
+                  className="rounded-full shadow-xl text-white hover:bg-white/20 backdrop-blur-md px-5 cursor-pointer bg-transparent border border-white/20"
                 >
-                  <RiEyeCloseLine className="mr-2 size-4" />
+                  <RiEyeLine className="mr-2 size-4" />
                   Exit Preview
                   <kbd className="ml-2 rounded border border-white/20 bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white/80">
                     Esc

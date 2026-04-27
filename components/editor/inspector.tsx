@@ -60,7 +60,125 @@ import {
   useEditor,
   type BackgroundEntry,
   type BgType,
+  type PortraitMode,
 } from "@/lib/editor/store"
+
+const PORTRAIT_MODES: { id: PortraitMode; label: string }[] = [
+  { id: "off", label: "Off" },
+  { id: "soft", label: "Soft" },
+  { id: "studio", label: "Studio" },
+  { id: "spot", label: "Spot" },
+  { id: "frame", label: "Frame" },
+  { id: "iris", label: "Iris" },
+]
+
+function portraitPreviewCss(mode: PortraitMode): React.CSSProperties {
+  switch (mode) {
+    case "off":
+      return {
+        background:
+          "linear-gradient(135deg, oklch(0.32 0 0), oklch(0.18 0 0))",
+      }
+    case "soft":
+      return {
+        background:
+          "radial-gradient(ellipse at 50% 50%, oklch(0.6 0 0) 0%, oklch(0.6 0 0) 30%, oklch(0.1 0 0) 100%)",
+      }
+    case "studio":
+      return {
+        background:
+          "radial-gradient(ellipse 65% 55% at 50% 45%, oklch(0.78 0 0) 0%, oklch(0.6 0 0) 35%, oklch(0.05 0 0) 95%)",
+      }
+    case "spot":
+      return {
+        background:
+          "radial-gradient(circle at 50% 45%, #fff 0%, oklch(0.7 0 0) 18%, oklch(0.05 0 0) 70%)",
+      }
+    case "frame":
+      return {
+        background:
+          "linear-gradient(135deg, oklch(0.55 0 0), oklch(0.42 0 0))",
+        boxShadow: "inset 0 0 18px 6px rgba(0,0,0,0.85)",
+      }
+    case "iris":
+      return {
+        background:
+          "radial-gradient(circle at 50% 50%, oklch(0.7 0 0) 30%, #000 55%, #000 100%)",
+      }
+    default:
+      return {}
+  }
+}
+
+function PopoverHeader({
+  title,
+  description,
+  onReset,
+  resetTitle,
+}: {
+  title: string
+  description: string
+  onReset?: () => void
+  resetTitle?: string
+}) {
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <span className="block text-[13px] font-medium leading-tight">
+            {title}
+          </span>
+          <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">
+            {description}
+          </p>
+        </div>
+        {onReset ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="-mt-0.5 size-6 shrink-0 cursor-pointer"
+            onClick={onReset}
+            title={resetTitle ?? "Reset"}
+          >
+            <RiArrowGoBackLine className="size-3" />
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function BackdropTile({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+  ...rest
+}: React.ComponentProps<"button"> & {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  active?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      data-active={active ? "" : undefined}
+      className={cn(
+        "group relative flex h-[58px] flex-col items-center justify-center gap-1 rounded-lg border border-transparent bg-transparent text-foreground/80 transition-colors cursor-pointer hover:bg-background hover:text-foreground hover:border-border/70",
+        "data-[state=open]:bg-background data-[state=open]:text-foreground data-[state=open]:border-border/70 data-[state=open]:shadow-sm",
+        active && "text-foreground"
+      )}
+      {...rest}
+    >
+      <Icon className="size-[18px]" />
+      <span className="text-[10px] font-medium tracking-tight">{label}</span>
+      {active ? (
+        <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-primary shadow-[0_0_0_2px_var(--sidebar)]" />
+      ) : null}
+    </button>
+  )
+}
 
 export function Inspector({ className }: { className?: string }) {
   return (
@@ -184,10 +302,12 @@ function BackdropSection() {
     backdrop,
     background,
     overlay,
+    portrait,
     canvasBorderRadius,
     setBackdropEffects,
     setBackdropPattern,
     setOverlay,
+    setPortrait,
     setCanvasBorderRadius,
   } = useEditor()
   const { effects, pattern } = backdrop
@@ -236,15 +356,27 @@ function BackdropSection() {
     if (open) setOverlayHasOpened(true)
   }, [])
 
+  const effectsDirty =
+    effects.brightness !== 100 ||
+    effects.contrast !== 100 ||
+    effects.saturation !== 100 ||
+    effects.hue !== 0 ||
+    effects.grayscale !== 0 ||
+    effects.sepia !== 0 ||
+    effects.invert !== 0 ||
+    effects.blur !== 0 ||
+    effects.noise !== 0 ||
+    effects.opacity !== 100
+  const overlayActive = overlay.id !== null
+  const patternActive = pattern.ids.length > 0
+  const portraitActive = portrait.mode !== "off"
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-4 gap-1.5 rounded-xl border border-border/60 bg-secondary/30 p-1.5">
       <Popover open={overlayPopoverOpen} onOpenChange={handleOverlayOpenChange}>
         <PopoverTrigger asChild>
-          <Button variant="default" size="sm" className="h-9 justify-start gap-2 px-3 font-medium cursor-pointer">
-            <RiSunLine className="size-4" />
-            <span>Overlay</span>
-          </Button>
+          <BackdropTile icon={RiSunLine} label="Overlay" active={overlayActive} />
         </PopoverTrigger>
         <PopoverContent
           side="left"
@@ -252,20 +384,12 @@ function BackdropSection() {
           forceMount={overlayHasOpened ? true : undefined}
           className="w-[240px] space-y-2 bg-popover/95 backdrop-blur-md [contain:layout_paint] data-[state=closed]:pointer-events-none data-[state=closed]:invisible"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] font-medium">Shadow Overlay</span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-6 cursor-pointer"
-              onClick={() =>
-                setOverlay({ id: null, opacity: 50, position: "overlay" })
-              }
-              title="Reset overlay"
-            >
-              <RiArrowGoBackLine className="size-3" />
-            </Button>
-          </div>
+          <PopoverHeader
+            title="Shadow Overlay"
+            description="Drape a soft light or shadow texture over the canvas."
+            onReset={() => setOverlay({ id: null, opacity: 50, position: "overlay" })}
+            resetTitle="Reset overlay"
+          />
           <OverlayGrid
             ids={overlayIds}
             selectedId={overlay.id}
@@ -320,37 +444,28 @@ function BackdropSection() {
 
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="default" size="sm" className="h-9 justify-start gap-2 px-3 font-medium cursor-pointer">
-            <RiEqualizerLine className="size-4" />
-            <span>Effects</span>
-          </Button>
+          <BackdropTile icon={RiEqualizerLine} label="Effects" active={effectsDirty} />
         </PopoverTrigger>
         <PopoverContent side="left" align="start" className="w-[240px] space-y-2 bg-popover/95 backdrop-blur-md">
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] font-medium">Effects</span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-6 cursor-pointer"
-              onClick={() =>
-                setBackdropEffects({
-                  noise: 0,
-                  blur: 0,
-                  brightness: 100,
-                  contrast: 100,
-                  saturation: 100,
-                  hue: 0,
-                  grayscale: 0,
-                  sepia: 0,
-                  invert: 0,
-                  opacity: 100,
-                })
-              }
-              title="Reset effects"
-            >
-              <RiArrowGoBackLine className="size-3" />
-            </Button>
-          </div>
+          <PopoverHeader
+            title="Effects"
+            description="Color & filter adjustments applied to the backdrop layer."
+            onReset={() =>
+              setBackdropEffects({
+                noise: 0,
+                blur: 0,
+                brightness: 100,
+                contrast: 100,
+                saturation: 100,
+                hue: 0,
+                grayscale: 0,
+                sepia: 0,
+                invert: 0,
+                opacity: 100,
+              })
+            }
+            resetTitle="Reset effects"
+          />
           <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1 [scrollbar-width:thin]">
             <EffectSlider
               label="Brightness"
@@ -415,35 +530,26 @@ function BackdropSection() {
 
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="default" size="sm" className="h-9 justify-start gap-2 px-3 font-medium cursor-pointer">
-            <RiGridLine className="size-4" />
-            <span>Pattern</span>
-          </Button>
+          <BackdropTile icon={RiGridLine} label="Pattern" active={patternActive} />
         </PopoverTrigger>
         <PopoverContent
           side="left"
           align="start"
           className="w-[240px] space-y-2 bg-popover/95 backdrop-blur-md"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] font-medium">Patterns</span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-6 cursor-pointer"
-              onClick={() =>
-                setBackdropPattern({
-                  ids: [],
-                  intensity: 50,
-                  thickness: 1,
-                  color: "#FFFFFF",
-                })
-              }
-              title="Reset patterns"
-            >
-              <RiArrowGoBackLine className="size-3" />
-            </Button>
-          </div>
+          <PopoverHeader
+            title="Patterns"
+            description="Layer geometric textures on top of your backdrop."
+            onReset={() =>
+              setBackdropPattern({
+                ids: [],
+                intensity: 50,
+                thickness: 1,
+                color: "#FFFFFF",
+              })
+            }
+            resetTitle="Reset patterns"
+          />
           <div className="grid max-h-[228px] grid-cols-3 gap-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
             <button
               key="none"
@@ -579,10 +685,77 @@ function BackdropSection() {
         </PopoverContent>
       </Popover>
 
-      <Button variant="default" size="sm" className="h-9 justify-start gap-2 px-3 font-medium cursor-pointer">
-        <RiFocus2Line className="size-4" />
-        <span>Portrait</span>
-      </Button>
+      <Popover>
+        <PopoverTrigger asChild>
+          <BackdropTile icon={RiFocus2Line} label="Portrait" active={portraitActive} />
+        </PopoverTrigger>
+        <PopoverContent
+          side="left"
+          align="start"
+          className="w-[260px] space-y-2 bg-popover/95 backdrop-blur-md"
+        >
+          <PopoverHeader
+            title="Portrait Mode"
+            description="Cinematic depth — blends a vignette around your screenshot."
+            onReset={() => setPortrait({ mode: "off", intensity: 60 })}
+            resetTitle="Reset portrait"
+          />
+          <div className="grid grid-cols-3 gap-1.5">
+            {PORTRAIT_MODES.map((m) => {
+              const active = portrait.mode === m.id
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => setPortrait({ ...portrait, mode: m.id })}
+                  className={cn(
+                    "group relative flex aspect-square flex-col items-center justify-end overflow-hidden rounded-lg border bg-neutral-900 p-1.5 transition-all cursor-pointer",
+                    active
+                      ? "border-foreground ring-1 ring-foreground/30"
+                      : "border-border/60 hover:border-foreground/30"
+                  )}
+                  title={m.label}
+                >
+                  <span
+                    aria-hidden
+                    className="absolute inset-0"
+                    style={portraitPreviewCss(m.id)}
+                  />
+                  <span
+                    className={cn(
+                      "relative z-10 rounded-sm bg-black/60 px-1 text-[9px] font-medium text-white/95 backdrop-blur-sm",
+                      active && "bg-foreground text-background"
+                    )}
+                  >
+                    {m.label}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          {portrait.mode !== "off" ? (
+            <div className="space-y-2 pt-2 border-t border-border/40">
+              <div className="flex items-baseline justify-between">
+                <span className="text-[11px] text-muted-foreground">Intensity</span>
+                <EditableValue
+                  value={portrait.intensity}
+                  onChange={(v) => setPortrait({ ...portrait, intensity: v })}
+                  min={0}
+                  max={100}
+                  suffix="%"
+                />
+              </div>
+              <Slider
+                value={[portrait.intensity]}
+                onValueChange={([v]) =>
+                  setPortrait({ ...portrait, intensity: v })
+                }
+                max={100}
+                className="cursor-pointer"
+              />
+            </div>
+          ) : null}
+        </PopoverContent>
+      </Popover>
     </div>
 
     <div className="pt-2">
