@@ -71,6 +71,7 @@ export type AssetElement = {
   xPct: number
   yPct: number
   widthPct: number
+  heightPct: number | null
   rotation: number
   zIndex: number
 }
@@ -528,6 +529,7 @@ type Ctx = EditorState & {
   addAsset: (src: string) => string
   updateAsset: (id: string, patch: Partial<AssetElement>) => void
   deleteAsset: (id: string) => void
+  duplicateAsset: (id: string) => string | null
   bringAssetToFront: (id: string) => void
   sendAssetToBack: (id: string) => void
   selectedAssetId: string | null
@@ -701,6 +703,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
                 xPct: 50,
                 yPct: 50,
                 widthPct: 25,
+                heightPct: null,
                 rotation: 0,
                 zIndex: computeNextZ(s.assets),
               },
@@ -720,6 +723,24 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
       },
       deleteAsset: (id) => {
         set((s) => ({ assets: s.assets.filter((a) => a.id !== id) }), null)
+      },
+      duplicateAsset: (id) => {
+        const copyId = makeId()
+        let didCopy = false
+        set((s) => {
+          const src = s.assets.find((a) => a.id === id)
+          if (!src) return { assets: s.assets }
+          didCopy = true
+          const copy: AssetElement = {
+            ...src,
+            id: copyId,
+            xPct: Math.min(95, src.xPct + 4),
+            yPct: Math.min(95, src.yPct + 4),
+            zIndex: computeNextZ(s.assets),
+          }
+          return { assets: [...s.assets, copy] }
+        }, null)
+        return didCopy ? copyId : null
       },
       bringAssetToFront: (id) => {
         set((s) => {

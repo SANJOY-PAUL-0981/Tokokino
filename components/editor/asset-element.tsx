@@ -1,8 +1,26 @@
 "use client"
 
 import * as React from "react"
-import { RiDeleteBinLine, RiDragMove2Line } from "@remixicon/react"
+import { createPortal } from "react-dom"
+import {
+  RiBringToFront,
+  RiDeleteBinLine,
+  RiDragMove2Line,
+  RiFileCopyLine,
+  RiMoreFill,
+  RiSendToBack,
+} from "@remixicon/react"
 
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { type AssetElement, useEditor } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
 
@@ -16,12 +34,24 @@ type DragState = {
   canvasH: number
 }
 
+type ResizeHandleId = "ml" | "mr" | "mt" | "mb" | "tl" | "tr" | "bl" | "br"
+
 type ResizeState = {
   pointerId: number
+  handle: ResizeHandleId
   startX: number
+  startY: number
+  startXPct: number
+  startYPct: number
   startWidthPct: number
+  startHeightPct: number
+  aspect: number
   canvasW: number
+  canvasH: number
 }
+
+const iconBtnClass =
+  "inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer shrink-0"
 
 export function AssetElementView({
   asset,
@@ -35,12 +65,45 @@ export function AssetElementView({
     setSelectedAssetId,
     setSelectedTextId,
     updateAsset,
-    deleteAsset,
   } = useEditor()
   const isSelected = selectedAssetId === asset.id
 
+  const elRef = React.useRef<HTMLDivElement>(null)
+  const imgRef = React.useRef<HTMLImageElement>(null)
   const dragRef = React.useRef<DragState | null>(null)
   const resizeRef = React.useRef<ResizeState | null>(null)
+  const [toolbarRect, setToolbarRect] = React.useState<DOMRect | null>(null)
+
+  React.useEffect(() => {
+    if (!isSelected || !elRef.current) {
+      setToolbarRect(null)
+      return
+    }
+    const el = elRef.current
+    const update = () => setToolbarRect(el.getBoundingClientRect())
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    window.addEventListener("scroll", update, true)
+    window.addEventListener("resize", update)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener("scroll", update, true)
+      window.removeEventListener("resize", update)
+    }
+  }, [isSelected])
+
+  React.useEffect(() => {
+    if (!isSelected || !elRef.current) return
+    setToolbarRect(elRef.current.getBoundingClientRect())
+  }, [
+    isSelected,
+    asset.xPct,
+    asset.yPct,
+    asset.widthPct,
+    asset.heightPct,
+    asset.rotation,
+  ])
 
   const select = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -83,26 +146,94 @@ export function AssetElementView({
     }
   }
 
-  const startResize = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (!canvasRef.current) return
-    e.stopPropagation()
-    const rect = canvasRef.current.getBoundingClientRect()
-    resizeRef.current = {
-      pointerId: e.pointerId,
-      startX: e.clientX,
-      startWidthPct: asset.widthPct,
-      canvasW: rect.width,
+  const startResize =
+    (handle: ResizeHandleId) =>
+    (e: React.PointerEvent<HTMLButtonElement>) => {
+      const canvas = canvasRef.current
+      const el = elRef.current
+      if (!canvas || !el) return
+      e.stopPropagation()
+      e.preventDefault()
+      e.currentTarget.setPointerCapture(e.pointerId)
+      const rect = canvas.getBoundingClientRect()
+      const elRect = el.getBoundingClientRect()
+      const widthPx = elRect.width
+      const heightPx = elRect.height
+      const heightPct =
+        asset.heightPct ?? (rect.height ? (heightPx / rect.height) * 100 : 0)
+      resizeRef.current = {
+        pointerId: e.pointerId,
+        handle,
+        startX: e.clientX,
+        startY: e.clientY,
+        startXPct: asset.xPct,
+        startYPct: asset.yPct,
+        startWidthPct: asset.widthPct,
+        startHeightPct: heightPct,
+        aspect: heightPx > 0 ? widthPx / heightPx : 1,
+        canvasW: rect.width,
+        canvasH: rect.height,
+      }
     }
-    e.currentTarget.setPointerCapture(e.pointerId)
-  }
 
   const moveResize = (e: React.PointerEvent<HTMLButtonElement>) => {
-    const resize = resizeRef.current
-    if (!resize || resize.pointerId !== e.pointerId) return
-    const dxPct = ((e.clientX - resize.startX) / resize.canvasW) * 100
-    updateAsset(asset.id, {
-      widthPct: Math.max(5, Math.min(100, resize.startWidthPct + dxPct)),
-    })
+    const rs = resizeRef.current
+    if (!rs || rs.pointerId !== e.pointerId) return
+    const dxPct = ((e.clientX - rs.startX) / rs.canvasW) * 100
+    const dyPct = ((e.clientY - rs.startY) / rs.canvasH) * 100
+
+    const isCorner =
+      rs.handle === "tl" || rs.handle === "tr" || rs.handle === "bl" || rs.handle === "br"
+
+    if (isCorner) {
+      // Proportional scale based on dominant axis, anchor opposite corner
+      const signX = rs.handle === "tr" || rs.handle === "br" ? 1 : -1
+      const signY = rs.handle === "bl" || rs.handle === "br" ? 1 : -1
+      const newWByX = Math.max(2, rs.startWidthPct + signX * dxPct)
+      const newHByY = Math.max(2, rs.startHeightPct + signY * dyPct)
+      const scaleX = newWByX / rs.startWidthPct
+      const scaleY = newHByY / rs.startHeightPct
+      const scale = Math.max(scaleX, scaleY)
+      const newW = Math.max(2, rs.startWidthPct * scale)
+      const newH = Math.max(2, rs.startHeightPct * scale)
+      const xShift = (signX * (newW - rs.startWidthPct)) / 2
+      const yShift = (signY * (newH - rs.startHeightPct)) / 2
+      updateAsset(asset.id, {
+        widthPct: Math.min(200, newW),
+        heightPct: Math.min(200, newH),
+        xPct: Math.max(-20, Math.min(120, rs.startXPct + xShift)),
+        yPct: Math.max(-20, Math.min(120, rs.startYPct + yShift)),
+      })
+    } else {
+      let newW = rs.startWidthPct
+      let newH = rs.startHeightPct
+      let xShift = 0
+      let yShift = 0
+      switch (rs.handle) {
+        case "ml":
+          newW = Math.max(2, rs.startWidthPct - dxPct)
+          xShift = -(newW - rs.startWidthPct) / 2
+          break
+        case "mr":
+          newW = Math.max(2, rs.startWidthPct + dxPct)
+          xShift = (newW - rs.startWidthPct) / 2
+          break
+        case "mt":
+          newH = Math.max(2, rs.startHeightPct - dyPct)
+          yShift = -(newH - rs.startHeightPct) / 2
+          break
+        case "mb":
+          newH = Math.max(2, rs.startHeightPct + dyPct)
+          yShift = (newH - rs.startHeightPct) / 2
+          break
+      }
+      updateAsset(asset.id, {
+        widthPct: Math.min(200, newW),
+        heightPct: Math.min(200, newH),
+        xPct: Math.max(-20, Math.min(120, rs.startXPct + xShift)),
+        yPct: Math.max(-20, Math.min(120, rs.startYPct + yShift)),
+      })
+    }
   }
 
   const endResize = (e: React.PointerEvent<HTMLButtonElement>) => {
@@ -111,80 +242,246 @@ export function AssetElementView({
     }
   }
 
+  const heightStyle =
+    asset.heightPct != null ? `${asset.heightPct}%` : "auto"
+
+  return (
+    <>
+      <div
+        ref={elRef}
+        onPointerDown={startDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onClick={select}
+        className={cn(
+          "absolute select-none",
+          isSelected ? "cursor-grabbing" : "cursor-grab"
+        )}
+        style={{
+          left: `${asset.xPct}%`,
+          top: `${asset.yPct}%`,
+          width: `${asset.widthPct}%`,
+          height: heightStyle,
+          transform: `translate(-50%, -50%) rotate(${asset.rotation}deg)`,
+          zIndex: isSelected
+            ? 60
+            : asset.zIndex < 0
+              ? 10 + asset.zIndex
+              : 40 + asset.zIndex,
+        }}
+      >
+        <img
+          ref={imgRef}
+          src={asset.src}
+          alt=""
+          draggable={false}
+          className={cn(
+            "block w-full h-full select-none",
+            asset.heightPct != null ? "object-fill" : "object-contain",
+            isSelected &&
+              "outline-2 outline-[#9BCD64]/95 outline-dashed outline-offset-2"
+          )}
+        />
+        {isSelected ? (
+          <>
+            {/* Resize handles - 4 edges + 4 corners */}
+            {(
+              [
+                ["ml", "top-1/2", "left-0", "-translate-x-1/2 -translate-y-1/2", "ew-resize"],
+                ["mr", "top-1/2", "right-0", "translate-x-1/2 -translate-y-1/2", "ew-resize"],
+                ["mt", "top-0", "left-1/2", "-translate-x-1/2 -translate-y-1/2", "ns-resize"],
+                ["mb", "bottom-0", "left-1/2", "-translate-x-1/2 translate-y-1/2", "ns-resize"],
+                ["tl", "top-0", "left-0", "-translate-x-1/2 -translate-y-1/2", "nwse-resize"],
+                ["tr", "top-0", "right-0", "translate-x-1/2 -translate-y-1/2", "nesw-resize"],
+                ["bl", "bottom-0", "left-0", "-translate-x-1/2 translate-y-1/2", "nesw-resize"],
+                ["br", "bottom-0", "right-0", "translate-x-1/2 translate-y-1/2", "nwse-resize"],
+              ] as const
+            ).map(([id, vClass, hClass, transformClass, cursor]) => (
+              <button
+                key={id}
+                aria-label={`Resize ${id}`}
+                onPointerDown={startResize(id)}
+                onPointerMove={moveResize}
+                onPointerUp={endResize}
+                onPointerCancel={endResize}
+                onClick={(e) => e.stopPropagation()}
+                className={cn(
+                  "absolute z-10 size-2.5 rounded-full border border-[#92b97a] bg-background shadow",
+                  vClass,
+                  hClass,
+                  transformClass
+                )}
+                style={{ cursor }}
+              />
+            ))}
+          </>
+        ) : null}
+      </div>
+
+      {isSelected && toolbarRect && typeof document !== "undefined"
+        ? createPortal(
+            (() => {
+              const flipBelow = toolbarRect.top < 80
+              const top = flipBelow
+                ? toolbarRect.bottom + 12
+                : toolbarRect.top - 12
+              const left = toolbarRect.left + toolbarRect.width / 2
+              return (
+                <div
+                  className="pointer-events-none fixed z-[100]"
+                  style={{
+                    top,
+                    left,
+                    transform: flipBelow
+                      ? "translate(-50%, 0)"
+                      : "translate(-50%, -100%)",
+                  }}
+                >
+                  <div className="pointer-events-auto">
+                    <AssetToolbar
+                      asset={asset}
+                      onDragHandlePointerDown={startDrag}
+                      onDragHandlePointerMove={moveDrag}
+                      onDragHandlePointerUp={endDrag}
+                    />
+                  </div>
+                </div>
+              )
+            })(),
+            document.body
+          )
+        : null}
+    </>
+  )
+}
+
+type DragHandlers = {
+  onDragHandlePointerDown?: (e: React.PointerEvent<HTMLButtonElement>) => void
+  onDragHandlePointerMove?: (e: React.PointerEvent<HTMLButtonElement>) => void
+  onDragHandlePointerUp?: (e: React.PointerEvent<HTMLButtonElement>) => void
+}
+
+function AssetToolbar({
+  asset,
+  onDragHandlePointerDown,
+  onDragHandlePointerMove,
+  onDragHandlePointerUp,
+}: { asset: AssetElement } & DragHandlers) {
+  const {
+    deleteAsset,
+    duplicateAsset,
+    bringAssetToFront,
+    sendAssetToBack,
+    setSelectedAssetId,
+  } = useEditor()
+  const [moreOpen, setMoreOpen] = React.useState(false)
+
   return (
     <div
-      onPointerDown={startDrag}
-      onPointerMove={moveDrag}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
-      onClick={select}
-      className={cn(
-        "absolute select-none",
-        isSelected ? "cursor-grabbing" : "cursor-grab"
-      )}
-      style={{
-        left: `${asset.xPct}%`,
-        top: `${asset.yPct}%`,
-        width: `${asset.widthPct}%`,
-        transform: `translate(-50%, -50%) rotate(${asset.rotation}deg)`,
-        zIndex: isSelected
-          ? 60
-          : asset.zIndex < 0
-            ? 10 + asset.zIndex
-            : 40 + asset.zIndex,
-      }}
+      className="pointer-events-auto flex items-center gap-0.5 rounded-md border border-border/70 bg-popover/95 p-1 shadow-xl backdrop-blur-md"
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
     >
-      <img
-        src={asset.src}
-        alt=""
-        draggable={false}
-        className={cn(
-          "block w-full select-none",
-          isSelected && "outline-2 outline-[#9BCD64]/95 outline-dashed outline-offset-2"
-        )}
-      />
-      {isSelected ? (
-        <>
-          {/* Toolbar */}
-          <div
-            className="pointer-events-auto absolute bottom-full left-1/2 z-10 mb-3 flex -translate-x-1/2 items-center gap-0.5 rounded-md border border-border/70 bg-popover/95 p-1 shadow-xl backdrop-blur-md"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
+      {/* Drag handle */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            aria-label="Drag asset"
+            onPointerDown={onDragHandlePointerDown}
+            onPointerMove={onDragHandlePointerMove}
+            onPointerUp={onDragHandlePointerUp}
+            onPointerCancel={onDragHandlePointerUp}
+            className={cn(
+              iconBtnClass,
+              "rounded-full border border-border/60 cursor-grab active:cursor-grabbing"
+            )}
           >
+            <RiDragMove2Line className="size-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top">Drag to move</TooltipContent>
+      </Tooltip>
+
+      <span className="mx-1 h-5 w-px bg-border" />
+
+      {/* Delete */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={() => {
+              deleteAsset(asset.id)
+              setSelectedAssetId(null)
+            }}
+            aria-label="Delete asset"
+            className={cn(iconBtnClass, "text-red-500 hover:text-red-500")}
+          >
+            <RiDeleteBinLine className="size-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top">Delete</TooltipContent>
+      </Tooltip>
+
+      {/* Duplicate */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={() => {
+              const id = duplicateAsset(asset.id)
+              if (id) setSelectedAssetId(id)
+            }}
+            aria-label="Duplicate asset"
+            className={iconBtnClass}
+          >
+            <RiFileCopyLine className="size-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top">Duplicate</TooltipContent>
+      </Tooltip>
+
+      {/* More options */}
+      <Popover open={moreOpen} onOpenChange={setMoreOpen}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <button aria-label="More options" className={iconBtnClass}>
+                <RiMoreFill className="size-4" />
+              </button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="top">More options</TooltipContent>
+        </Tooltip>
+        <PopoverContent
+          side="top"
+          align="end"
+          sideOffset={10}
+          className="w-44 p-1 border-border/60 bg-popover/95 backdrop-blur-md"
+        >
+          <div className="flex flex-col">
             <button
-              aria-label="Drag asset"
-              className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-grab active:cursor-grabbing"
-              onPointerDown={startDrag}
-              onPointerMove={moveDrag}
-              onPointerUp={endDrag}
-              onPointerCancel={endDrag}
-            >
-              <RiDragMove2Line className="size-4" />
-            </button>
-            <span className="mx-1 h-5 w-px bg-border" />
-            <button
-              aria-label="Delete asset"
               onClick={() => {
-                deleteAsset(asset.id)
-                setSelectedAssetId(null)
+                bringAssetToFront(asset.id)
+                setMoreOpen(false)
               }}
-              className="inline-flex size-8 items-center justify-center rounded-md text-red-500 transition-colors hover:bg-red-500/10 cursor-pointer"
+              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent cursor-pointer"
             >
-              <RiDeleteBinLine className="size-4" />
+              <RiBringToFront className="size-4" />
+              Bring to front
+            </button>
+            <button
+              onClick={() => {
+                sendAssetToBack(asset.id)
+                setMoreOpen(false)
+              }}
+              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent cursor-pointer"
+            >
+              <RiSendToBack className="size-4" />
+              Send to back
             </button>
           </div>
-
-          {/* Resize handle (bottom-right) */}
-          <button
-            aria-label="Resize asset"
-            onPointerDown={startResize}
-            onPointerMove={moveResize}
-            onPointerUp={endResize}
-            onPointerCancel={endResize}
-            className="absolute -bottom-1.5 -right-1.5 z-10 size-3.5 rounded-sm border border-[#9BCD64] bg-background cursor-se-resize"
-          />
-        </>
-      ) : null}
+        </PopoverContent>
+      </Popover>
     </div>
   )
 }
