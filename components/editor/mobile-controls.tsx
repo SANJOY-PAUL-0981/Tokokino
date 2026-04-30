@@ -20,7 +20,7 @@ export function MobileControls() {
   return (
     <div
       className={cn(
-        "flex h-[48svh] min-h-[320px] shrink-0 flex-col border-t border-border/60 bg-sidebar lg:hidden"
+        "flex h-[56svh] min-h-[380px] shrink-0 flex-col border-t border-border/60 bg-sidebar md:h-[52svh] md:min-h-[420px] lg:hidden"
       )}
     >
       <Tabs

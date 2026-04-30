@@ -173,11 +173,11 @@ export function FramePopover({
       </PopoverTrigger>
 
       <PopoverContent
-        side="right"
-        align="start"
-        sideOffset={10}
-        collisionPadding={12}
-        className="flex max-h-[min(560px,80vh)] w-[min(380px,calc(100vw-1.5rem))] flex-col gap-0 overflow-hidden bg-popover p-0"
+        side="bottom"
+        align="center"
+        sideOffset={8}
+        collisionPadding={8}
+        className="flex max-h-[min(560px,80vh)] w-[min(380px,calc(100vw-1rem))] flex-col gap-0 overflow-hidden bg-popover p-0"
       >
         {/* Search */}
         <div className="relative shrink-0 border-b border-border/60 p-2">

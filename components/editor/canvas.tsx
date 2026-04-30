@@ -1,7 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { RiAddLine, RiGlobeLine, RiSettings4Line, RiCameraLine, RiCropLine, RiDeleteBinLine, RiRefreshLine } from "@remixicon/react"
+import {
+  RiAddLine,
+  RiGlobeLine,
+  RiCameraLine,
+  RiCropLine,
+  RiDeleteBinLine,
+  RiRefreshLine,
+} from "@remixicon/react"
 import { motion } from "motion/react"
 import { toast } from "sonner"
 
@@ -85,7 +92,6 @@ export function Canvas() {
     isPreviewMode,
     setScreenshot,
     setScreenshotOffset,
-    setScreenshotPosition,
     texts,
     selectedTextId,
     setSelectedTextId,
@@ -126,20 +132,23 @@ export function Canvas() {
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const stageRef = React.useRef<HTMLDivElement>(null)
   const imageRef = React.useRef<HTMLImageElement>(null)
-  const suppressTransitionRef = React.useRef(false)
-  const [, forceRender] = React.useState(0)
+  const [suppressTransition, setSuppressTransition] = React.useState(false)
   const prevPaddingRef = React.useRef(padding)
   React.useEffect(() => {
-    if (prevPaddingRef.current !== padding) {
-      prevPaddingRef.current = padding
-      suppressTransitionRef.current = true
-      forceRender((n) => n + 1)
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          suppressTransitionRef.current = false
-          forceRender((n) => n + 1)
-        })
+    if (prevPaddingRef.current === padding) return
+
+    prevPaddingRef.current = padding
+    setSuppressTransition(true)
+    let secondFrame = 0
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
+        setSuppressTransition(false)
       })
+    })
+
+    return () => {
+      cancelAnimationFrame(firstFrame)
+      if (secondFrame) cancelAnimationFrame(secondFrame)
     }
   }, [padding])
   const dragRef = React.useRef<{
@@ -356,8 +365,10 @@ export function Canvas() {
 
   return (
     <section className={cn(
-      "relative z-0 flex flex-1 items-center justify-center overflow-hidden bg-background dark:bg-black transition-all duration-300",
-      isPreviewMode ? "p-0" : "border-b border-dashed border-border/70 px-4 py-4 sm:px-8"
+      "relative z-0 flex flex-1 justify-center overflow-hidden bg-background dark:bg-black transition-all duration-300",
+      isPreviewMode
+        ? "items-center p-0"
+        : "items-start border-b border-dashed border-border/70 px-2 pt-2 pb-20 sm:px-4 sm:pt-3 sm:pb-20 lg:items-center lg:px-8 lg:pt-4 lg:pb-20"
     )}>
       <CornerMarkers className="text-border" size={12} />
       <input
@@ -491,7 +502,7 @@ export function Canvas() {
         {/* Content — wrapper itself is click-through so text layered behind the screenshot can still receive clicks; the image + interactive children opt back in via pointer-events-auto */}
         <div
           className="pointer-events-none relative flex h-full w-full items-center justify-center"
-          style={{ padding, zIndex: 20 }}
+          style={{ padding: screenshot ? padding : 0, zIndex: 20 }}
         >
           {screenshot ? (
             <div
@@ -544,7 +555,7 @@ export function Canvas() {
                 }}
                 className={cn(
                   "pointer-events-auto absolute max-h-full max-w-full object-contain select-none",
-                  isScreenshotDragging || suppressTransitionRef.current
+                  isScreenshotDragging || suppressTransition
                     ? "cursor-grabbing transition-none"
                     : "transition-all duration-300 ease-out",
                   activeTool === "pointer" && "cursor-grab",
@@ -559,7 +570,7 @@ export function Canvas() {
                 <div
                   className={cn(
                     "pointer-events-none absolute z-50 flex items-center justify-center gap-3 opacity-0 transition-opacity group-hover/screenshot:opacity-100",
-                    isScreenshotDragging || suppressTransitionRef.current
+                    isScreenshotDragging || suppressTransition
                       ? "transition-none"
                       : "transition-[opacity,left,top] duration-300 ease-out"
                   )}
@@ -617,58 +628,65 @@ export function Canvas() {
             <div
               data-drag-over={isDragOver}
               className={cn(
-                "pointer-events-auto relative flex h-full w-full flex-col items-center justify-center gap-6 text-center transition-all duration-300",
-                "text-white/90",
-                "data-[drag-over=true]:scale-[1.02]"
+                "pointer-events-auto relative flex h-full w-full flex-col items-center justify-center px-4 py-3 text-center text-white transition-all duration-300 sm:px-6 md:px-8",
+                "data-[drag-over=true]:scale-[1.01]"
               )}
             >
-              <div 
-                className="flex flex-col items-center gap-5 cursor-pointer"
+              <button
+                type="button"
+                className={cn(
+                  "group relative flex w-full max-w-[520px] flex-col items-center justify-center rounded-[1.35rem] border border-dashed border-white/24 bg-black/12 px-5 py-3.5 backdrop-blur-md transition-all duration-300 focus-visible:border-white/55 focus-visible:ring-2 focus-visible:ring-white/20 sm:max-w-[540px] sm:rounded-[1.75rem] sm:px-7 sm:py-5 md:min-h-[190px] md:max-w-[560px] md:px-9 md:py-7",
+                  "hover:border-white/42 hover:bg-black/18",
+                  "data-[drag-over=true]:border-primary/80 data-[drag-over=true]:bg-primary/10 data-[drag-over=true]:ring-1 data-[drag-over=true]:ring-primary/40"
+                )}
+                data-drag-over={isDragOver}
                 onClick={() => fileInputRef.current?.click()}
+                aria-label="Browse for an image"
               >
-                <RiAddLine className="size-20 font-light text-white/70 stroke-[0.5]" />
-                <h3 className="text-xl font-medium tracking-wide drop-shadow-sm">Drag & drop, click to browse, or paste</h3>
-                
-                <div className="flex items-center gap-2 text-white/80">
-                  <kbd className="inline-flex h-8 items-center justify-center rounded-lg border border-white/20 bg-white/10 px-2.5 font-mono text-sm backdrop-blur-md shadow-sm">
-                    ⌘ V
-                  </kbd>
-                  <span className="text-base">to paste</span>
-                </div>
+                <span className="mb-2 grid size-8 place-items-center rounded-full border border-white/18 bg-white/10 text-white/78 transition-colors group-hover:bg-white/14 group-hover:text-white sm:size-10 md:mb-3 md:size-11">
+                  <RiAddLine className="size-5 sm:size-7 md:size-8" />
+                </span>
+                <span className="space-y-1 sm:space-y-1.5 md:space-y-2">
+                  <span className="block text-balance text-xl font-medium leading-none tracking-[-0.055em] text-white sm:text-2xl md:text-3xl">
+                    Add your screenshot
+                  </span>
+                  <span className="block text-[10px] leading-4 text-white/56 sm:text-xs sm:leading-5 md:text-sm">
+                    Drop an image here, click to browse, or paste from clipboard.
+                  </span>
+                </span>
+
+                <span className="mt-2.5 inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/18 px-2.5 py-1 text-[10px] text-white/58 sm:text-[11px] md:mt-4 md:text-xs">
+                  <kbd className="font-mono text-white/78">⌘V</kbd>
+                  paste
+                </span>
+              </button>
+
+              <div className="my-2 flex w-full max-w-[400px] items-center gap-4 sm:my-3 md:my-4">
+                <div className="h-px flex-1 bg-white/16" />
+                <span className="text-xs text-white/42">or</span>
+                <div className="h-px flex-1 bg-white/16" />
               </div>
 
-              <div className="flex w-full max-w-xs items-center gap-4 py-2">
-                <div className="h-px flex-1 bg-white/20"></div>
-                <span className="text-sm text-white/50">or</span>
-                <div className="h-px flex-1 bg-white/20"></div>
-              </div>
-
-              <div className="flex w-full max-w-[380px] flex-col items-stretch gap-3">
-                <div className="flex h-[52px] w-full items-center gap-3 rounded-2xl border border-white/20 bg-white/10 px-4 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.1)] transition-colors hover:bg-white/15 focus-within:bg-white/20 focus-within:border-white/30">
-                  <RiGlobeLine className="size-5 text-white/60" />
-                  <input 
-                    type="text" 
-                    placeholder="Enter website URL..." 
-                    className="flex-1 bg-transparent text-base text-white placeholder:text-white/60 focus:outline-none"
+              <div className="flex w-full max-w-[520px] gap-2 rounded-[1.15rem] border border-white/14 bg-black/14 p-1.5 backdrop-blur-md transition-colors focus-within:border-white/30 sm:max-w-[540px] sm:rounded-[1.35rem] sm:p-2 md:max-w-[560px]">
+                <label className="flex min-h-10 flex-1 items-center gap-2.5 rounded-[0.9rem] px-3 text-left sm:min-h-11 sm:rounded-[1rem] md:min-h-12 md:rounded-[1.1rem]">
+                  <RiGlobeLine className="size-4 shrink-0 text-white/50 sm:size-5" />
+                  <input
+                    type="text"
+                    inputMode="url"
+                    placeholder="Enter website URL..."
+                    aria-label="Website URL"
+                    className="min-w-0 flex-1 bg-transparent text-sm font-medium text-white placeholder:text-white/44 focus:outline-none sm:text-[15px]"
                     onClick={(e) => e.stopPropagation()}
                   />
-                </div>
-                <div className="flex w-full gap-3">
-                  <button 
-                    className="group flex h-[52px] flex-1 gap-2.5 px-6 items-center justify-center rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.1)] transition-all hover:bg-white/20 hover:scale-[1.02] hover:shadow-[0_8px_32px_rgba(255,255,255,0.1)]"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <RiCameraLine className="size-5 text-white/80 transition-transform group-hover:scale-110" />
-                    <span className="text-white font-medium tracking-wide">Capture Screenshot</span>
-                  </button>
-                  <button 
-                    className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.1)] transition-all hover:bg-white/20 hover:scale-[1.02]"
-                    onClick={(e) => e.stopPropagation()}
-                    title="Settings"
-                  >
-                    <RiSettings4Line className="size-5 text-white/80 transition-transform hover:rotate-90" />
-                  </button>
-                </div>
+                </label>
+                <button
+                  type="button"
+                  className="flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-[0.9rem] border border-white/14 bg-white/14 px-3 text-[13px] font-semibold tracking-[-0.02em] text-white transition-colors hover:bg-white/20 active:bg-white/24 sm:min-h-11 sm:min-w-[112px] sm:rounded-[1rem] sm:px-4 md:min-h-12 md:min-w-[128px] md:rounded-[1.1rem] md:px-5"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <RiCameraLine className="size-4" />
+                  <span className="hidden sm:inline">Capture</span>
+                </button>
               </div>
             </div>
           )}

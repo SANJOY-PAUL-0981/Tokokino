@@ -153,6 +153,8 @@ export type TextElement = {
   fontSize: number
   fontFamily: string
   fontWeight: number
+  lineHeight: number
+  letterSpacing: number
   color: string
   align: TextAlign
   borderColor: string | null
@@ -164,29 +166,65 @@ export type TextElement = {
   autoColor: boolean
 }
 
-export const FONT_FAMILIES: { id: string; label: string; css: string }[] = [
-  { id: "inter", label: "Inter", css: "var(--font-inter), Inter, sans-serif" },
-  { id: "geist", label: "Geist", css: "var(--font-sans), Geist, ui-sans-serif, sans-serif" },
-  { id: "poppins", label: "Poppins", css: "var(--font-poppins), sans-serif" },
-  { id: "roboto", label: "Roboto", css: "var(--font-roboto), sans-serif" },
-  { id: "outfit", label: "Outfit", css: "var(--font-outfit), sans-serif" },
-  { id: "space-grotesk", label: "Space Grotesk", css: "var(--font-space-grotesk), sans-serif" },
-  { id: "nunito", label: "Nunito", css: "var(--font-nunito), sans-serif" },
-  { id: "raleway", label: "Raleway", css: "var(--font-raleway), sans-serif" },
-  { id: "oswald", label: "Oswald", css: "var(--font-oswald), sans-serif" },
-  { id: "playfair", label: "Playfair", css: "var(--font-playfair), serif" },
-  { id: "lora", label: "Lora", css: "var(--font-lora), serif" },
-  { id: "serif", label: "System Serif", css: "Georgia, 'Times New Roman', serif" },
-  { id: "dancing-script", label: "Dancing Script", css: "var(--font-dancing-script), cursive" },
-  { id: "caveat", label: "Caveat", css: "var(--font-caveat), cursive" },
-  {
-    id: "mono",
-    label: "Mono",
-    css: "var(--font-mono), ui-monospace, 'JetBrains Mono', 'Courier New', monospace",
-  },
-  { id: "fira-code", label: "Fira Code", css: "var(--font-fira-code), monospace" },
-  { id: "rounded", label: "Rounded", css: "'SF Pro Rounded', Inter, sans-serif" },
-  { id: "system", label: "System", css: "system-ui, sans-serif" },
+export type FontCategory = "sans" | "serif" | "mono" | "script" | "system"
+
+export type FontFamilyOption = {
+  id: string
+  label: string
+  css: string
+  category: FontCategory
+}
+
+const SANS_FONT_LABELS = [
+  "Inter","Roboto","Poppins","Geist","Outfit","Space Grotesk","Nunito","Raleway","Oswald","Doto","ABeeZee","Abel","Aclonica","Acme","Actor","Advent Pro","Afacad","Afacad Flux","Agdasima","Akatab","Akshar","Alan Sans","Alata","Alatsi","Albert Sans","Aldrich","Alef","Alegreya Sans","Alegreya Sans SC","Alexandria","Allerta","Allerta Stencil","Almarai","Alumni Sans","Alumni Sans Collegiate One","Alumni Sans Pinstripe","Alumni Sans SC","Amaranth","Amarna","Amiko","Anaheim","Ancizar Sans","Andika","Anek Bangla","Anek Devanagari","Anek Gujarati","Anek Gurmukhi","Anek Kannada","Anek Latin","Anek Malayalam","Anek Odia","Anek Tamil","Anek Telugu","Anta","Antic","Anton","Anton SC","Antonio","Anuphan","AR One Sans","Archivo","Archivo Black","Archivo Narrow","Arimo","Armata","Arsenal","Arsenal SC","Arya","Asap","Asap Condensed","Asimovian","Assistant","Asta Sans","Athiti","Atkinson Hyperlegible","Atkinson Hyperlegible Mono","Atkinson Hyperlegible Next","Average Sans","B612","Bai Jamjuree","Barlow","Barlow Condensed","Barlow Semi Condensed","Basic","Bayon","BBH Bartle","BBH Bogle","BBH Hegarty","Be Vietnam Pro","Bebas Neue","Beiruti","Belanosima","Belleza","BenchNine","Biryani","BIZ UDGothic","BIZ UDPGothic","Black Han Sans","Blinker","Cabin"
+] as const
+
+const SERIF_FONT_LABELS = [
+  "Playfair Display","Lora","Abhaya Libre","Abyssinica SIL","Adamina","Alegreya","Alegreya SC","Aleo","Alice","Alike","Alike Angular","Alkalami","Almendra","Almendra SC","Alyamama","Amethysta","Amiri","Amiri Quran","Ancizar Serif","Andada Pro","Annapurna SIL","Antic Didone","Antic Slab","Aoboshi One","Arapey","Arbutus","Arbutus Slab","Aref Ruqaa","Aref Ruqaa Ink","Artifika","Arvo","Asar","Asul","Average","Bacasime Antique","Balthazar","Baskervville","Baskervville SC","Belgrano","Bellefair","Benne","Bentham","Besley","Bevan","BhuTuka Expanded One","BioRhyme","BioRhyme Expanded","Bitter","BIZ UDMincho","BIZ UDPMincho","BJCree","Bodoni Moda","Bodoni Moda SC","Bona Nova","Bona Nova SC","Brawler","Bree Serif","Brygada 1918","Buenard","Cactus Classical Serif","Caladea","Cambo","Cantata One","Cardo","Castoro","Caudex","Charis SIL","Chiron Sung HK","Cinzel","Copse","Cormorant","Cormorant Garamond","Cormorant Infant","Cormorant SC","Cormorant Unicase","Cormorant Upright","Coustard","Crete Round","Crimson Pro","Crimson Text","Cutive","Dai Banna SIL","Danfo","David Libre","Della Respira","Diphylleia","DM Serif Display","DM Serif Text","Domine","Donegal One","EB Garamond","Eczar","Enriqueta","Epunda Slab","Esteban","Fanwood Text","Fauna One","Faustina","Fraunces","Gelasio"
+] as const
+
+const GOOGLE_MONO_LABELS = [
+  "Fira Code","Anonymous Pro","Azeret Mono","B612 Mono","Chivo Mono","Courier Prime","Cousine","Cutive Mono","Datatype","DM Mono","Fira Mono","Fragment Mono","Geist Mono","Google Sans Code","IBM Plex Mono","Inconsolata","Intel One Mono","Iosevka Charon","Iosevka Charon Mono","JetBrains Mono","Kode Mono","Lekton","Libertinus Mono","Lilex","LXGW WenKai Mono TC","M PLUS 1 Code","Major Mono Display","Martian Mono","Monofett","Nova Mono","Overpass Mono","Oxygen Mono","PT Mono","Red Hat Mono","Reddit Mono","Roboto Mono","Share Tech Mono","Sixtyfour","Sixtyfour Convergence","Sometype Mono","Source Code Pro","Space Mono","Spline Sans Mono","Syne Mono","Ubuntu Mono","Ubuntu Sans Mono","Victor Mono","VT323","Workbench","Xanh Mono"
+] as const
+
+const EXTRA_MONO_LABELS = [
+  "SF Mono","Menlo","Monaco","Consolas","Cascadia Code","Cascadia Mono","Hack","Hasklig","Input Mono","PragmataPro","Dank Mono","Operator Mono","Berkeley Mono","Commit Mono","Cartograph CF","Monaspace Argon","Monaspace Neon","Monaspace Xenon","Monaspace Radon","Monaspace Krypton","Iosevka","Recursive Mono","DejaVu Sans Mono","Liberation Mono","Noto Sans Mono","Andale Mono","Droid Sans Mono","Meslo LG","Proggy Clean","Terminus","Anonymous","Code New Roman","Cascadia Code PL","Cascadia Mono PL","IBM 3270","Monoid","Agave","Envy Code R","Sudo","Fixedsys Excelsior","Inziu Iosevka","Ubuntu Mono Nerd Font","JetBrains Mono NL","Victor Mono Nerd Font","Sarasa Mono","Tamsyn","Go Mono","PT Root UI Mono","Maple Mono","Recursive"
+] as const
+
+const SCRIPT_FONT_LABELS = [
+  "Dancing Script","Caveat","Aguafina Script","Alex Brush","Allison","Allura","Amatic SC","Amita","Annie Use Your Telescope","Architects Daughter","Are You Serious","Arizonia","Babylonica","Bad Script","Ballet","Beau Rivage","Berkshire Swash","Betania Patmos","Betania Patmos GDL","Betania Patmos In","Betania Patmos In GDL","Beth Ellen","Bilbo","Bilbo Swash Caps","Birthstone","Birthstone Bounce","Bonbon","Bonheur Royale","Borel","Bpmf Iansui","Butterfly Kids","Calligraffitti","Caramel","Carattere","Cause","Caveat Brush","Cedarville Cursive","Charm","Charmonman","Cherish","Chilanka","Clicker Script","Comforter","Comforter Brush","Comic Neue","Coming Soon","Condiment","Cookie","Corinthia","Courgette","Covered By Your Grace","Crafty Girls","Damion","Dawning of a New Day","Dekko","Delicious Handrawn","Delius","Delius Swash Caps","Delius Unicase","Devonshire","Dr Sugiyama","Eagle Lake","East Sea Dokdo","Edu AU VIC WA NT Arrows","Edu AU VIC WA NT Dots","Edu AU VIC WA NT Guides","Edu AU VIC WA NT Hand","Edu AU VIC WA NT Pre","Edu NSW ACT Cursive","Edu NSW ACT Foundation","Edu NSW ACT Hand Pre","Edu QLD Beginner","Edu QLD Hand","Edu SA Beginner","Edu SA Hand","Edu TAS Beginner","Edu VIC WA NT Beginner","Edu VIC WA NT Hand","Edu VIC WA NT Hand Pre","Engagement","Ephesis","Estonia","Euphoria Script","Explora","Felipa","Festive","Fleur De Leah","Fondamento","Fuggles","Fuzzy Bubbles","Gaegu","Gamja Flower","Give You Glory","Gloria Hallelujah","Gochi Hand","Grand Hotel","Grape Nuts","Great Vibes","Grechen Fuemen","Grey Qo"
+] as const
+
+function toFontId(label: string, category: FontCategory) {
+  const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
+  return `${category}-${slug || "font"}`
+}
+
+function makeCss(label: string, category: FontCategory) {
+  if (label === "Doto") return "var(--font-doto), 'Doto', sans-serif"
+  const quoted = `'${label.replace(/'/g, "\\'")}'`
+  if (category === "serif") return `${quoted}, serif`
+  if (category === "mono") return `${quoted}, ui-monospace, monospace`
+  if (category === "script") return `${quoted}, cursive`
+  return `${quoted}, sans-serif`
+}
+
+function buildFontOptions(labels: readonly string[], category: FontCategory): FontFamilyOption[] {
+  return labels.slice(0, 100).map((label) => ({
+    id: toFontId(label, category),
+    label,
+    css: makeCss(label, category),
+    category,
+  }))
+}
+
+export const FONT_FAMILIES: FontFamilyOption[] = [
+  ...buildFontOptions(SANS_FONT_LABELS, "sans"),
+  ...buildFontOptions(SERIF_FONT_LABELS, "serif"),
+  ...buildFontOptions([...GOOGLE_MONO_LABELS, ...EXTRA_MONO_LABELS], "mono"),
+  ...buildFontOptions(SCRIPT_FONT_LABELS, "script"),
+  { id: "system-serif", label: "System Serif", css: "Georgia, 'Times New Roman', serif", category: "system" },
+  { id: "system-ui", label: "System UI", css: "system-ui, sans-serif", category: "system" },
 ]
 
 export type EditorTool =
@@ -276,9 +314,37 @@ export type EditorState = {
   texts: TextElement[]
   assets: AssetElement[]
   enhance: EnhancePreset
+  annotation: Annotation
 }
 
 export type EnhancePreset = "off" | "auto" | "vivid" | "soft" | "dramatic" | "sharp"
+
+export type AnnotationMode =
+  | "pen"
+  | "highlight"
+  | "eraser"
+  | "arrow"
+  | "rect"
+  | "ellipse"
+  | "blur"
+
+export type Annotation = {
+  mode: AnnotationMode
+  color: string
+  strokeWidth: number
+}
+
+export const ANNOTATION_COLORS = [
+  "#ef4444",
+  "#f97316",
+  "#facc15",
+  "#22c55e",
+  "#3b82f6",
+  "#ec4899",
+  "#0a0a0a",
+] as const
+
+export const ANNOTATION_STROKES = [2, 4, 7, 11] as const
 
 const OVERLAY_BASE_URL =
   process.env.NEXT_PUBLIC_OVERLAYS_BASE_URL ??
@@ -482,6 +548,11 @@ const DEFAULT_STATE: EditorState = {
   texts: [],
   assets: [],
   enhance: "off",
+  annotation: {
+    mode: "pen",
+    color: "#ef4444",
+    strokeWidth: 4,
+  },
 }
 
 const HISTORY_LIMIT = 100
@@ -591,6 +662,8 @@ type Ctx = EditorState & {
   setOverlay: (o: Overlay) => void
   setPortrait: (p: Portrait) => void
   setEnhance: (e: EnhancePreset) => void
+  setAnnotation: (patch: Partial<Annotation>) => void
+  clearAnnotations: () => void
   addText: () => string
   updateText: (id: string, patch: Partial<TextElement>) => void
   deleteText: (id: string) => void
@@ -646,6 +719,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
       return Math.min(min - 1, -1)
     }
     return {
+      ...DEFAULT_STATE,
       ...state.present,
       setActiveTool: (t) => set({ activeTool: t }, null),
       setScreenshot: (s) =>
@@ -692,6 +766,12 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
       setOverlay: (o) => set({ overlay: o }, "overlay"),
       setPortrait: (p) => set({ portrait: p }, "portrait"),
       setEnhance: (e) => set({ enhance: e }, "enhance"),
+      setAnnotation: (patch) =>
+        set(
+          (s) => ({ annotation: { ...s.annotation, ...patch } }),
+          "annotation"
+        ),
+      clearAnnotations: () => set({}, null),
       addText: () => {
         const id = makeId()
         set(
@@ -707,6 +787,8 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
                 fontSize: 18,
                 fontFamily: FONT_FAMILIES[0].css,
                 fontWeight: 500,
+                lineHeight: 1.3,
+                letterSpacing: 0,
                 color: "#ffffff",
                 align: "left",
                 borderColor: null,
@@ -1461,4 +1543,3 @@ export async function pickContrastColorAtPosition(
   // Not over screenshot or no canvas — fall back to background-based detection
   return pickContrastColor(null, background)
 }
-

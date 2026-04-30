@@ -1,6 +1,6 @@
 import * as React from "react"
 import { RiCropLine } from "@remixicon/react"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import {
   ImageCrop,
   ImageCropContent,
@@ -53,9 +53,9 @@ export function CropModal({
   }, [open])
 
   const file = React.useMemo(() => {
-    if (!screenshotUrl) return null
+    if (!open || !screenshotUrl) return null
     return dataURLtoFile(screenshotUrl, "screenshot.png")
-  }, [screenshotUrl])
+  }, [open, screenshotUrl])
 
   if (!file) return null
 
@@ -65,6 +65,7 @@ export function CropModal({
         showCloseButton
         className="flex max-w-[680px] flex-col gap-0 overflow-hidden rounded-2xl border-border/60 bg-popover p-0 shadow-2xl sm:max-w-[680px] [&_[data-slot=dialog-close]]:transition-none [&_[data-slot=dialog-close]]:active:translate-y-0 [&_[data-slot=dialog-close]]:hover:bg-transparent"
       >
+        <DialogTitle className="sr-only">Crop screenshot</DialogTitle>
         {/* Cropper Area */}
         <div className="flex flex-1 flex-col items-center justify-center bg-secondary/30 p-6">
           {/* Key on aspect to force remount & recalculate crop when preset changes */}
@@ -74,7 +75,6 @@ export function CropModal({
             aspect={aspect}
             onCrop={(croppedImage) => {
               onCrop(croppedImage)
-              onOpenChange(false)
             }}
           >
             <div className="flex w-full flex-col items-center justify-center">
@@ -88,7 +88,10 @@ export function CropModal({
                     Reset
                   </Button>
                 </ImageCropReset>
-                <ImageCropApply asChild>
+                <ImageCropApply
+                  asChild
+                  onClick={() => onOpenChange(false)}
+                >
                   <Button className="h-9 cursor-pointer rounded-lg bg-primary px-6 text-xs text-primary-foreground hover:bg-primary/90">
                     Apply Crop
                   </Button>

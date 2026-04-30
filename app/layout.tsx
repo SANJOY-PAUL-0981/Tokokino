@@ -14,6 +14,7 @@ import {
   Raleway,
   Oswald,
   Dancing_Script,
+  Doto,
 } from "next/font/google"
 
 import "./globals.css"
@@ -37,6 +38,7 @@ const fontNunito = Nunito({ subsets: ["latin"], variable: "--font-nunito" })
 const fontRaleway = Raleway({ subsets: ["latin"], variable: "--font-raleway" })
 const fontOswald = Oswald({ subsets: ["latin"], variable: "--font-oswald" })
 const fontDancingScript = Dancing_Script({ subsets: ["latin"], variable: "--font-dancing-script" })
+const fontDoto = Doto({ subsets: ["latin"], variable: "--font-doto" })
 
 export default function RootLayout({
   children,
@@ -64,6 +66,7 @@ export default function RootLayout({
         fontRaleway.variable,
         fontOswald.variable,
         fontDancingScript.variable,
+        fontDoto.variable,
         "font-sans"
       )}
     >

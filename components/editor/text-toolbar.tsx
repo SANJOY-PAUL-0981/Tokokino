@@ -13,11 +13,15 @@ import {
   RiFileCopyLine,
   RiFontFamily,
   RiMoreFill,
+  RiSearchLine,
   RiSendToBack,
+  RiSettings4Fill,
+  RiSettings4Line,
   RiSubtractLine,
 } from "@remixicon/react"
 
 import { ColorPickerPopover } from "@/components/editor/color-picker-popover"
+import { Input } from "@/components/ui/input"
 import {
   Popover,
   PopoverContent,
@@ -31,6 +35,7 @@ import {
 } from "@/components/ui/tooltip"
 import {
   FONT_FAMILIES,
+  type FontCategory,
   sampleImageColorsRaw,
   type BorderStyle,
   type TextAlign,
@@ -99,9 +104,26 @@ function TextToolbarBody({
   } = useEditor()
 
   const [moreOpen, setMoreOpen] = React.useState(false)
+  const [fontQuery, setFontQuery] = React.useState("")
+  const [fontCategory, setFontCategory] = React.useState<"all" | FontCategory>("all")
+  const [fontSettingsOpen, setFontSettingsOpen] = React.useState(false)
+  const [fontSizeInput, setFontSizeInput] = React.useState(String(text.fontSize))
 
   const setSize = (n: number) =>
     updateText(text.id, { fontSize: Math.max(8, Math.min(200, n)) })
+
+  React.useEffect(() => {
+    setFontSizeInput(String(text.fontSize))
+  }, [text.fontSize])
+
+  const commitFontSize = React.useCallback(() => {
+    const next = Number(fontSizeInput)
+    if (!Number.isFinite(next) || next <= 0) {
+      setFontSizeInput(String(text.fontSize))
+      return
+    }
+    setSize(next)
+  }, [fontSizeInput, text.fontSize])
 
   const AlignIcon = ALIGN_ICONS[text.align]
 
@@ -110,6 +132,17 @@ function TextToolbarBody({
     const next = ALIGN_ORDER[(idx + 1) % ALIGN_ORDER.length]
     updateText(text.id, { align: next })
   }
+
+  const normalizedQuery = fontQuery.trim().toLowerCase()
+  const visibleFonts = FONT_FAMILIES.filter((f) => {
+    const categoryOk = fontCategory === "all" || f.category === fontCategory
+    if (!categoryOk) return false
+    if (!normalizedQuery) return true
+    return (
+      f.label.toLowerCase().includes(normalizedQuery) ||
+      f.category.toLowerCase().includes(normalizedQuery)
+    )
+  })
 
   return (
     <>
@@ -186,10 +219,20 @@ function TextToolbarBody({
       </Tooltip>
       <input
         type="number"
-        value={text.fontSize}
+        value={fontSizeInput}
         onChange={(e) => {
-          const v = Number(e.target.value)
-          if (Number.isFinite(v)) setSize(v)
+          const next = e.target.value
+          setFontSizeInput(next)
+          if (next === "") return
+          const parsed = Number(next)
+          if (Number.isFinite(parsed) && parsed > 0) setSize(parsed)
+        }}
+        onBlur={commitFontSize}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault()
+            commitFontSize()
+          }
         }}
         aria-label="Font size"
         title="Font size"
@@ -226,23 +269,148 @@ function TextToolbarBody({
           side="top"
           align="center"
           sideOffset={10}
-          className={cn("w-44 p-1", POPOVER_CLASS)}
+          className={cn("w-72 p-2", POPOVER_CLASS)}
         >
-          <div className="flex flex-col">
-            {FONT_FAMILIES.map((f) => (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-1.5">
+              <div className="relative flex-1">
+                <RiSearchLine className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={fontQuery}
+                  onChange={(e) => setFontQuery(e.target.value)}
+                  placeholder="Search fonts..."
+                  className="h-8 !pl-8 text-[12px]"
+                />
+              </div>
               <button
-                key={f.id}
-                onClick={() => updateText(text.id, { fontFamily: f.css })}
+                onClick={() => setFontSettingsOpen((v) => !v)}
+                aria-label="Typography settings"
                 className={cn(
-                  "flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent cursor-pointer",
-                  text.fontFamily === f.css && "bg-accent text-foreground"
+                  "inline-flex size-8 items-center justify-center rounded-md border border-border/60 transition-colors cursor-pointer",
+                  fontSettingsOpen
+                    ? "bg-accent text-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
                 )}
-                style={{ fontFamily: f.css }}
               >
-                <span>{f.label}</span>
-                <span className="text-xs text-muted-foreground">Aa</span>
+                {fontSettingsOpen ? (
+                  <RiSettings4Fill className="size-4" />
+                ) : (
+                  <RiSettings4Line className="size-4" />
+                )}
               </button>
-            ))}
+            </div>
+
+            <div className="h-72 rounded-md border border-border/50 bg-secondary/30 p-2">
+              {fontSettingsOpen ? (
+                <div className="h-full overflow-y-auto">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-[10px] font-medium text-muted-foreground">Typography</span>
+                  <button
+                    onClick={() =>
+                      updateText(text.id, {
+                        fontWeight: 500,
+                        lineHeight: 1.3,
+                        letterSpacing: 0,
+                      })
+                    }
+                    className="rounded-md border border-border/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer"
+                  >
+                    Reset
+                  </button>
+                </div>
+
+                <div className="mb-1.5 flex items-center justify-between">
+                  <span className="text-[10px] font-medium text-muted-foreground">Weight</span>
+                  <span className="font-mono text-[10px] text-foreground">{text.fontWeight}</span>
+                </div>
+                <Slider
+                  value={[text.fontWeight]}
+                  min={100}
+                  max={900}
+                  step={100}
+                  onValueChange={([v]) => updateText(text.id, { fontWeight: v })}
+                />
+
+                <div className="mt-3 mb-1.5 flex items-center justify-between">
+                  <span className="text-[10px] font-medium text-muted-foreground">Line Height</span>
+                  <span className="font-mono text-[10px] text-foreground">
+                    {(text.lineHeight ?? 1.3).toFixed(2)}
+                  </span>
+                </div>
+                <Slider
+                  value={[text.lineHeight ?? 1.3]}
+                  min={0.8}
+                  max={2.4}
+                  step={0.05}
+                  onValueChange={([v]) => updateText(text.id, { lineHeight: Number(v.toFixed(2)) })}
+                />
+
+                <div className="mt-3 mb-1.5 flex items-center justify-between">
+                  <span className="text-[10px] font-medium text-muted-foreground">Letter Spacing</span>
+                  <span className="font-mono text-[10px] text-foreground">
+                    {(text.letterSpacing ?? 0).toFixed(1)}px
+                  </span>
+                </div>
+                <Slider
+                  value={[text.letterSpacing ?? 0]}
+                  min={-2}
+                  max={20}
+                  step={0.1}
+                  onValueChange={([v]) => updateText(text.id, { letterSpacing: Number(v.toFixed(1)) })}
+                />
+                </div>
+              ) : (
+                <div className="flex h-full flex-col gap-2">
+                <div className="flex flex-wrap gap-1">
+                  {[
+                    { id: "all", label: "All" },
+                    { id: "sans", label: "Sans" },
+                    { id: "serif", label: "Serif" },
+                    { id: "mono", label: "Mono" },
+                    { id: "script", label: "Script" },
+                    { id: "system", label: "System" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setFontCategory(opt.id as "all" | FontCategory)}
+                      className={cn(
+                        "rounded-md px-2 py-1 text-[10px] font-medium transition-colors cursor-pointer",
+                        fontCategory === opt.id
+                          ? "bg-accent text-foreground"
+                          : "bg-secondary/60 text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-border/50 p-1">
+                  <div className="flex flex-col gap-0.5">
+                    {visibleFonts.map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => updateText(text.id, { fontFamily: f.css })}
+                        className={cn(
+                          "flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent cursor-pointer",
+                          text.fontFamily === f.css && "bg-accent text-foreground"
+                        )}
+                        style={{ fontFamily: f.css }}
+                      >
+                        <span>{f.label}</span>
+                        <span className="text-[10px] uppercase text-muted-foreground">{f.category}</span>
+                      </button>
+                    ))}
+                    {visibleFonts.length === 0 ? (
+                      <p className="px-2 py-4 text-center font-mono text-[10px] text-muted-foreground">
+                        No fonts found
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                </div>
+              )}
+            </div>
           </div>
         </PopoverContent>
       </Popover>

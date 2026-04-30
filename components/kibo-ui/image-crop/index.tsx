@@ -51,9 +51,7 @@ const centerAspectCrop = (
 
 const getCroppedPngImage = async (
   imageSrc: HTMLImageElement,
-  scaleFactor: number,
-  pixelCrop: PixelCrop,
-  maxImageSize: number
+  pixelCrop: PixelCrop
 ): Promise<string> => {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -81,20 +79,21 @@ const getCroppedPngImage = async (
     canvas.height
   );
 
-  const croppedImageUrl = canvas.toDataURL("image/png");
-  const response = await fetch(croppedImageUrl);
-  const blob = await response.blob();
-
-  if (blob.size > maxImageSize) {
-    return await getCroppedPngImage(
-      imageSrc,
-      scaleFactor * 0.9,
-      pixelCrop,
-      maxImageSize
+  // Async PNG encode — does not block the main thread like toDataURL.
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error("toBlob failed"))),
+      "image/png"
     );
-  }
+  });
 
-  return croppedImageUrl;
+  // Async data URL conversion via FileReader (also non-blocking).
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error ?? new Error("FileReader failed"));
+    reader.readAsDataURL(blob);
+  });
 };
 
 type ImageCropContextType = {
@@ -189,9 +188,7 @@ export const ImageCrop = ({
 
     const croppedImage = await getCroppedPngImage(
       imgRef.current,
-      1,
-      completedCrop,
-      maxImageSize
+      completedCrop
     );
 
     onCrop?.(croppedImage);
@@ -285,9 +282,14 @@ export const ImageCropApply = ({
 }: ImageCropApplyProps) => {
   const { applyCrop } = useImageCrop();
 
-  const handleClick = async (e: MouseEvent<HTMLButtonElement>) => {
-    await applyCrop();
+  const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
+    // Fire user's onClick first (e.g. close the dialog) so the UI can
+    // respond instantly; defer the heavy encode by one tick so the
+    // close animation paints before the main thread gets blocked.
     onClick?.(e);
+    setTimeout(() => {
+      void applyCrop();
+    }, 0);
   };
 
   if (asChild) {

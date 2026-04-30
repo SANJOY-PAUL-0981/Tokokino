@@ -5,6 +5,7 @@ import {
   RiAppStoreLine,
   RiArrowRightSLine,
   RiAspectRatioLine,
+  RiChromeLine,
   RiCropLine,
   RiDribbbleLine,
   RiFacebookLine,
@@ -12,6 +13,7 @@ import {
   RiGooglePlayLine,
   RiInstagramLine,
   RiLinkedinLine,
+  RiPinterestLine,
   RiRedditLine,
   RiSearchLine,
   RiThreadsLine,
@@ -52,7 +54,7 @@ const SECTIONS: AspectSection[] = [
       { id: "1-1", name: "Square", ratio: "1:1", w: 1080, h: 1080 },
       { id: "4-3", name: "Standard", ratio: "4:3", w: 1600, h: 1200 },
       { id: "3-2", name: "Classic", ratio: "3:2", w: 1500, h: 1000 },
-      { id: "golden", name: "Golden", ratio: "1.618:1", w: 1618, h: 1000 },
+      { id: "golden", name: "Phi Ratio", ratio: "1.618:1", w: 1618, h: 1000 },
       { id: "5-4", name: "Photo", ratio: "5:4", w: 1500, h: 1200 },
       { id: "16-10", name: "Standard", ratio: "16:10", w: 1920, h: 1200 },
       { id: "16-9", name: "Widescreen", ratio: "16:9", w: 1920, h: 1080 },
@@ -65,6 +67,8 @@ const SECTIONS: AspectSection[] = [
     icon: RiTwitterXLine,
     options: [
       { id: "x-post", name: "Tweet Image", ratio: "16:9", w: 1600, h: 900 },
+      { id: "x-profile", name: "Profile Photo", ratio: "1:1", w: 1080, h: 1080 },
+      { id: "x-photo", name: "Photo Post", ratio: "4:5", w: 1200, h: 1500 },
       { id: "x-header", name: "Header Photo", ratio: "3:1", w: 1500, h: 500 },
     ],
   },
@@ -73,12 +77,13 @@ const SECTIONS: AspectSection[] = [
     label: "Instagram",
     icon: RiInstagramLine,
     options: [
-      { id: "ig-post", name: "Post", ratio: "1:1", w: 1080, h: 1080 },
-      { id: "ig-portrait", name: "Portrait", ratio: "4:5", w: 1080, h: 1350 },
-      { id: "ig-story", name: "Story", ratio: "9:16", w: 1080, h: 1920 },
+      { id: "ig-post", name: "Square Post", ratio: "1:1", w: 1080, h: 1080 },
+      { id: "ig-portrait", name: "Portrait Post", ratio: "4:5", w: 1080, h: 1350 },
+      { id: "ig-landscape-post", name: "Landscape Post", ratio: "16:9", w: 1600, h: 900 },
+      { id: "ig-story", name: "Story/Reel", ratio: "9:16", w: 1080, h: 1920 },
       {
-        id: "ig-landscape",
-        name: "Landscape",
+        id: "ig-carousel",
+        name: "Carousel",
         ratio: "1.91:1",
         w: 1080,
         h: 566,
@@ -90,8 +95,11 @@ const SECTIONS: AspectSection[] = [
     label: "YouTube",
     icon: RiYoutubeLine,
     options: [
+      { id: "yt-video", name: "Video", ratio: "16:9", w: 1920, h: 1080 },
       { id: "yt-thumb", name: "Thumbnail", ratio: "16:9", w: 1280, h: 720 },
-      { id: "yt-short", name: "Short", ratio: "9:16", w: 1080, h: 1920 },
+      { id: "yt-short", name: "Shorts", ratio: "9:16", w: 1080, h: 1920 },
+      { id: "yt-cover", name: "Channel Cover", ratio: "16:9", w: 2048, h: 1152 },
+      { id: "yt-icon", name: "Channel Icon", ratio: "1:1", w: 800, h: 800 },
     ],
   },
   {
@@ -99,7 +107,19 @@ const SECTIONS: AspectSection[] = [
     label: "TikTok",
     icon: RiTiktokLine,
     options: [
-      { id: "tt-video", name: "Video", ratio: "9:16", w: 1080, h: 1920 },
+      { id: "tt-post", name: "Post", ratio: "9:16", w: 1080, h: 1920 },
+      { id: "tt-photos", name: "Photos", ratio: "1:1", w: 1080, h: 1080 },
+      { id: "tt-profile", name: "Profile Photo", ratio: "1:1", w: 1080, h: 1080 },
+    ],
+  },
+  {
+    id: "pt",
+    label: "Pinterest",
+    icon: RiPinterestLine,
+    options: [
+      { id: "pt-long", name: "Long", ratio: "10:21", w: 1000, h: 2100 },
+      { id: "pt-optimal", name: "Optimal", ratio: "2:3", w: 1000, h: 1500 },
+      { id: "pt-square", name: "Square", ratio: "1:1", w: 1000, h: 1000 },
     ],
   },
   {
@@ -107,9 +127,9 @@ const SECTIONS: AspectSection[] = [
     label: "LinkedIn",
     icon: RiLinkedinLine,
     options: [
-      { id: "li-post", name: "Post", ratio: "1.91:1", w: 1200, h: 627 },
-      { id: "li-portrait", name: "Portrait", ratio: "4:5", w: 1080, h: 1350 },
-      { id: "li-banner", name: "Banner", ratio: "4:1", w: 1584, h: 396 },
+      { id: "li-share", name: "Share Image", ratio: "1.91:1", w: 1200, h: 627 },
+      { id: "li-cover", name: "Cover Photo", ratio: "4:1", w: 1584, h: 396 },
+      { id: "li-logo", name: "Company Logo", ratio: "1:1", w: 400, h: 400 },
     ],
   },
   {
@@ -117,9 +137,11 @@ const SECTIONS: AspectSection[] = [
     label: "Facebook",
     icon: RiFacebookLine,
     options: [
-      { id: "fb-post", name: "Post", ratio: "1.91:1", w: 1200, h: 630 },
-      { id: "fb-portrait", name: "Portrait", ratio: "4:5", w: 1080, h: 1350 },
-      { id: "fb-cover", name: "Cover", ratio: "2.63:1", w: 820, h: 312 },
+      { id: "fb-square", name: "Square Post", ratio: "1:1", w: 1080, h: 1080 },
+      { id: "fb-portrait", name: "Portrait Post", ratio: "4:5", w: 1080, h: 1350 },
+      { id: "fb-landscape", name: "Landscape Post", ratio: "16:9", w: 1200, h: 675 },
+      { id: "fb-story", name: "Story", ratio: "9:16", w: 1080, h: 1920 },
+      { id: "fb-cover", name: "Cover Photo", ratio: "16:9", w: 820, h: 461 },
     ],
   },
   {
@@ -145,8 +167,9 @@ const SECTIONS: AspectSection[] = [
     label: "Reddit",
     icon: RiRedditLine,
     options: [
-      { id: "rd-post", name: "Post", ratio: "16:9", w: 1920, h: 1080 },
-      { id: "rd-banner", name: "Banner", ratio: "10:3", w: 1920, h: 384 },
+      { id: "rd-standard", name: "Standard Post", ratio: "16:9", w: 1600, h: 900 },
+      { id: "rd-square", name: "Square Post", ratio: "1:1", w: 1080, h: 1080 },
+      { id: "rd-portrait", name: "Portrait Post", ratio: "4:5", w: 1080, h: 1350 },
     ],
   },
   {
@@ -165,12 +188,12 @@ const SECTIONS: AspectSection[] = [
     label: "App Store",
     icon: RiAppStoreLine,
     options: [
-      { id: "as-iphone-69", name: "iPhone 6.9″", ratio: "9:19.5", w: 1290, h: 2796 },
       { id: "as-iphone-67", name: "iPhone 6.7″", ratio: "9:19.5", w: 1284, h: 2778 },
       { id: "as-iphone-65", name: "iPhone 6.5″", ratio: "9:19.5", w: 1242, h: 2688 },
-      { id: "as-iphone-55", name: "iPhone 5.5″", ratio: "9:16", w: 1242, h: 2208 },
-      { id: "as-ipad-13", name: "iPad 13″", ratio: "3:4", w: 2064, h: 2752 },
+      { id: "as-iphone-61", name: "iPhone 6.1″", ratio: "9:19.5", w: 1179, h: 2556 },
       { id: "as-ipad-129", name: "iPad 12.9″", ratio: "3:4", w: 2048, h: 2732 },
+      { id: "as-ipad-11", name: "iPad 11″", ratio: "3:4", w: 1668, h: 2388 },
+      { id: "as-apple-tv", name: "Apple TV", ratio: "16:9", w: 1920, h: 1080 },
       { id: "as-mac", name: "Mac", ratio: "16:10", w: 2880, h: 1800 },
     ],
   },
@@ -179,12 +202,21 @@ const SECTIONS: AspectSection[] = [
     label: "Play Store",
     icon: RiGooglePlayLine,
     options: [
-      { id: "ps-phone-portrait", name: "Phone Portrait", ratio: "9:16", w: 1080, h: 1920 },
-      { id: "ps-phone-landscape", name: "Phone Landscape", ratio: "16:9", w: 1920, h: 1080 },
-      { id: "ps-tablet-7", name: "Tablet 7″", ratio: "10:16", w: 1200, h: 1920 },
-      { id: "ps-tablet-10", name: "Tablet 10″", ratio: "16:10", w: 1920, h: 1200 },
-      { id: "ps-feature", name: "Feature Graphic", ratio: "1024:500", w: 1024, h: 500 },
+      { id: "ps-phone", name: "Phone", ratio: "9:16", w: 1080, h: 1920 },
       { id: "ps-icon", name: "App Icon", ratio: "1:1", w: 512, h: 512 },
+      { id: "ps-tablet-7", name: "Tablet (7-inch)", ratio: "16:9", w: 1920, h: 1080 },
+      { id: "ps-tablet-10", name: "Tablet (10-inch)", ratio: "16:9", w: 1920, h: 1080 },
+    ],
+  },
+  {
+    id: "chrome-ext",
+    label: "Chrome Extension",
+    icon: RiChromeLine,
+    options: [
+      { id: "ce-store-banner", name: "Store Banner", ratio: "140:56", w: 1400, h: 560 },
+      { id: "ce-small-promo", name: "Small Promo", ratio: "44:28", w: 440, h: 280 },
+      { id: "ce-large-promo", name: "Large Promo", ratio: "92:68", w: 920, h: 680 },
+      { id: "ce-screenshot", name: "Screenshot", ratio: "128:80", w: 1280, h: 800 },
     ],
   },
 ]
@@ -204,8 +236,8 @@ export function AspectPopover({
 }) {
   const [open, setOpen] = React.useState(false)
   const [query, setQuery] = React.useState("")
-  const [w, setW] = React.useState(1920)
-  const [h, setH] = React.useState(1200)
+  const [w, setW] = React.useState("1920")
+  const [h, setH] = React.useState("1200")
 
   const current =
     ALL_OPTIONS.find((o) => o.id === value) ?? ALL_OPTIONS[0]
@@ -221,10 +253,29 @@ export function AspectPopover({
     )
   }
 
-  const visibleSections = SECTIONS.map((s) => ({
-    ...s,
-    options: s.options.filter(matches),
-  })).filter((s) => s.options.length > 0)
+  const sectionMatches = (section: AspectSection) => {
+    if (!q) return true
+    return section.label.toLowerCase().includes(q)
+  }
+
+  const visibleSections = SECTIONS.map((s) => {
+    const options = sectionMatches(s) ? s.options : s.options.filter(matches)
+    return { ...s, options }
+  }).filter((s) => s.options.length > 0)
+
+  const customW = Number(w)
+  const customH = Number(h)
+  const isCustomValid =
+    Number.isFinite(customW) &&
+    Number.isFinite(customH) &&
+    customW > 0 &&
+    customH > 0
+
+  const applyCustomSize = () => {
+    if (!isCustomValid) return
+    onChange("custom", { w: Math.round(customW), h: Math.round(customH) })
+    setOpen(false)
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -254,11 +305,11 @@ export function AspectPopover({
       </PopoverTrigger>
 
       <PopoverContent
-        side="right"
-        align="start"
-        sideOffset={10}
-        collisionPadding={12}
-        className="flex max-h-[min(560px,80vh)] w-[min(360px,calc(100vw-1.5rem))] flex-col gap-0 overflow-hidden bg-popover p-0"
+        side="bottom"
+        align="center"
+        sideOffset={8}
+        collisionPadding={8}
+        className="flex max-h-[min(560px,80vh)] w-[min(360px,calc(100vw-1rem))] flex-col gap-0 overflow-hidden bg-popover p-0"
       >
         {/* Search */}
         <div className="relative shrink-0 border-b border-border/60 p-2">
@@ -318,15 +369,18 @@ export function AspectPopover({
             Custom size
           </div>
           <div className="flex items-center gap-1.5">
-            <NumberInput value={w} onChange={setW} label="W" />
+            <NumberInput value={w} onChange={setW} label="W" onEnter={applyCustomSize} />
             <span className="text-muted-foreground">×</span>
-            <NumberInput value={h} onChange={setH} label="H" />
+            <NumberInput value={h} onChange={setH} label="H" onEnter={applyCustomSize} />
             <button
-              onClick={() => {
-                onChange("custom", { w, h })
-                setOpen(false)
-              }}
-              className="h-8 shrink-0 rounded-md bg-foreground px-2.5 text-[11px] font-medium text-background hover:bg-foreground/90"
+              onClick={applyCustomSize}
+              disabled={!isCustomValid}
+              className={cn(
+                "h-8 shrink-0 rounded-md px-2.5 text-[11px] font-medium",
+                isCustomValid
+                  ? "bg-foreground text-background hover:bg-foreground/90"
+                  : "cursor-not-allowed bg-muted text-muted-foreground"
+              )}
             >
               Apply
             </button>
@@ -399,10 +453,12 @@ function NumberInput({
   value,
   onChange,
   label,
+  onEnter,
 }: {
-  value: number
-  onChange: (v: number) => void
+  value: string
+  onChange: (v: string) => void
   label: string
+  onEnter?: () => void
 }) {
   return (
     <div className="flex h-8 min-w-0 flex-1 items-center rounded-md border border-border/60 bg-secondary/40 px-2 focus-within:border-foreground/40">
@@ -411,7 +467,13 @@ function NumberInput({
       </span>
       <input
         value={value}
-        onChange={(e) => onChange(Number(e.target.value) || 0)}
+        onChange={(e) => onChange(e.target.value.replace(/[^\d]/g, ""))}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault()
+            onEnter?.()
+          }
+        }}
         inputMode="numeric"
         className="tabular min-w-0 flex-1 bg-transparent px-1.5 font-mono text-[11px] outline-none"
       />
