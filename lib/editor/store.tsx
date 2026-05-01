@@ -319,6 +319,7 @@ export type EditorState = {
   assets: AssetElement[]
   enhance: EnhancePreset
   annotation: Annotation
+  annotations: AnnotationStroke[]
 }
 
 export type EnhancePreset = "off" | "auto" | "vivid" | "soft" | "dramatic" | "sharp"
@@ -336,6 +337,19 @@ export type Annotation = {
   mode: AnnotationMode
   color: string
   strokeWidth: number
+}
+
+export type AnnotationPoint = {
+  x: number
+  y: number
+}
+
+export type AnnotationStroke = {
+  id: string
+  mode: Extract<AnnotationMode, "pen" | "highlight" | "eraser">
+  color: string
+  strokeWidth: number
+  points: AnnotationPoint[]
 }
 
 export const ANNOTATION_COLORS = [
@@ -559,6 +573,7 @@ const DEFAULT_STATE: EditorState = {
     color: "#ef4444",
     strokeWidth: 4,
   },
+  annotations: [],
 }
 
 const HISTORY_LIMIT = 100
@@ -670,6 +685,8 @@ type Ctx = EditorState & {
   setPortrait: (p: Portrait) => void
   setEnhance: (e: EnhancePreset) => void
   setAnnotation: (patch: Partial<Annotation>) => void
+  addAnnotationStroke: (stroke: Omit<AnnotationStroke, "id">) => string
+  updateAnnotationStroke: (id: string, points: AnnotationPoint[]) => void
   clearAnnotations: () => void
   addText: () => string
   updateText: (id: string, patch: Partial<TextElement>) => void
@@ -785,7 +802,26 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
           (s) => ({ annotation: { ...s.annotation, ...patch } }),
           "annotation"
         ),
-      clearAnnotations: () => set({}, null),
+      addAnnotationStroke: (stroke) => {
+        const id = makeId()
+        set(
+          (s) => ({
+            annotations: [...s.annotations, { ...stroke, id }],
+          }),
+          `annotation-stroke-${id}`
+        )
+        return id
+      },
+      updateAnnotationStroke: (id, points) =>
+        set(
+          (s) => ({
+            annotations: s.annotations.map((stroke) =>
+              stroke.id === id ? { ...stroke, points } : stroke
+            ),
+          }),
+          `annotation-stroke-${id}`
+        ),
+      clearAnnotations: () => set({ annotations: [] }, null),
       addText: () => {
         const id = makeId()
         set(

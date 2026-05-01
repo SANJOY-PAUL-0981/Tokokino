@@ -90,6 +90,8 @@ export function Canvas() {
     overlay,
     portrait,
     enhance,
+    annotation,
+    annotations,
     canvasBorderRadius,
     isPreviewMode,
     setScreenshot,
@@ -100,8 +102,12 @@ export function Canvas() {
     setSelectedTextId,
     assets,
     setSelectedAssetId,
+    addAnnotationStroke,
+    updateAnnotationStroke,
   } = useEditor()
   const canvasRef = React.useRef<HTMLDivElement>(null)
+  const generatedAnnotationMaskId = React.useId()
+  const annotationMaskId = `annotation-mask-${generatedAnnotationMaskId.replace(/:/g, "")}`
 
   React.useEffect(() => {
     if (!selectedTextId) return
@@ -135,6 +141,7 @@ export function Canvas() {
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const stageRef = React.useRef<HTMLDivElement>(null)
   const imageRef = React.useRef<HTMLImageElement>(null)
+  const annotationLayerRef = React.useRef<SVGSVGElement>(null)
   const [suppressTransition, setSuppressTransition] = React.useState(false)
   const prevPaddingRef = React.useRef(padding)
   React.useEffect(() => {
@@ -166,6 +173,12 @@ export function Canvas() {
     stageH: number
     imgW: number
     imgH: number
+  } | null>(null)
+  const annotationDragRef = React.useRef<{
+    pointerId: number
+    strokeId: string | null
+    points: { x: number; y: number }[]
+    mode: "pen" | "highlight" | "eraser"
   } | null>(null)
 
   const measurePlacement = React.useCallback(() => {
@@ -365,6 +378,84 @@ export function Canvas() {
     setIsScreenshotDragging(false)
     setCenterGuides({ x: false, y: false })
   }
+
+  const getAnnotationPoint = (e: React.PointerEvent<SVGSVGElement>) => {
+    const layer = annotationLayerRef.current
+    if (!layer) return null
+    const rect = layer.getBoundingClientRect()
+    const width = layer.clientWidth
+    const height = layer.clientHeight
+    if (!rect.width || !rect.height || !width || !height) return null
+    return {
+      x: ((e.clientX - rect.left) / rect.width) * width,
+      y: ((e.clientY - rect.top) / rect.height) * height,
+    }
+  }
+
+  const startAnnotation = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (activeTool !== "arrow") return
+    const point = getAnnotationPoint(e)
+    if (!point) return
+
+    e.preventDefault()
+    e.stopPropagation()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setSelectedTextId(null)
+    setSelectedAssetId(null)
+    setIsScreenshotSelected(false)
+
+    if (
+      annotation.mode === "pen" ||
+      annotation.mode === "highlight" ||
+      annotation.mode === "eraser"
+    ) {
+      const strokeId = addAnnotationStroke({
+        mode: annotation.mode,
+        color: annotation.color,
+        strokeWidth: annotation.strokeWidth,
+        points: [point],
+      })
+      annotationDragRef.current = {
+        pointerId: e.pointerId,
+        strokeId,
+        points: [point],
+        mode: annotation.mode,
+      }
+    }
+  }
+
+  const moveAnnotation = (e: React.PointerEvent<SVGSVGElement>) => {
+    const drag = annotationDragRef.current
+    if (!drag || drag.pointerId !== e.pointerId) return
+    const point = getAnnotationPoint(e)
+    if (!point) return
+
+    e.preventDefault()
+    e.stopPropagation()
+
+    const last = drag.points[drag.points.length - 1]
+    const dx = point.x - last.x
+    const dy = point.y - last.y
+    if (dx * dx + dy * dy < 1) return
+
+    const points = [...drag.points, point]
+    drag.points = points
+    if (drag.strokeId) updateAnnotationStroke(drag.strokeId, points)
+  }
+
+  const stopAnnotation = (e: React.PointerEvent<SVGSVGElement>) => {
+    const drag = annotationDragRef.current
+    if (!drag || drag.pointerId !== e.pointerId) return
+    annotationDragRef.current = null
+  }
+
+  const isAnnotating = activeTool === "arrow"
+  const annotationCursor =
+    annotation.mode === "eraser"
+      ? "cursor-cell"
+      : annotation.mode === "pen" || annotation.mode === "highlight"
+        ? "cursor-crosshair"
+        : "cursor-default"
 
   return (
     <section className={cn(
@@ -717,6 +808,68 @@ export function Canvas() {
         {texts.map((t) => (
           <TextElementView key={t.id} text={t} canvasRef={canvasRef} onCenterGuideChange={setTextCenterGuides} />
         ))}
+
+        <svg
+          ref={annotationLayerRef}
+          aria-label="Annotation layer"
+          className={cn(
+            "absolute inset-0 z-[80] h-full w-full touch-none",
+            isAnnotating
+              ? `pointer-events-auto ${annotationCursor}`
+              : "pointer-events-none"
+          )}
+          onPointerDown={startAnnotation}
+          onPointerMove={moveAnnotation}
+          onPointerUp={stopAnnotation}
+          onPointerCancel={stopAnnotation}
+        >
+          <defs>
+            <mask
+              id={annotationMaskId}
+              x="0"
+              y="0"
+              width="100%"
+              height="100%"
+              maskUnits="userSpaceOnUse"
+              maskContentUnits="userSpaceOnUse"
+            >
+              <rect x="0" y="0" width="100%" height="100%" fill="white" />
+              {annotations
+                .filter((stroke) => stroke.mode === "eraser")
+                .map((stroke) => (
+                  <path
+                    key={stroke.id}
+                    d={annotationPath(stroke.points)}
+                    fill="none"
+                    stroke="black"
+                    strokeWidth={stroke.strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                ))}
+            </mask>
+          </defs>
+          <g mask={`url(#${annotationMaskId})`}>
+            {annotations
+              .filter((stroke) => stroke.mode !== "eraser")
+              .map((stroke) => (
+                <path
+                  key={stroke.id}
+                  d={annotationPath(stroke.points)}
+                  fill="none"
+                  stroke={stroke.color}
+                  strokeWidth={stroke.strokeWidth}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity={stroke.mode === "highlight" ? 0.42 : 1}
+                  style={{
+                    mixBlendMode:
+                      stroke.mode === "highlight" ? "multiply" : "normal",
+                  }}
+                />
+              ))}
+          </g>
+        </svg>
       </motion.div>
       </div>
 
@@ -729,6 +882,17 @@ export function Canvas() {
       />
     </section>
   )
+}
+
+function annotationPath(points: { x: number; y: number }[]) {
+  const first = points[0]
+  if (!first) return ""
+  if (points.length === 1) return `M ${first.x} ${first.y} L ${first.x + 0.01} ${first.y + 0.01}`
+  return points
+    .map((point, index) =>
+      index === 0 ? `M ${point.x} ${point.y}` : `L ${point.x} ${point.y}`
+    )
+    .join(" ")
 }
 
 function screenshotPlacementStyle(
