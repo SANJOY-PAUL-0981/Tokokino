@@ -14,9 +14,20 @@ export type Background = { type: BgType; value: string }
 
 export type Tilt = { rx: number; ry: number; rz: number }
 
-export type BorderStyle = "solid" | "dashed" | "dotted" | "double" | "groove" | "ridge"
+export type BorderStyle =
+  | "solid"
+  | "dashed"
+  | "dotted"
+  | "double"
+  | "groove"
+  | "ridge"
 
-export type Border = { color: string | null; width: number; style?: BorderStyle; padding: number }
+export type Border = {
+  color: string | null
+  width: number
+  style?: BorderStyle
+  padding: number
+}
 
 export type BackdropEffects = {
   noise: number
@@ -178,27 +189,425 @@ export type FontFamilyOption = {
 }
 
 const SANS_FONT_LABELS = [
-  "Inter","Roboto","Poppins","Geist","Outfit","Space Grotesk","Nunito","Raleway","Oswald","Doto","ABeeZee","Abel","Aclonica","Acme","Actor","Advent Pro","Afacad","Afacad Flux","Agdasima","Akatab","Akshar","Alan Sans","Alata","Alatsi","Albert Sans","Aldrich","Alef","Alegreya Sans","Alegreya Sans SC","Alexandria","Allerta","Allerta Stencil","Almarai","Alumni Sans","Alumni Sans Collegiate One","Alumni Sans Pinstripe","Alumni Sans SC","Amaranth","Amarna","Amiko","Anaheim","Ancizar Sans","Andika","Anek Bangla","Anek Devanagari","Anek Gujarati","Anek Gurmukhi","Anek Kannada","Anek Latin","Anek Malayalam","Anek Odia","Anek Tamil","Anek Telugu","Anta","Antic","Anton","Anton SC","Antonio","Anuphan","AR One Sans","Archivo","Archivo Black","Archivo Narrow","Arimo","Armata","Arsenal","Arsenal SC","Arya","Asap","Asap Condensed","Asimovian","Assistant","Asta Sans","Athiti","Atkinson Hyperlegible","Atkinson Hyperlegible Mono","Atkinson Hyperlegible Next","Average Sans","B612","Bai Jamjuree","Barlow","Barlow Condensed","Barlow Semi Condensed","Basic","Bayon","BBH Bartle","BBH Bogle","BBH Hegarty","Be Vietnam Pro","Bebas Neue","Beiruti","Belanosima","Belleza","BenchNine","Biryani","BIZ UDGothic","BIZ UDPGothic","Black Han Sans","Blinker","Cabin"
+  "Inter",
+  "Roboto",
+  "Poppins",
+  "Geist",
+  "Outfit",
+  "Space Grotesk",
+  "Nunito",
+  "Raleway",
+  "Oswald",
+  "Doto",
+  "ABeeZee",
+  "Abel",
+  "Aclonica",
+  "Acme",
+  "Actor",
+  "Advent Pro",
+  "Afacad",
+  "Afacad Flux",
+  "Agdasima",
+  "Akatab",
+  "Akshar",
+  "Alan Sans",
+  "Alata",
+  "Alatsi",
+  "Albert Sans",
+  "Aldrich",
+  "Alef",
+  "Alegreya Sans",
+  "Alegreya Sans SC",
+  "Alexandria",
+  "Allerta",
+  "Allerta Stencil",
+  "Almarai",
+  "Alumni Sans",
+  "Alumni Sans Collegiate One",
+  "Alumni Sans Pinstripe",
+  "Alumni Sans SC",
+  "Amaranth",
+  "Amarna",
+  "Amiko",
+  "Anaheim",
+  "Ancizar Sans",
+  "Andika",
+  "Anek Bangla",
+  "Anek Devanagari",
+  "Anek Gujarati",
+  "Anek Gurmukhi",
+  "Anek Kannada",
+  "Anek Latin",
+  "Anek Malayalam",
+  "Anek Odia",
+  "Anek Tamil",
+  "Anek Telugu",
+  "Anta",
+  "Antic",
+  "Anton",
+  "Anton SC",
+  "Antonio",
+  "Anuphan",
+  "AR One Sans",
+  "Archivo",
+  "Archivo Black",
+  "Archivo Narrow",
+  "Arimo",
+  "Armata",
+  "Arsenal",
+  "Arsenal SC",
+  "Arya",
+  "Asap",
+  "Asap Condensed",
+  "Asimovian",
+  "Assistant",
+  "Asta Sans",
+  "Athiti",
+  "Atkinson Hyperlegible",
+  "Atkinson Hyperlegible Mono",
+  "Atkinson Hyperlegible Next",
+  "Average Sans",
+  "B612",
+  "Bai Jamjuree",
+  "Barlow",
+  "Barlow Condensed",
+  "Barlow Semi Condensed",
+  "Basic",
+  "Bayon",
+  "BBH Bartle",
+  "BBH Bogle",
+  "BBH Hegarty",
+  "Be Vietnam Pro",
+  "Bebas Neue",
+  "Beiruti",
+  "Belanosima",
+  "Belleza",
+  "BenchNine",
+  "Biryani",
+  "BIZ UDGothic",
+  "BIZ UDPGothic",
+  "Black Han Sans",
+  "Blinker",
+  "Cabin",
 ] as const
 
 const SERIF_FONT_LABELS = [
-  "Playfair Display","Lora","Abhaya Libre","Abyssinica SIL","Adamina","Alegreya","Alegreya SC","Aleo","Alice","Alike","Alike Angular","Alkalami","Almendra","Almendra SC","Alyamama","Amethysta","Amiri","Amiri Quran","Ancizar Serif","Andada Pro","Annapurna SIL","Antic Didone","Antic Slab","Aoboshi One","Arapey","Arbutus","Arbutus Slab","Aref Ruqaa","Aref Ruqaa Ink","Artifika","Arvo","Asar","Asul","Average","Bacasime Antique","Balthazar","Baskervville","Baskervville SC","Belgrano","Bellefair","Benne","Bentham","Besley","Bevan","BhuTuka Expanded One","BioRhyme","BioRhyme Expanded","Bitter","BIZ UDMincho","BIZ UDPMincho","BJCree","Bodoni Moda","Bodoni Moda SC","Bona Nova","Bona Nova SC","Brawler","Bree Serif","Brygada 1918","Buenard","Cactus Classical Serif","Caladea","Cambo","Cantata One","Cardo","Castoro","Caudex","Charis SIL","Chiron Sung HK","Cinzel","Copse","Cormorant","Cormorant Garamond","Cormorant Infant","Cormorant SC","Cormorant Unicase","Cormorant Upright","Coustard","Crete Round","Crimson Pro","Crimson Text","Cutive","Dai Banna SIL","Danfo","David Libre","Della Respira","Diphylleia","DM Serif Display","DM Serif Text","Domine","Donegal One","EB Garamond","Eczar","Enriqueta","Epunda Slab","Esteban","Fanwood Text","Fauna One","Faustina","Fraunces","Gelasio"
+  "Playfair Display",
+  "Lora",
+  "Abhaya Libre",
+  "Abyssinica SIL",
+  "Adamina",
+  "Alegreya",
+  "Alegreya SC",
+  "Aleo",
+  "Alice",
+  "Alike",
+  "Alike Angular",
+  "Alkalami",
+  "Almendra",
+  "Almendra SC",
+  "Alyamama",
+  "Amethysta",
+  "Amiri",
+  "Amiri Quran",
+  "Ancizar Serif",
+  "Andada Pro",
+  "Annapurna SIL",
+  "Antic Didone",
+  "Antic Slab",
+  "Aoboshi One",
+  "Arapey",
+  "Arbutus",
+  "Arbutus Slab",
+  "Aref Ruqaa",
+  "Aref Ruqaa Ink",
+  "Artifika",
+  "Arvo",
+  "Asar",
+  "Asul",
+  "Average",
+  "Bacasime Antique",
+  "Balthazar",
+  "Baskervville",
+  "Baskervville SC",
+  "Belgrano",
+  "Bellefair",
+  "Benne",
+  "Bentham",
+  "Besley",
+  "Bevan",
+  "BhuTuka Expanded One",
+  "BioRhyme",
+  "BioRhyme Expanded",
+  "Bitter",
+  "BIZ UDMincho",
+  "BIZ UDPMincho",
+  "BJCree",
+  "Bodoni Moda",
+  "Bodoni Moda SC",
+  "Bona Nova",
+  "Bona Nova SC",
+  "Brawler",
+  "Bree Serif",
+  "Brygada 1918",
+  "Buenard",
+  "Cactus Classical Serif",
+  "Caladea",
+  "Cambo",
+  "Cantata One",
+  "Cardo",
+  "Castoro",
+  "Caudex",
+  "Charis SIL",
+  "Chiron Sung HK",
+  "Cinzel",
+  "Copse",
+  "Cormorant",
+  "Cormorant Garamond",
+  "Cormorant Infant",
+  "Cormorant SC",
+  "Cormorant Unicase",
+  "Cormorant Upright",
+  "Coustard",
+  "Crete Round",
+  "Crimson Pro",
+  "Crimson Text",
+  "Cutive",
+  "Dai Banna SIL",
+  "Danfo",
+  "David Libre",
+  "Della Respira",
+  "Diphylleia",
+  "DM Serif Display",
+  "DM Serif Text",
+  "Domine",
+  "Donegal One",
+  "EB Garamond",
+  "Eczar",
+  "Enriqueta",
+  "Epunda Slab",
+  "Esteban",
+  "Fanwood Text",
+  "Fauna One",
+  "Faustina",
+  "Fraunces",
+  "Gelasio",
 ] as const
 
 const GOOGLE_MONO_LABELS = [
-  "Fira Code","Anonymous Pro","Azeret Mono","B612 Mono","Chivo Mono","Courier Prime","Cousine","Cutive Mono","Datatype","DM Mono","Fira Mono","Fragment Mono","Geist Mono","Google Sans Code","IBM Plex Mono","Inconsolata","Intel One Mono","Iosevka Charon","Iosevka Charon Mono","JetBrains Mono","Kode Mono","Lekton","Libertinus Mono","Lilex","LXGW WenKai Mono TC","M PLUS 1 Code","Major Mono Display","Martian Mono","Monofett","Nova Mono","Overpass Mono","Oxygen Mono","PT Mono","Red Hat Mono","Reddit Mono","Roboto Mono","Share Tech Mono","Sixtyfour","Sixtyfour Convergence","Sometype Mono","Source Code Pro","Space Mono","Spline Sans Mono","Syne Mono","Ubuntu Mono","Ubuntu Sans Mono","Victor Mono","VT323","Workbench","Xanh Mono"
+  "Fira Code",
+  "Anonymous Pro",
+  "Azeret Mono",
+  "B612 Mono",
+  "Chivo Mono",
+  "Courier Prime",
+  "Cousine",
+  "Cutive Mono",
+  "Datatype",
+  "DM Mono",
+  "Fira Mono",
+  "Fragment Mono",
+  "Geist Mono",
+  "Google Sans Code",
+  "IBM Plex Mono",
+  "Inconsolata",
+  "Intel One Mono",
+  "Iosevka Charon",
+  "Iosevka Charon Mono",
+  "JetBrains Mono",
+  "Kode Mono",
+  "Lekton",
+  "Libertinus Mono",
+  "Lilex",
+  "LXGW WenKai Mono TC",
+  "M PLUS 1 Code",
+  "Major Mono Display",
+  "Martian Mono",
+  "Monofett",
+  "Nova Mono",
+  "Overpass Mono",
+  "Oxygen Mono",
+  "PT Mono",
+  "Red Hat Mono",
+  "Reddit Mono",
+  "Roboto Mono",
+  "Share Tech Mono",
+  "Sixtyfour",
+  "Sixtyfour Convergence",
+  "Sometype Mono",
+  "Source Code Pro",
+  "Space Mono",
+  "Spline Sans Mono",
+  "Syne Mono",
+  "Ubuntu Mono",
+  "Ubuntu Sans Mono",
+  "Victor Mono",
+  "VT323",
+  "Workbench",
+  "Xanh Mono",
 ] as const
 
 const EXTRA_MONO_LABELS = [
-  "SF Mono","Menlo","Monaco","Consolas","Cascadia Code","Cascadia Mono","Hack","Hasklig","Input Mono","PragmataPro","Dank Mono","Operator Mono","Berkeley Mono","Commit Mono","Cartograph CF","Monaspace Argon","Monaspace Neon","Monaspace Xenon","Monaspace Radon","Monaspace Krypton","Iosevka","Recursive Mono","DejaVu Sans Mono","Liberation Mono","Noto Sans Mono","Andale Mono","Droid Sans Mono","Meslo LG","Proggy Clean","Terminus","Anonymous","Code New Roman","Cascadia Code PL","Cascadia Mono PL","IBM 3270","Monoid","Agave","Envy Code R","Sudo","Fixedsys Excelsior","Inziu Iosevka","Ubuntu Mono Nerd Font","JetBrains Mono NL","Victor Mono Nerd Font","Sarasa Mono","Tamsyn","Go Mono","PT Root UI Mono","Maple Mono","Recursive"
+  "SF Mono",
+  "Menlo",
+  "Monaco",
+  "Consolas",
+  "Cascadia Code",
+  "Cascadia Mono",
+  "Hack",
+  "Hasklig",
+  "Input Mono",
+  "PragmataPro",
+  "Dank Mono",
+  "Operator Mono",
+  "Berkeley Mono",
+  "Commit Mono",
+  "Cartograph CF",
+  "Monaspace Argon",
+  "Monaspace Neon",
+  "Monaspace Xenon",
+  "Monaspace Radon",
+  "Monaspace Krypton",
+  "Iosevka",
+  "Recursive Mono",
+  "DejaVu Sans Mono",
+  "Liberation Mono",
+  "Noto Sans Mono",
+  "Andale Mono",
+  "Droid Sans Mono",
+  "Meslo LG",
+  "Proggy Clean",
+  "Terminus",
+  "Anonymous",
+  "Code New Roman",
+  "Cascadia Code PL",
+  "Cascadia Mono PL",
+  "IBM 3270",
+  "Monoid",
+  "Agave",
+  "Envy Code R",
+  "Sudo",
+  "Fixedsys Excelsior",
+  "Inziu Iosevka",
+  "Ubuntu Mono Nerd Font",
+  "JetBrains Mono NL",
+  "Victor Mono Nerd Font",
+  "Sarasa Mono",
+  "Tamsyn",
+  "Go Mono",
+  "PT Root UI Mono",
+  "Maple Mono",
+  "Recursive",
 ] as const
 
 const SCRIPT_FONT_LABELS = [
-  "Dancing Script","Caveat","Aguafina Script","Alex Brush","Allison","Allura","Amatic SC","Amita","Annie Use Your Telescope","Architects Daughter","Are You Serious","Arizonia","Babylonica","Bad Script","Ballet","Beau Rivage","Berkshire Swash","Betania Patmos","Betania Patmos GDL","Betania Patmos In","Betania Patmos In GDL","Beth Ellen","Bilbo","Bilbo Swash Caps","Birthstone","Birthstone Bounce","Bonbon","Bonheur Royale","Borel","Bpmf Iansui","Butterfly Kids","Calligraffitti","Caramel","Carattere","Cause","Caveat Brush","Cedarville Cursive","Charm","Charmonman","Cherish","Chilanka","Clicker Script","Comforter","Comforter Brush","Comic Neue","Coming Soon","Condiment","Cookie","Corinthia","Courgette","Covered By Your Grace","Crafty Girls","Damion","Dawning of a New Day","Dekko","Delicious Handrawn","Delius","Delius Swash Caps","Delius Unicase","Devonshire","Dr Sugiyama","Eagle Lake","East Sea Dokdo","Edu AU VIC WA NT Arrows","Edu AU VIC WA NT Dots","Edu AU VIC WA NT Guides","Edu AU VIC WA NT Hand","Edu AU VIC WA NT Pre","Edu NSW ACT Cursive","Edu NSW ACT Foundation","Edu NSW ACT Hand Pre","Edu QLD Beginner","Edu QLD Hand","Edu SA Beginner","Edu SA Hand","Edu TAS Beginner","Edu VIC WA NT Beginner","Edu VIC WA NT Hand","Edu VIC WA NT Hand Pre","Engagement","Ephesis","Estonia","Euphoria Script","Explora","Felipa","Festive","Fleur De Leah","Fondamento","Fuggles","Fuzzy Bubbles","Gaegu","Gamja Flower","Give You Glory","Gloria Hallelujah","Gochi Hand","Grand Hotel","Grape Nuts","Great Vibes","Grechen Fuemen","Grey Qo"
+  "Dancing Script",
+  "Caveat",
+  "Aguafina Script",
+  "Alex Brush",
+  "Allison",
+  "Allura",
+  "Amatic SC",
+  "Amita",
+  "Annie Use Your Telescope",
+  "Architects Daughter",
+  "Are You Serious",
+  "Arizonia",
+  "Babylonica",
+  "Bad Script",
+  "Ballet",
+  "Beau Rivage",
+  "Berkshire Swash",
+  "Betania Patmos",
+  "Betania Patmos GDL",
+  "Betania Patmos In",
+  "Betania Patmos In GDL",
+  "Beth Ellen",
+  "Bilbo",
+  "Bilbo Swash Caps",
+  "Birthstone",
+  "Birthstone Bounce",
+  "Bonbon",
+  "Bonheur Royale",
+  "Borel",
+  "Bpmf Iansui",
+  "Butterfly Kids",
+  "Calligraffitti",
+  "Caramel",
+  "Carattere",
+  "Cause",
+  "Caveat Brush",
+  "Cedarville Cursive",
+  "Charm",
+  "Charmonman",
+  "Cherish",
+  "Chilanka",
+  "Clicker Script",
+  "Comforter",
+  "Comforter Brush",
+  "Comic Neue",
+  "Coming Soon",
+  "Condiment",
+  "Cookie",
+  "Corinthia",
+  "Courgette",
+  "Covered By Your Grace",
+  "Crafty Girls",
+  "Damion",
+  "Dawning of a New Day",
+  "Dekko",
+  "Delicious Handrawn",
+  "Delius",
+  "Delius Swash Caps",
+  "Delius Unicase",
+  "Devonshire",
+  "Dr Sugiyama",
+  "Eagle Lake",
+  "East Sea Dokdo",
+  "Edu AU VIC WA NT Arrows",
+  "Edu AU VIC WA NT Dots",
+  "Edu AU VIC WA NT Guides",
+  "Edu AU VIC WA NT Hand",
+  "Edu AU VIC WA NT Pre",
+  "Edu NSW ACT Cursive",
+  "Edu NSW ACT Foundation",
+  "Edu NSW ACT Hand Pre",
+  "Edu QLD Beginner",
+  "Edu QLD Hand",
+  "Edu SA Beginner",
+  "Edu SA Hand",
+  "Edu TAS Beginner",
+  "Edu VIC WA NT Beginner",
+  "Edu VIC WA NT Hand",
+  "Edu VIC WA NT Hand Pre",
+  "Engagement",
+  "Ephesis",
+  "Estonia",
+  "Euphoria Script",
+  "Explora",
+  "Felipa",
+  "Festive",
+  "Fleur De Leah",
+  "Fondamento",
+  "Fuggles",
+  "Fuzzy Bubbles",
+  "Gaegu",
+  "Gamja Flower",
+  "Give You Glory",
+  "Gloria Hallelujah",
+  "Gochi Hand",
+  "Grand Hotel",
+  "Grape Nuts",
+  "Great Vibes",
+  "Grechen Fuemen",
+  "Grey Qo",
 ] as const
 
 function toFontId(label: string, category: FontCategory) {
-  const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
+  const slug = label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
   return `${category}-${slug || "font"}`
 }
 
@@ -211,7 +620,10 @@ function makeCss(label: string, category: FontCategory) {
   return `${quoted}, sans-serif`
 }
 
-function buildFontOptions(labels: readonly string[], category: FontCategory): FontFamilyOption[] {
+function buildFontOptions(
+  labels: readonly string[],
+  category: FontCategory
+): FontFamilyOption[] {
   return labels.slice(0, 100).map((label) => ({
     id: toFontId(label, category),
     label,
@@ -225,8 +637,18 @@ export const FONT_FAMILIES: FontFamilyOption[] = [
   ...buildFontOptions(SERIF_FONT_LABELS, "serif"),
   ...buildFontOptions([...GOOGLE_MONO_LABELS, ...EXTRA_MONO_LABELS], "mono"),
   ...buildFontOptions(SCRIPT_FONT_LABELS, "script"),
-  { id: "system-serif", label: "System Serif", css: "Georgia, 'Times New Roman', serif", category: "system" },
-  { id: "system-ui", label: "System UI", css: "system-ui, sans-serif", category: "system" },
+  {
+    id: "system-serif",
+    label: "System Serif",
+    css: "Georgia, 'Times New Roman', serif",
+    category: "system",
+  },
+  {
+    id: "system-ui",
+    label: "System UI",
+    css: "system-ui, sans-serif",
+    category: "system",
+  },
 ]
 
 export type EditorTool =
@@ -323,7 +745,13 @@ export type EditorState = {
   annotationShapes: AnnotationShape[]
 }
 
-export type EnhancePreset = "off" | "auto" | "vivid" | "soft" | "dramatic" | "sharp"
+export type EnhancePreset =
+  | "off"
+  | "auto"
+  | "vivid"
+  | "soft"
+  | "dramatic"
+  | "sharp"
 
 export type AnnotationMode =
   | "pen"
@@ -339,9 +767,17 @@ export type Annotation = {
   color: string
   strokeWidth: number
   lineStyle: AnnotationLineStyle
+  blurEffect: AnnotationBlurEffect
+  blurAmount: number
 }
 
 export type AnnotationLineStyle = "solid" | "dashed" | "dotted"
+export type AnnotationBlurEffect =
+  | "blur"
+  | "redact"
+  | "redact-light"
+  | "redact-stripe"
+  | "pixelate"
 
 export type AnnotationPoint = {
   x: number
@@ -356,7 +792,10 @@ export type AnnotationStroke = {
   points: AnnotationPoint[]
 }
 
-export type AnnotationShapeKind = Extract<AnnotationMode, "arrow" | "rect" | "ellipse">
+export type AnnotationShapeKind = Extract<
+  AnnotationMode,
+  "arrow" | "rect" | "ellipse" | "blur"
+>
 
 export type AnnotationShape = {
   id: string
@@ -369,6 +808,8 @@ export type AnnotationShape = {
   color: string
   strokeWidth: number
   lineStyle: AnnotationLineStyle
+  blurEffect?: AnnotationBlurEffect
+  blurAmount?: number
   zIndex: number
 }
 
@@ -593,6 +1034,8 @@ const DEFAULT_STATE: EditorState = {
     color: "#ef4444",
     strokeWidth: 4,
     lineStyle: "solid",
+    blurEffect: "blur",
+    blurAmount: 14,
   },
   annotations: [],
   annotationShapes: [],
@@ -754,8 +1197,12 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
     lastTs: 0,
   })
   const [isPreviewMode, setIsPreviewMode] = React.useState(false)
-  const [selectedTextId, setSelectedTextId] = React.useState<string | null>(null)
-  const [selectedAssetId, setSelectedAssetId] = React.useState<string | null>(null)
+  const [selectedTextId, setSelectedTextId] = React.useState<string | null>(
+    null
+  )
+  const [selectedAssetId, setSelectedAssetId] = React.useState<string | null>(
+    null
+  )
   const [selectedAnnotationShapeId, setSelectedAnnotationShapeId] =
     React.useState<string | null>(null)
 
@@ -824,7 +1271,8 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
           { screenshotPosition: p, screenshotOffset: { x: 0, y: 0 } },
           "screenshotPosition"
         ),
-      setScreenshotOffset: (o) => set({ screenshotOffset: o }, "screenshotOffset"),
+      setScreenshotOffset: (o) =>
+        set({ screenshotOffset: o }, "screenshotOffset"),
       setShadow: (s) => set({ shadow: s }, "shadow"),
       setOverlay: (o) => set({ overlay: o }, "overlay"),
       setPortrait: (p) => set({ portrait: p }, "portrait"),
@@ -969,9 +1417,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
       updateText: (id, patch) => {
         set(
           (s) => ({
-            texts: s.texts.map((t) =>
-              t.id === id ? { ...t, ...patch } : t
-            ),
+            texts: s.texts.map((t) => (t.id === id ? { ...t, ...patch } : t)),
           }),
           `text-${id}`
         )
@@ -1071,7 +1517,9 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
         set((s) => {
           const z = computeNextZ(s.assets)
           return {
-            assets: s.assets.map((a) => (a.id === id ? { ...a, zIndex: z } : a)),
+            assets: s.assets.map((a) =>
+              a.id === id ? { ...a, zIndex: z } : a
+            ),
           }
         }, null)
       },
@@ -1079,7 +1527,9 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
         set((s) => {
           const z = computeMinZ(s.assets)
           return {
-            assets: s.assets.map((a) => (a.id === id ? { ...a, zIndex: z } : a)),
+            assets: s.assets.map((a) =>
+              a.id === id ? { ...a, zIndex: z } : a
+            ),
           }
         }, null)
       },
@@ -1292,10 +1742,14 @@ export function shadowCss(shadow: Shadow): string | undefined {
   }
 
   if (shadow.type === "soft") {
-    let dx = 0, dy = 0
+    let dx = 0,
+      dy = 0
     if (shadow.lightSource !== "center") {
       const [r, c] = shadow.lightSource.split("-").map(Number)
-      if (Number.isFinite(r) && Number.isFinite(c)) { dx = -(c - 2); dy = -(r - 2) }
+      if (Number.isFinite(r) && Number.isFinite(c)) {
+        dx = -(c - 2)
+        dy = -(r - 2)
+      }
     }
     const unit = intensity * 10
     const blur = 40 + intensity * 80
@@ -1305,10 +1759,14 @@ export function shadowCss(shadow: Shadow): string | undefined {
   }
 
   if (shadow.type === "hard") {
-    let dx = 0, dy = 0
+    let dx = 0,
+      dy = 0
     if (shadow.lightSource !== "center") {
       const [r, c] = shadow.lightSource.split("-").map(Number)
-      if (Number.isFinite(r) && Number.isFinite(c)) { dx = -(c - 2); dy = -(r - 2) }
+      if (Number.isFinite(r) && Number.isFinite(c)) {
+        dx = -(c - 2)
+        dy = -(r - 2)
+      }
     }
     const unit = intensity * 12
     const opacity = 0.25 + intensity * 0.45
@@ -1326,10 +1784,14 @@ export function shadowCss(shadow: Shadow): string | undefined {
   }
 
   // drop — directional, opposite the light source
-  let dx = 0, dy = 0
+  let dx = 0,
+    dy = 0
   if (shadow.lightSource !== "center") {
     const [r, c] = shadow.lightSource.split("-").map(Number)
-    if (Number.isFinite(r) && Number.isFinite(c)) { dx = -(c - 2); dy = -(r - 2) }
+    if (Number.isFinite(r) && Number.isFinite(c)) {
+      dx = -(c - 2)
+      dy = -(r - 2)
+    }
   }
   const unit = intensity * 16
   const blur = 20 + intensity * 60
@@ -1374,7 +1836,11 @@ function muteRgb(r: number, g: number, b: number): string {
   const hex =
     "#" +
     [r, g, b]
-      .map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0"))
+      .map((v) =>
+        Math.max(0, Math.min(255, Math.round(v)))
+          .toString(16)
+          .padStart(2, "0")
+      )
       .join("")
   const hsl = hexToHsl(hex)
   if (!hsl) return hex
@@ -1466,7 +1932,11 @@ function rgbToHex({ r, g, b }: Rgb): string {
   return (
     "#" +
     [r, g, b]
-      .map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0"))
+      .map((v) =>
+        Math.max(0, Math.min(255, Math.round(v)))
+          .toString(16)
+          .padStart(2, "0")
+      )
       .join("")
   )
 }
@@ -1543,7 +2013,9 @@ function srgbChannel(c: number): number {
 }
 
 function relativeLuminance(r: number, g: number, b: number): number {
-  return 0.2126 * srgbChannel(r) + 0.7152 * srgbChannel(g) + 0.0722 * srgbChannel(b)
+  return (
+    0.2126 * srgbChannel(r) + 0.7152 * srgbChannel(g) + 0.0722 * srgbChannel(b)
+  )
 }
 
 function hexLuminance(hex: string): number {
@@ -1599,8 +2071,7 @@ export async function pickContrastColor(
   } else if (background.type === "gradient") {
     const matches = background.value.match(/#[0-9a-fA-F]{3,8}/g) ?? []
     if (matches.length) {
-      lum =
-        matches.reduce((s, h) => s + hexLuminance(h), 0) / matches.length
+      lum = matches.reduce((s, h) => s + hexLuminance(h), 0) / matches.length
     }
   } else if (background.type === "image") {
     try {

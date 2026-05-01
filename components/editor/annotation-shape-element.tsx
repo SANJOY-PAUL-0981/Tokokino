@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/tooltip"
 import {
   ANNOTATION_STROKES,
+  type AnnotationBlurEffect,
   type AnnotationLineStyle,
   type AnnotationShape,
   useEditor,
@@ -496,9 +497,15 @@ export function AnnotationShapeElement({
                 strokeWidth={arrowGeometry.strokeWidth}
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                strokeDasharray={scaledLineDashArray(
+                  shape.lineStyle,
+                  arrowGeometry.strokeWidth
+                )}
               />
             </svg>
           ) : null
+        ) : shape.kind === "blur" ? (
+          <BlurRedactionShape shape={shape} />
         ) : (
           <svg
             className="h-full w-full overflow-visible"
@@ -652,9 +659,12 @@ function AnnotationShapeToolbar({
 
   return (
     <div
+      role="toolbar"
+      aria-label={`${shape.kind} annotation controls`}
       className="flex items-center gap-0.5 rounded-md border border-border/70 bg-popover/95 p-1 shadow-xl backdrop-blur-md"
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
     >
       <Tooltip>
         <TooltipTrigger asChild>
@@ -704,95 +714,139 @@ function AnnotationShapeToolbar({
         <TooltipContent side="top">Duplicate</TooltipContent>
       </Tooltip>
 
-      <ColorPickerPopover
-        value={shape.color}
-        side="top"
-        align="center"
-        onChange={(color) => updateAnnotationShape(shape.id, { color })}
-      >
-        <button aria-label="Shape color" className={cn(iconBtnClass, "mx-1")}>
-          <span
-            className="block size-5 rounded-full border border-foreground/10"
-            style={{ background: shape.color }}
-          />
-        </button>
-      </ColorPickerPopover>
+      {shape.kind === "blur" ? (
+        <>
+          <span className="mx-1 h-5 w-px bg-border" />
+          {REDACTION_TEMPLATES.map((template) => {
+            const isActive = getBlurEffect(shape) === template.id
+            return (
+              <Tooltip key={template.id}>
+                <TooltipTrigger asChild>
+                  <button
+                    aria-label={template.label}
+                    className={cn(
+                      iconBtnClass,
+                      isActive && "bg-accent text-foreground"
+                    )}
+                    onClick={() =>
+                      updateAnnotationShape(shape.id, {
+                        blurEffect: template.id,
+                      })
+                    }
+                  >
+                    <RedactionTemplatePreview
+                      effect={template.id}
+                      active={isActive}
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">{template.label}</TooltipContent>
+              </Tooltip>
+            )
+          })}
+        </>
+      ) : null}
 
-      {LINE_STYLES.map((style) => (
-        <Tooltip key={style.id}>
-          <TooltipTrigger asChild>
+      {shape.kind !== "blur" ? (
+        <>
+          <ColorPickerPopover
+            value={shape.color}
+            side="top"
+            align="center"
+            onChange={(color) => updateAnnotationShape(shape.id, { color })}
+          >
             <button
-              aria-label={`${style.label} line`}
-              className={cn(
-                iconBtnClass,
-                shape.lineStyle === style.id && "bg-accent text-foreground"
-              )}
-              onClick={() =>
-                updateAnnotationShape(shape.id, { lineStyle: style.id })
-              }
+              aria-label="Shape color"
+              className={cn(iconBtnClass, "mx-1")}
             >
-              <LineStylePreview
-                style={style.id}
-                kind={shape.kind}
-                active={shape.lineStyle === style.id}
+              <span
+                className="block size-5 rounded-full border border-foreground/10"
+                style={{ background: shape.color }}
               />
             </button>
-          </TooltipTrigger>
-          <TooltipContent side="top">{style.label}</TooltipContent>
-        </Tooltip>
-      ))}
+          </ColorPickerPopover>
 
-      <span className="mx-1 h-5 w-px bg-border" />
+          {LINE_STYLES.map((style) => (
+            <Tooltip key={style.id}>
+              <TooltipTrigger asChild>
+                <button
+                  aria-label={`${style.label} line`}
+                  className={cn(
+                    iconBtnClass,
+                    shape.lineStyle === style.id && "bg-accent text-foreground"
+                  )}
+                  onClick={() =>
+                    updateAnnotationShape(shape.id, { lineStyle: style.id })
+                  }
+                >
+                  <LineStylePreview
+                    style={style.id}
+                    kind={shape.kind}
+                    active={shape.lineStyle === style.id}
+                  />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">{style.label}</TooltipContent>
+            </Tooltip>
+          ))}
+        </>
+      ) : null}
 
-      <Popover open={moreOpen} onOpenChange={setMoreOpen}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <PopoverTrigger asChild>
-              <button aria-label="More options" className={iconBtnClass}>
-                <RiMoreFill className="size-4" />
-              </button>
-            </PopoverTrigger>
-          </TooltipTrigger>
-          <TooltipContent side="top">More options</TooltipContent>
-        </Tooltip>
-        <PopoverContent
-          side="top"
-          align="end"
-          sideOffset={10}
-          className="w-56 border-border/60 bg-popover/95 p-1 backdrop-blur-md"
-        >
-          <div className="flex flex-col">
-            <button
-              onClick={() => {
-                bringAnnotationShapeToFront(shape.id)
-                setMoreOpen(false)
-              }}
-              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+      {shape.kind !== "blur" ? (
+        <>
+          <span className="mx-1 h-5 w-px bg-border" />
+
+          <Popover open={moreOpen} onOpenChange={setMoreOpen}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  <button aria-label="More options" className={iconBtnClass}>
+                    <RiMoreFill className="size-4" />
+                  </button>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="top">More options</TooltipContent>
+            </Tooltip>
+            <PopoverContent
+              side="top"
+              align="end"
+              sideOffset={10}
+              className="w-56 border-border/60 bg-popover/95 p-1 backdrop-blur-md"
             >
-              <RiBringToFront className="size-4" />
-              Bring to front
-            </button>
-            <button
-              onClick={() => {
-                sendAnnotationShapeToBack(shape.id)
-                setMoreOpen(false)
-              }}
-              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent"
-            >
-              <RiSendToBack className="size-4" />
-              Send to back
-            </button>
-            <div className="my-1 h-px bg-border/70" />
-            <ThicknessMenuSection
-              value={shape.strokeWidth}
-              color={shape.color}
-              onChange={(strokeWidth) =>
-                updateAnnotationShape(shape.id, { strokeWidth })
-              }
-            />
-          </div>
-        </PopoverContent>
-      </Popover>
+              <div className="flex flex-col">
+                <button
+                  onClick={() => {
+                    bringAnnotationShapeToFront(shape.id)
+                    setMoreOpen(false)
+                  }}
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                >
+                  <RiBringToFront className="size-4" />
+                  Bring to front
+                </button>
+                <button
+                  onClick={() => {
+                    sendAnnotationShapeToBack(shape.id)
+                    setMoreOpen(false)
+                  }}
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent"
+                >
+                  <RiSendToBack className="size-4" />
+                  Send to back
+                </button>
+                <div className="my-1 h-px bg-border/70" />
+                <ThicknessMenuSection
+                  value={shape.strokeWidth}
+                  color={shape.color}
+                  onChange={(strokeWidth) =>
+                    updateAnnotationShape(shape.id, { strokeWidth })
+                  }
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
+        </>
+      ) : null}
     </div>
   )
 }
@@ -802,6 +856,85 @@ const LINE_STYLES: { id: AnnotationLineStyle; label: string }[] = [
   { id: "dashed", label: "Dashed" },
   { id: "dotted", label: "Short Dash" },
 ]
+
+const REDACTION_TEMPLATES: {
+  id: AnnotationBlurEffect
+  label: string
+}[] = [
+  { id: "blur", label: "Blur" },
+  { id: "redact", label: "Solid redact" },
+  { id: "redact-stripe", label: "Striped redact" },
+  { id: "pixelate", label: "Pixel redact" },
+]
+
+function BlurRedactionShape({ shape }: { shape: AnnotationShape }) {
+  const effect = getBlurEffect(shape)
+  const amount = getBlurAmount(shape)
+
+  if (effect === "redact") {
+    return (
+      <div
+        aria-hidden
+        className="absolute inset-0 overflow-hidden rounded-[3px]"
+        style={{
+          backgroundColor: "#050505",
+          boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.12)",
+        }}
+      />
+    )
+  }
+
+  if (effect === "redact-light") {
+    return (
+      <div
+        aria-hidden
+        className="absolute inset-0 overflow-hidden rounded-[3px] border border-black/10 bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45)]"
+      />
+    )
+  }
+
+  if (effect === "redact-stripe") {
+    return (
+      <div
+        aria-hidden
+        className="absolute inset-0 overflow-hidden rounded-[3px] bg-neutral-950"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(135deg, rgba(255,255,255,0.18) 0 2px, transparent 2px 8px)",
+          boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.12)",
+        }}
+      />
+    )
+  }
+
+  if (effect === "pixelate") {
+    return (
+      <div
+        aria-hidden
+        className="absolute inset-0 overflow-hidden rounded-[3px] bg-black/70"
+        style={{
+          backdropFilter: "blur(2px) contrast(1.25)",
+          WebkitBackdropFilter: "blur(2px) contrast(1.25)",
+          backgroundImage:
+            "linear-gradient(45deg, rgba(255,255,255,0.16) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.12) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.16) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.12) 75%)",
+          backgroundPosition: "0 0, 0 6px, 6px -6px, -6px 0",
+          backgroundSize: "12px 12px",
+        }}
+      />
+    )
+  }
+
+  return (
+    <div
+      aria-hidden
+      className="absolute inset-0 overflow-hidden rounded-[3px] border border-white/25 bg-white/10 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16)]"
+      style={{
+        backdropFilter: `blur(${amount}px) saturate(1.2)`,
+        WebkitBackdropFilter: `blur(${amount}px) saturate(1.2)`,
+      }}
+    />
+  )
+}
 
 function ThicknessMenuSection({
   value,
@@ -859,6 +992,74 @@ function ThicknessMenuSection({
   )
 }
 
+function RedactionTemplatePreview({
+  effect,
+  active,
+}: {
+  effect: AnnotationBlurEffect
+  active: boolean
+}) {
+  const tone = active ? "bg-foreground" : "bg-foreground/55"
+
+  if (effect === "blur") {
+    return (
+      <span
+        aria-hidden
+        className={cn(
+          "size-4 rounded-[3px] border border-foreground/10 bg-foreground/35",
+          active ? "opacity-100" : "opacity-70"
+        )}
+        style={{
+          backgroundImage:
+            "linear-gradient(135deg, rgba(255,255,255,0.38), rgba(255,255,255,0.04))",
+        }}
+      />
+    )
+  }
+
+  if (effect === "redact-stripe") {
+    return (
+      <span
+        aria-hidden
+        className={cn(
+          "size-4 rounded-[3px] border-2 border-current",
+          active ? "text-foreground" : "text-foreground/55"
+        )}
+        style={{
+          background:
+            "repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 5px)",
+        }}
+      />
+    )
+  }
+
+  if (effect === "pixelate") {
+    return (
+      <span
+        aria-hidden
+        className={cn(
+          "size-4 rounded-[3px] border-2 border-current",
+          active ? "text-foreground" : "text-foreground/55"
+        )}
+        style={{
+          backgroundColor: "transparent",
+          backgroundImage:
+            "linear-gradient(45deg, currentColor 25%, transparent 25%), linear-gradient(-45deg, currentColor 25%, transparent 25%), linear-gradient(45deg, transparent 75%, currentColor 75%), linear-gradient(-45deg, transparent 75%, currentColor 75%)",
+          backgroundPosition: "0 0, 0 4px, 4px -4px, -4px 0",
+          backgroundSize: "8px 8px",
+        }}
+      />
+    )
+  }
+
+  return (
+    <span
+      aria-hidden
+      className={cn("size-4 rounded-[3px] border border-foreground/10", tone)}
+    />
+  )
+}
+
 function LineStylePreview({
   style,
   kind,
@@ -872,19 +1073,19 @@ function LineStylePreview({
   const dashArray = lineDashArray(style)
   return (
     <svg
-      viewBox="0 0 20 20"
+      viewBox="0 0 24 24"
       aria-hidden="true"
-      className={cn("size-4 overflow-visible", strokeColor)}
+      className={cn("size-5 overflow-visible", strokeColor)}
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.8}
+      strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"
     >
       {kind === "arrow" ? (
         <>
-          <path d="M6 14L14 6" strokeDasharray={dashArray} />
-          <path d="M8 6H14V12" />
+          <path d="m12 19-7-7 7-7" strokeDasharray={dashArray} />
+          <path d="M19 12H5" strokeDasharray={dashArray} />
         </>
       ) : kind === "rect" ? (
         <rect
@@ -943,7 +1144,11 @@ const HANDLE_CLASS: Record<ResizeHandleId, string> = {
 function getArrowGeometry(width: number, height: number, strokeWidth: number) {
   const safeWidth = Math.max(1, width)
   const safeHeight = Math.max(1, height)
-  const visualStrokeWidth = clamp(strokeWidth * 2.8, 8, Math.max(8, safeHeight * 0.58))
+  const visualStrokeWidth = clamp(
+    strokeWidth * 2.8,
+    8,
+    Math.max(8, safeHeight * 0.58)
+  )
   const pad = Math.max(visualStrokeWidth / 2, 1)
   const centerY = safeHeight / 2
   const tipX = Math.max(pad, safeWidth - pad)
@@ -951,7 +1156,10 @@ function getArrowGeometry(width: number, height: number, strokeWidth: number) {
   const availableLength = Math.max(1, tipX - tailX)
   const targetHead = clamp(visualStrokeWidth * 3.2, 28, 72)
   const headLength = Math.min(targetHead, availableLength * 0.42)
-  const headSpread = Math.min(targetHead * 0.72, Math.max(4, safeHeight / 2 - pad))
+  const headSpread = Math.min(
+    targetHead * 0.72,
+    Math.max(4, safeHeight / 2 - pad)
+  )
   const headBaseX = Math.max(tailX, tipX - headLength)
   const topY = clamp(centerY - headSpread, pad, safeHeight - pad)
   const bottomY = clamp(centerY + headSpread, pad, safeHeight - pad)
@@ -993,6 +1201,14 @@ function getArrowEndpoints(
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
+}
+
+function getBlurEffect(shape: AnnotationShape): AnnotationBlurEffect {
+  return shape.blurEffect ?? "blur"
+}
+
+function getBlurAmount(shape: AnnotationShape) {
+  return clamp(shape.blurAmount ?? 14, 2, 32)
 }
 
 function lineDashArray(style: AnnotationShape["lineStyle"]) {

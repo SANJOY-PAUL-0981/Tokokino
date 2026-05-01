@@ -27,6 +27,7 @@ import {
   ANNOTATION_STROKES,
   type AnnotationLineStyle,
   type AnnotationMode,
+  type AnnotationBlurEffect,
   type AnnotationShapeKind,
   useEditor,
 } from "@/lib/editor/store"
@@ -62,6 +63,16 @@ const LINE_STYLES: { id: AnnotationLineStyle; label: string }[] = [
   { id: "dotted", label: "Short Dash" },
 ]
 
+const REDACTION_TEMPLATES: {
+  id: AnnotationBlurEffect
+  label: string
+}[] = [
+  { id: "blur", label: "Blur" },
+  { id: "redact", label: "Solid redact" },
+  { id: "redact-stripe", label: "Striped redact" },
+  { id: "pixelate", label: "Pixel redact" },
+]
+
 const DEFAULT_SHAPE_COLOR = "#ef4444"
 
 export function AnnotationToolbar({ onExit }: { onExit: () => void }) {
@@ -69,10 +80,11 @@ export function AnnotationToolbar({ onExit }: { onExit: () => void }) {
   const lastShapeColorRef = React.useRef(DEFAULT_SHAPE_COLOR)
   const activeLineStyle = annotation.lineStyle
   const activeShapeKind = annotationModeToShapeKind(annotation.mode)
+  const activeRedactionEffect = annotation.blurEffect
   const showColorControls =
     annotation.mode === "pen" ||
     annotation.mode === "highlight" ||
-    Boolean(activeShapeKind)
+    Boolean(activeShapeKind && activeShapeKind !== "blur")
   const showIntensityControls =
     annotation.mode === "pen" ||
     annotation.mode === "highlight" ||
@@ -127,7 +139,7 @@ export function AnnotationToolbar({ onExit }: { onExit: () => void }) {
               active={annotation.mode === t.id}
               tint={annotation.color}
               iconOverride={
-                shapeKind ? (
+                shapeKind && shapeKind !== "blur" ? (
                   <LineStylePreview
                     style="solid"
                     kind={shapeKind}
@@ -138,15 +150,52 @@ export function AnnotationToolbar({ onExit }: { onExit: () => void }) {
               onClick={() => {
                 setAnnotation({
                   mode: t.id,
-                  ...(shapeKind && !activeShapeKind
+                  ...(shapeKind && shapeKind !== "blur" && !activeShapeKind
                     ? { color: lastShapeColorRef.current }
                     : {}),
+                  ...(shapeKind === "blur" ? { color: "#0a0a0a" } : {}),
                 })
               }}
             />
           )
         })}
       </ToolGroup>
+
+      {annotation.mode === "blur" ? (
+        <>
+          <Divider />
+          <div className="flex items-center gap-0.5 px-1">
+            {REDACTION_TEMPLATES.map((template) => {
+              const isActive = activeRedactionEffect === template.id
+              return (
+                <Tooltip key={template.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      aria-label={template.label}
+                      className={cn(
+                        "inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+                        isActive && "bg-accent text-foreground"
+                      )}
+                      onClick={() => {
+                        setAnnotation({
+                          mode: "blur",
+                          blurEffect: template.id,
+                        })
+                      }}
+                    >
+                      <RedactionTemplatePreview
+                        effect={template.id}
+                        active={isActive}
+                      />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{template.label}</TooltipContent>
+                </Tooltip>
+              )
+            })}
+          </div>
+        </>
+      ) : null}
 
       {/* Color row */}
       {showColorControls ? (
@@ -300,19 +349,19 @@ function LineStylePreview({
   const dashArray = lineDashArray(style)
   return (
     <svg
-      viewBox="0 0 20 20"
+      viewBox="0 0 24 24"
       aria-hidden="true"
-      className={cn("size-4 overflow-visible", strokeColor)}
+      className={cn("size-5 overflow-visible", strokeColor)}
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.8}
+      strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"
     >
       {kind === "arrow" ? (
         <>
-          <path d="M6 14L14 6" strokeDasharray={dashArray} />
-          <path d="M8 6H14V12" />
+          <path d="m12 19-7-7 7-7" strokeDasharray={dashArray} />
+          <path d="M19 12H5" strokeDasharray={dashArray} />
         </>
       ) : kind === "rect" ? (
         <rect
@@ -499,10 +548,85 @@ function ToolButton({
   )
 }
 
+function RedactionTemplatePreview({
+  effect,
+  active,
+}: {
+  effect: AnnotationBlurEffect
+  active: boolean
+}) {
+  const tone = active ? "bg-foreground" : "bg-foreground/55"
+
+  if (effect === "blur") {
+    return (
+      <span
+        aria-hidden
+        className={cn(
+          "size-4 rounded-[3px] border border-foreground/10 bg-foreground/35",
+          active ? "opacity-100" : "opacity-70"
+        )}
+        style={{
+          backgroundImage:
+            "linear-gradient(135deg, rgba(255,255,255,0.38), rgba(255,255,255,0.04))",
+        }}
+      />
+    )
+  }
+
+  if (effect === "redact-stripe") {
+    return (
+      <span
+        aria-hidden
+        className={cn(
+          "size-4 rounded-[3px] border-2 border-current",
+          active ? "text-foreground" : "text-foreground/55"
+        )}
+        style={{
+          background:
+            "repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 5px)",
+        }}
+      />
+    )
+  }
+
+  if (effect === "pixelate") {
+    return (
+      <span
+        aria-hidden
+        className={cn(
+          "size-4 rounded-[3px] border-2 border-current",
+          active ? "text-foreground" : "text-foreground/55"
+        )}
+        style={{
+          backgroundColor: "transparent",
+          backgroundImage:
+            "linear-gradient(45deg, currentColor 25%, transparent 25%), linear-gradient(-45deg, currentColor 25%, transparent 25%), linear-gradient(45deg, transparent 75%, currentColor 75%), linear-gradient(-45deg, transparent 75%, currentColor 75%)",
+          backgroundPosition: "0 0, 0 4px, 4px -4px, -4px 0",
+          backgroundSize: "8px 8px",
+        }}
+      />
+    )
+  }
+
+  return (
+    <span
+      aria-hidden
+      className={cn("size-4 rounded-[3px] border border-foreground/10", tone)}
+    />
+  )
+}
+
 function annotationModeToShapeKind(
   mode: AnnotationMode
 ): AnnotationShapeKind | null {
-  if (mode === "arrow" || mode === "rect" || mode === "ellipse") return mode
+  if (
+    mode === "arrow" ||
+    mode === "rect" ||
+    mode === "ellipse" ||
+    mode === "blur"
+  ) {
+    return mode
+  }
   return null
 }
 
