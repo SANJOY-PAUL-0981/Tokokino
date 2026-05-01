@@ -14,6 +14,7 @@ import { toast } from "sonner"
 
 import { CornerMarkers } from "@/components/editor/corner-marker"
 import { CropModal } from "@/components/editor/crop-modal"
+import { AnnotationShapeElement } from "@/components/editor/annotation-shape-element"
 import { AssetElementView } from "@/components/editor/asset-element"
 import { TextElementView } from "@/components/editor/text-element"
 import { cn } from "@/lib/utils"
@@ -92,6 +93,7 @@ export function Canvas() {
     enhance,
     annotation,
     annotations,
+    annotationShapes,
     canvasBorderRadius,
     isPreviewMode,
     setScreenshot,
@@ -104,6 +106,10 @@ export function Canvas() {
     setSelectedAssetId,
     addAnnotationStroke,
     updateAnnotationStroke,
+    addAnnotationShape,
+    updateAnnotationShape,
+    deleteAnnotationShape,
+    setSelectedAnnotationShapeId,
   } = useEditor()
   const canvasRef = React.useRef<HTMLDivElement>(null)
   const generatedAnnotationMaskId = React.useId()
@@ -179,6 +185,13 @@ export function Canvas() {
     strokeId: string | null
     points: { x: number; y: number }[]
     mode: "pen" | "highlight" | "eraser"
+  } | null>(null)
+  const annotationShapeDragRef = React.useRef<{
+    pointerId: number
+    shapeId: string
+    startXPct: number
+    startYPct: number
+    moved: boolean
   } | null>(null)
 
   const measurePlacement = React.useCallback(() => {
@@ -396,6 +409,8 @@ export function Canvas() {
     if (activeTool !== "arrow") return
     const point = getAnnotationPoint(e)
     if (!point) return
+    const layer = annotationLayerRef.current
+    if (!layer) return
 
     e.preventDefault()
     e.stopPropagation()
@@ -403,6 +418,34 @@ export function Canvas() {
     setSelectedTextId(null)
     setSelectedAssetId(null)
     setIsScreenshotSelected(false)
+
+    if (
+      annotation.mode === "arrow" ||
+      annotation.mode === "rect" ||
+      annotation.mode === "ellipse"
+    ) {
+      const startXPct = (point.x / layer.clientWidth) * 100
+      const startYPct = (point.y / layer.clientHeight) * 100
+      const shapeId = addAnnotationShape({
+        kind: annotation.mode,
+        xPct: startXPct,
+        yPct: startYPct,
+        widthPct: 1,
+        heightPct: 1,
+        color: annotation.color,
+        strokeWidth: annotation.strokeWidth,
+        lineStyle: annotation.lineStyle,
+      })
+      setSelectedAnnotationShapeId(shapeId)
+      annotationShapeDragRef.current = {
+        pointerId: e.pointerId,
+        shapeId,
+        startXPct,
+        startYPct,
+        moved: false,
+      }
+      return
+    }
 
     if (
       annotation.mode === "pen" ||
@@ -425,6 +468,32 @@ export function Canvas() {
   }
 
   const moveAnnotation = (e: React.PointerEvent<SVGSVGElement>) => {
+    const shapeDrag = annotationShapeDragRef.current
+    if (shapeDrag && shapeDrag.pointerId === e.pointerId) {
+      const point = getAnnotationPoint(e)
+      const layer = annotationLayerRef.current
+      if (!point || !layer) return
+      e.preventDefault()
+      e.stopPropagation()
+      const endXPct = (point.x / layer.clientWidth) * 100
+      const endYPct = (point.y / layer.clientHeight) * 100
+      const widthPct = Math.max(1, Math.abs(endXPct - shapeDrag.startXPct))
+      const heightPct = Math.max(1, Math.abs(endYPct - shapeDrag.startYPct))
+      const xPct = (shapeDrag.startXPct + endXPct) / 2
+      const yPct = (shapeDrag.startYPct + endYPct) / 2
+      const snapX = Math.abs(xPct - 50) <= (8 / layer.clientWidth) * 100
+      const snapY = Math.abs(yPct - 50) <= (8 / layer.clientHeight) * 100
+      updateAnnotationShape(shapeDrag.shapeId, {
+        xPct: snapX ? 50 : xPct,
+        yPct: snapY ? 50 : yPct,
+        widthPct,
+        heightPct,
+      })
+      setTextCenterGuides({ x: snapX, y: snapY })
+      shapeDrag.moved = true
+      return
+    }
+
     const drag = annotationDragRef.current
     if (!drag || drag.pointerId !== e.pointerId) return
     const point = getAnnotationPoint(e)
@@ -444,6 +513,17 @@ export function Canvas() {
   }
 
   const stopAnnotation = (e: React.PointerEvent<SVGSVGElement>) => {
+    const shapeDrag = annotationShapeDragRef.current
+    if (shapeDrag && shapeDrag.pointerId === e.pointerId) {
+      annotationShapeDragRef.current = null
+      if (!shapeDrag.moved) {
+        deleteAnnotationShape(shapeDrag.shapeId)
+        setSelectedAnnotationShapeId(null)
+      }
+      setTextCenterGuides({ x: false, y: false })
+      return
+    }
+
     const drag = annotationDragRef.current
     if (!drag || drag.pointerId !== e.pointerId) return
     annotationDragRef.current = null
@@ -491,6 +571,7 @@ export function Canvas() {
           onClick={() => {
             setSelectedTextId(null)
             setSelectedAssetId(null)
+            setSelectedAnnotationShapeId(null)
           }}
           onDragOver={(e) => {
             e.preventDefault()
@@ -626,12 +707,14 @@ export function Canvas() {
                   e.stopPropagation()
                   setIsScreenshotSelected(true)
                   setSelectedTextId(null)
+                  setSelectedAnnotationShapeId(null)
                 }}
                 onPointerDown={(e) => {
                   if (document.activeElement instanceof HTMLElement) {
                     document.activeElement.blur()
                   }
                   setSelectedTextId(null)
+                  setSelectedAnnotationShapeId(null)
                   startScreenshotDrag(e)
                 }}
                 onPointerMove={moveScreenshot}
@@ -807,6 +890,15 @@ export function Canvas() {
         {/* Text elements */}
         {texts.map((t) => (
           <TextElementView key={t.id} text={t} canvasRef={canvasRef} onCenterGuideChange={setTextCenterGuides} />
+        ))}
+
+        {annotationShapes.map((shape) => (
+          <AnnotationShapeElement
+            key={shape.id}
+            shape={shape}
+            canvasRef={canvasRef}
+            onCenterGuideChange={setTextCenterGuides}
+          />
         ))}
 
         <svg

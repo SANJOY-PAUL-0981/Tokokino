@@ -3,15 +3,12 @@
 import * as React from "react"
 import {
   RiArrowLeftSLine,
-  RiArrowRightUpLine,
   RiBallPenLine,
   RiBlurOffLine,
-  RiCheckboxBlankCircleLine,
   RiDeleteBin6Line,
   RiEraserLine,
   RiEqualizerLine,
   RiMarkPenLine,
-  RiRectangleLine,
 } from "@remixicon/react"
 
 import {
@@ -29,7 +26,9 @@ import { ColorPickerPopover } from "@/components/editor/color-picker-popover"
 import {
   ANNOTATION_COLORS,
   ANNOTATION_STROKES,
+  type AnnotationLineStyle,
   type AnnotationMode,
+  type AnnotationShapeKind,
   useEditor,
 } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
@@ -38,7 +37,7 @@ type ToolDef = {
   id: AnnotationMode
   label: string
   shortcut?: string
-  icon: React.ComponentType<{ className?: string }>
+  icon?: React.ComponentType<{ className?: string }>
 }
 
 const BRUSHES: ToolDef[] = [
@@ -48,23 +47,38 @@ const BRUSHES: ToolDef[] = [
 ]
 
 const SHAPES: ToolDef[] = [
-  { id: "arrow", label: "Arrow", shortcut: "A", icon: RiArrowRightUpLine },
-  { id: "rect", label: "Rectangle", shortcut: "R", icon: RiRectangleLine },
+  { id: "arrow", label: "Arrow", shortcut: "A" },
+  { id: "rect", label: "Rectangle", shortcut: "R" },
   {
     id: "ellipse",
     label: "Ellipse",
     shortcut: "O",
-    icon: RiCheckboxBlankCircleLine,
   },
   { id: "blur", label: "Blur / Redact", shortcut: "B", icon: RiBlurOffLine },
 ]
 
+const LINE_STYLES: { id: AnnotationLineStyle; label: string }[] = [
+  { id: "solid", label: "Solid" },
+  { id: "dashed", label: "Dashed" },
+  { id: "dotted", label: "Short Dash" },
+]
+
 export function AnnotationToolbar({ onExit }: { onExit: () => void }) {
-  const { annotation, setAnnotation, clearAnnotations } = useEditor()
+  const {
+    annotation,
+    setAnnotation,
+    clearAnnotations,
+  } = useEditor()
+  const activeLineStyle = annotation.lineStyle
   const showColorControls =
     annotation.mode === "pen" || annotation.mode === "highlight"
   const showIntensityControls =
     showColorControls || annotation.mode === "eraser"
+  const showLineStyleControls =
+    annotation.mode === "arrow" ||
+    annotation.mode === "rect" ||
+    annotation.mode === "ellipse"
+  const previewShapeKind = annotationModeToShapeKind(annotation.mode) ?? "arrow"
 
   return (
     <div className="flex items-center gap-0.5">
@@ -104,15 +118,27 @@ export function AnnotationToolbar({ onExit }: { onExit: () => void }) {
 
       {/* Shapes */}
       <ToolGroup>
-        {SHAPES.map((t) => (
-          <ToolButton
-            key={t.id}
-            tool={t}
-            active={annotation.mode === t.id}
-            tint={annotation.color}
-            onClick={() => setAnnotation({ mode: t.id })}
-          />
-        ))}
+        {SHAPES.map((t) => {
+          const shapeKind = annotationModeToShapeKind(t.id)
+          return (
+            <ToolButton
+              key={t.id}
+              tool={t}
+              active={annotation.mode === t.id}
+              tint={annotation.color}
+              iconOverride={
+                shapeKind ? (
+                  <LineStylePreview
+                    style={activeLineStyle}
+                    kind={shapeKind}
+                    active={annotation.mode === t.id}
+                  />
+                ) : undefined
+              }
+              onClick={() => setAnnotation({ mode: t.id })}
+            />
+          )
+        })}
       </ToolGroup>
 
       {/* Color row */}
@@ -201,6 +227,37 @@ export function AnnotationToolbar({ onExit }: { onExit: () => void }) {
         </>
       ) : null}
 
+      {showLineStyleControls ? (
+        <>
+          <Divider />
+          <div className="flex items-center gap-0.5 px-1">
+            {LINE_STYLES.map((style) => (
+              <Tooltip key={style.id}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => {
+                      setAnnotation({ lineStyle: style.id })
+                    }}
+                    aria-label={`${style.label} line`}
+                    className={cn(
+                      "inline-flex size-8 items-center justify-center rounded-md transition-colors cursor-pointer hover:bg-accent",
+                      activeLineStyle === style.id && "bg-accent"
+                    )}
+                  >
+                    <LineStylePreview
+                      style={style.id}
+                      kind={previewShapeKind}
+                      active={activeLineStyle === style.id}
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">{style.label}</TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+        </>
+      ) : null}
+
       <Divider />
 
       {/* Clear */}
@@ -226,6 +283,49 @@ function Divider() {
 
 function ToolGroup({ children }: { children: React.ReactNode }) {
   return <div className="flex items-center gap-0.5">{children}</div>
+}
+
+function LineStylePreview({
+  style,
+  kind,
+  active,
+}: {
+  style: AnnotationLineStyle
+  kind: AnnotationShapeKind
+  active: boolean
+}) {
+  const strokeColor = active ? "text-foreground" : "text-foreground/55"
+  const dashArray = lineDashArray(style)
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      aria-hidden="true"
+      className={cn("size-4 overflow-visible", strokeColor)}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {kind === "arrow" ? (
+        <>
+          <line x1="4" y1="15" x2="14" y2="5" strokeDasharray={dashArray} />
+          <polyline points="10,5 14,5 14,9" strokeDasharray={dashArray} />
+        </>
+      ) : kind === "rect" ? (
+        <rect
+          x="3.5"
+          y="3.5"
+          width="13"
+          height="13"
+          rx="2.5"
+          strokeDasharray={dashArray}
+        />
+      ) : (
+        <circle cx="10" cy="10" r="6.5" strokeDasharray={dashArray} />
+      )}
+    </svg>
+  )
 }
 
 function IntensitySliderButton({
@@ -293,11 +393,13 @@ function ToolButton({
   tool,
   active,
   tint,
+  iconOverride,
   onClick,
 }: {
   tool: ToolDef
   active: boolean
   tint: string
+  iconOverride?: React.ReactNode
   onClick: () => void
 }) {
   const Icon = tool.icon
@@ -314,7 +416,7 @@ function ToolButton({
             active && "bg-foreground/[0.08] text-foreground"
           )}
         >
-          <Icon className="size-4" />
+          {iconOverride ?? (Icon ? <Icon className="size-4" /> : null)}
           {active && (
             <span
               className="pointer-events-none absolute bottom-1 left-1/2 h-[3px] w-3 -translate-x-1/2 rounded-full"
@@ -333,4 +435,17 @@ function ToolButton({
       </TooltipContent>
     </Tooltip>
   )
+}
+
+function annotationModeToShapeKind(
+  mode: AnnotationMode
+): AnnotationShapeKind | null {
+  if (mode === "arrow" || mode === "rect" || mode === "ellipse") return mode
+  return null
+}
+
+function lineDashArray(style: AnnotationLineStyle) {
+  if (style === "dashed") return "5 3"
+  if (style === "dotted") return "2.2 2.2"
+  return undefined
 }

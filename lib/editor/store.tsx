@@ -320,6 +320,7 @@ export type EditorState = {
   enhance: EnhancePreset
   annotation: Annotation
   annotations: AnnotationStroke[]
+  annotationShapes: AnnotationShape[]
 }
 
 export type EnhancePreset = "off" | "auto" | "vivid" | "soft" | "dramatic" | "sharp"
@@ -337,7 +338,10 @@ export type Annotation = {
   mode: AnnotationMode
   color: string
   strokeWidth: number
+  lineStyle: AnnotationLineStyle
 }
+
+export type AnnotationLineStyle = "solid" | "dashed" | "dotted"
 
 export type AnnotationPoint = {
   x: number
@@ -350,6 +354,21 @@ export type AnnotationStroke = {
   color: string
   strokeWidth: number
   points: AnnotationPoint[]
+}
+
+export type AnnotationShapeKind = Extract<AnnotationMode, "arrow" | "rect" | "ellipse">
+
+export type AnnotationShape = {
+  id: string
+  kind: AnnotationShapeKind
+  xPct: number
+  yPct: number
+  widthPct: number
+  heightPct: number
+  color: string
+  strokeWidth: number
+  lineStyle: AnnotationLineStyle
+  zIndex: number
 }
 
 export const ANNOTATION_COLORS = [
@@ -572,8 +591,10 @@ const DEFAULT_STATE: EditorState = {
     mode: "pen",
     color: "#ef4444",
     strokeWidth: 4,
+    lineStyle: "solid",
   },
   annotations: [],
+  annotationShapes: [],
 }
 
 const HISTORY_LIMIT = 100
@@ -687,6 +708,10 @@ type Ctx = EditorState & {
   setAnnotation: (patch: Partial<Annotation>) => void
   addAnnotationStroke: (stroke: Omit<AnnotationStroke, "id">) => string
   updateAnnotationStroke: (id: string, points: AnnotationPoint[]) => void
+  addAnnotationShape: (shape: Omit<AnnotationShape, "id" | "zIndex">) => string
+  updateAnnotationShape: (id: string, patch: Partial<AnnotationShape>) => void
+  deleteAnnotationShape: (id: string) => void
+  duplicateAnnotationShape: (id: string) => string | null
   clearAnnotations: () => void
   addText: () => string
   updateText: (id: string, patch: Partial<TextElement>) => void
@@ -704,6 +729,8 @@ type Ctx = EditorState & {
   sendAssetToBack: (id: string) => void
   selectedAssetId: string | null
   setSelectedAssetId: (id: string | null) => void
+  selectedAnnotationShapeId: string | null
+  setSelectedAnnotationShapeId: (id: string | null) => void
   reset: () => void
   undo: () => void
   redo: () => void
@@ -726,6 +753,8 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
   const [isPreviewMode, setIsPreviewMode] = React.useState(false)
   const [selectedTextId, setSelectedTextId] = React.useState<string | null>(null)
   const [selectedAssetId, setSelectedAssetId] = React.useState<string | null>(null)
+  const [selectedAnnotationShapeId, setSelectedAnnotationShapeId] =
+    React.useState<string | null>(null)
 
   const value: Ctx = React.useMemo(() => {
     const set = (patch: SetPatch, group: string | null) =>
@@ -821,7 +850,58 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
           }),
           `annotation-stroke-${id}`
         ),
-      clearAnnotations: () => set({ annotations: [] }, null),
+      addAnnotationShape: (shape) => {
+        const id = makeId()
+        set(
+          (s) => ({
+            annotationShapes: [
+              ...s.annotationShapes,
+              { ...shape, id, zIndex: computeNextZ(s.annotationShapes) },
+            ],
+          }),
+          null
+        )
+        return id
+      },
+      updateAnnotationShape: (id, patch) =>
+        set(
+          (s) => ({
+            annotationShapes: s.annotationShapes.map((shape) =>
+              shape.id === id ? { ...shape, ...patch } : shape
+            ),
+          }),
+          `annotation-shape-${id}`
+        ),
+      deleteAnnotationShape: (id) => {
+        set(
+          (s) => ({
+            annotationShapes: s.annotationShapes.filter(
+              (shape) => shape.id !== id
+            ),
+          }),
+          null
+        )
+      },
+      duplicateAnnotationShape: (id) => {
+        const copyId = makeId()
+        let didCopy = false
+        set((s) => {
+          const src = s.annotationShapes.find((shape) => shape.id === id)
+          if (!src) return { annotationShapes: s.annotationShapes }
+          didCopy = true
+          const copy: AnnotationShape = {
+            ...src,
+            id: copyId,
+            xPct: Math.min(98, src.xPct + 3),
+            yPct: Math.min(98, src.yPct + 3),
+            zIndex: computeNextZ(s.annotationShapes),
+          }
+          return { annotationShapes: [...s.annotationShapes, copy] }
+        }, null)
+        return didCopy ? copyId : null
+      },
+      clearAnnotations: () =>
+        set({ annotations: [], annotationShapes: [] }, null),
       addText: () => {
         const id = makeId()
         set(
@@ -974,6 +1054,8 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
       },
       selectedAssetId,
       setSelectedAssetId,
+      selectedAnnotationShapeId,
+      setSelectedAnnotationShapeId,
       reset: () => dispatch({ type: "RESET" }),
       undo: () => dispatch({ type: "UNDO" }),
       redo: () => dispatch({ type: "REDO" }),
@@ -982,7 +1064,13 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
       isPreviewMode,
       setIsPreviewMode,
     }
-  }, [state, isPreviewMode, selectedTextId, selectedAssetId])
+  }, [
+    state,
+    isPreviewMode,
+    selectedTextId,
+    selectedAssetId,
+    selectedAnnotationShapeId,
+  ])
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
