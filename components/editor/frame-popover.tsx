@@ -47,13 +47,62 @@ const SECTIONS: FrameSection[] = [
     label: "iPhone",
     icon: RiAppleLine,
     options: [
-      { id: "iphone-17-pro", name: "iPhone 17 Pro", w: 402, h: 874, kind: "phone", orientable: true },
-      { id: "iphone-17-pro-max", name: "iPhone 17 Pro Max", w: 440, h: 956, kind: "phone", orientable: true },
-      { id: "iphone-air", name: "iPhone Air", w: 420, h: 912, kind: "phone", orientable: true },
-      { id: "iphone-17", name: "iPhone 17", w: 402, h: 874, kind: "phone", orientable: true },
-      { id: "iphone-16-pro", name: "iPhone 16 Pro", w: 402, h: 874, kind: "phone", orientable: true },
-      { id: "iphone-16", name: "iPhone 16", w: 390, h: 844, kind: "phone", orientable: true },
-      { id: "iphone-15-pro", name: "iPhone 15 Pro", w: 393, h: 852, kind: "phone", orientable: true },
+      {
+        id: "iphone-17-pro",
+        name: "iPhone 17 Pro",
+        w: 402,
+        h: 874,
+        kind: "phone",
+        orientable: true,
+      },
+      {
+        id: "iphone-17-pro-max",
+        name: "iPhone 17 Pro Max",
+        w: 440,
+        h: 956,
+        kind: "phone",
+        orientable: true,
+      },
+      {
+        id: "iphone-air",
+        name: "iPhone Air",
+        w: 420,
+        h: 912,
+        kind: "phone",
+        orientable: true,
+      },
+      {
+        id: "iphone-17",
+        name: "iPhone 17",
+        w: 402,
+        h: 874,
+        kind: "phone",
+        orientable: true,
+      },
+      {
+        id: "iphone-16-pro",
+        name: "iPhone 16 Pro",
+        w: 402,
+        h: 874,
+        kind: "phone",
+        orientable: true,
+      },
+      {
+        id: "iphone-16",
+        name: "iPhone 16",
+        w: 390,
+        h: 844,
+        kind: "phone",
+        orientable: true,
+      },
+      {
+        id: "iphone-15-pro",
+        name: "iPhone 15 Pro",
+        w: 393,
+        h: 852,
+        kind: "phone",
+        orientable: true,
+      },
     ],
   },
   {
@@ -61,9 +110,30 @@ const SECTIONS: FrameSection[] = [
     label: "Android",
     icon: RiGoogleLine,
     options: [
-      { id: "pixel-9-pro", name: "Pixel 9 Pro", w: 412, h: 915, kind: "phone", orientable: true },
-      { id: "pixel-9", name: "Pixel 9", w: 412, h: 915, kind: "phone", orientable: true },
-      { id: "galaxy-s25", name: "Galaxy S25", w: 360, h: 780, kind: "phone", orientable: true },
+      {
+        id: "pixel-9-pro",
+        name: "Pixel 9 Pro",
+        w: 412,
+        h: 915,
+        kind: "phone",
+        orientable: true,
+      },
+      {
+        id: "pixel-9",
+        name: "Pixel 9",
+        w: 412,
+        h: 915,
+        kind: "phone",
+        orientable: true,
+      },
+      {
+        id: "galaxy-s25",
+        name: "Galaxy S25",
+        w: 360,
+        h: 780,
+        kind: "phone",
+        orientable: true,
+      },
     ],
   },
   {
@@ -71,10 +141,38 @@ const SECTIONS: FrameSection[] = [
     label: "Tablet",
     icon: RiTabletLine,
     options: [
-      { id: "ipad-pro-13", name: "iPad Pro 13″", w: 1024, h: 1366, kind: "tablet", orientable: true },
-      { id: "ipad-pro-11", name: "iPad Pro 11″", w: 834, h: 1194, kind: "tablet", orientable: true },
-      { id: "ipad-air", name: "iPad Air", w: 820, h: 1180, kind: "tablet", orientable: true },
-      { id: "ipad-mini", name: "iPad mini", w: 744, h: 1133, kind: "tablet", orientable: true },
+      {
+        id: "ipad-pro-13",
+        name: "iPad Pro 13″",
+        w: 1024,
+        h: 1366,
+        kind: "tablet",
+        orientable: true,
+      },
+      {
+        id: "ipad-pro-11",
+        name: "iPad Pro 11″",
+        w: 834,
+        h: 1194,
+        kind: "tablet",
+        orientable: true,
+      },
+      {
+        id: "ipad-air",
+        name: "iPad Air",
+        w: 820,
+        h: 1180,
+        kind: "tablet",
+        orientable: true,
+      },
+      {
+        id: "ipad-mini",
+        name: "iPad mini",
+        w: 744,
+        h: 1133,
+        kind: "tablet",
+        orientable: true,
+      },
     ],
   },
   {
@@ -82,10 +180,38 @@ const SECTIONS: FrameSection[] = [
     label: "Laptop",
     icon: RiMacLine,
     options: [
-      { id: "mbp-14", name: "MacBook Pro 14″", w: 1512, h: 982, kind: "laptop", orientable: false },
-      { id: "mbp-16", name: "MacBook Pro 16″", w: 1728, h: 1117, kind: "laptop", orientable: false },
-      { id: "mba-13", name: "MacBook Air 13″", w: 1440, h: 900, kind: "laptop", orientable: false },
-      { id: "imac", name: "iMac 24″", w: 1920, h: 1080, kind: "laptop", orientable: false },
+      {
+        id: "mbp-14",
+        name: "MacBook Pro 14″",
+        w: 1512,
+        h: 982,
+        kind: "laptop",
+        orientable: false,
+      },
+      {
+        id: "mbp-16",
+        name: "MacBook Pro 16″",
+        w: 1728,
+        h: 1117,
+        kind: "laptop",
+        orientable: false,
+      },
+      {
+        id: "mba-13",
+        name: "MacBook Air 13″",
+        w: 1440,
+        h: 900,
+        kind: "laptop",
+        orientable: false,
+      },
+      {
+        id: "imac",
+        name: "iMac 24″",
+        w: 1920,
+        h: 1080,
+        kind: "laptop",
+        orientable: false,
+      },
     ],
   },
   {
@@ -93,9 +219,30 @@ const SECTIONS: FrameSection[] = [
     label: "Browser",
     icon: RiWindowLine,
     options: [
-      { id: "browser-light", name: "Browser", w: 1440, h: 900, kind: "browser", orientable: false },
-      { id: "browser-safari", name: "Safari", w: 1440, h: 900, kind: "browser", orientable: false },
-      { id: "browser-chrome", name: "Chrome", w: 1440, h: 900, kind: "browser", orientable: false },
+      {
+        id: "browser-light",
+        name: "Browser",
+        w: 1440,
+        h: 900,
+        kind: "browser",
+        orientable: false,
+      },
+      {
+        id: "browser-safari",
+        name: "Safari",
+        w: 1440,
+        h: 900,
+        kind: "browser",
+        orientable: false,
+      },
+      {
+        id: "browser-chrome",
+        name: "Chrome",
+        w: 1440,
+        h: 900,
+        kind: "browser",
+        orientable: false,
+      },
     ],
   },
   {
@@ -122,8 +269,7 @@ export function FramePopover({
   const [open, setOpen] = React.useState(false)
   const [query, setQuery] = React.useState("")
 
-  const current =
-    ALL_OPTIONS.find((o) => o.id === value) ?? ALL_OPTIONS[0]
+  const current = ALL_OPTIONS.find((o) => o.id === value) ?? ALL_OPTIONS[0]
   const CurrentIcon =
     SECTIONS.find((s) => s.options.some((o) => o.id === current.id))?.icon ??
     RiSmartphoneLine
@@ -213,10 +359,7 @@ export function FramePopover({
                     orientation={orientation}
                     active={value === o.id}
                     onSelect={() => {
-                      onChange(
-                        o.id,
-                        o.orientable ? orientation : "vertical"
-                      )
+                      onChange(o.id, o.orientable ? orientation : "vertical")
                       setOpen(false)
                     }}
                   />
@@ -234,7 +377,7 @@ export function FramePopover({
 
         {/* Orientation footer */}
         <div className="shrink-0 border-t border-border/60 bg-popover p-2">
-          <div className="mb-1.5 px-1 label-eyebrow !text-[9px]">
+          <div className="label-eyebrow mb-1.5 px-1 !text-[9px]">
             Orientation
           </div>
           <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-secondary/40 p-0.5">
@@ -336,19 +479,16 @@ function DeviceGlyph({
     return (
       <div
         className={cn(
-          "relative rounded-[12px] border-2 shadow-sm",
+          "relative h-[82px] w-[44px] rounded-[12px] border-2 shadow-sm transition-transform",
           stroke,
           fill,
-          isHorizontal ? "h-[44px] w-[82px]" : "h-[82px] w-[44px]"
+          isHorizontal && "rotate-90"
         )}
       >
         <span
           className={cn(
-            "absolute rounded-full",
-            accent,
-            isHorizontal
-              ? "left-1 top-1/2 h-3 w-1 -translate-y-1/2"
-              : "top-1 left-1/2 h-1 w-3 -translate-x-1/2"
+            "absolute top-1 left-1/2 h-1 w-3 -translate-x-1/2 rounded-full",
+            accent
           )}
         />
       </div>
@@ -360,19 +500,16 @@ function DeviceGlyph({
     return (
       <div
         className={cn(
-          "relative rounded-[10px] border-2 shadow-sm",
+          "relative h-[80px] w-[60px] rounded-[10px] border-2 shadow-sm transition-transform",
           stroke,
           fill,
-          isHorizontal ? "h-[56px] w-[80px]" : "h-[80px] w-[60px]"
+          isHorizontal && "rotate-90"
         )}
       >
         <span
           className={cn(
-            "absolute size-1.5 rounded-full",
-            accent,
-            isHorizontal
-              ? "left-1.5 top-1/2 -translate-y-1/2"
-              : "top-1.5 left-1/2 -translate-x-1/2"
+            "absolute top-1.5 left-1/2 size-1.5 -translate-x-1/2 rounded-full",
+            accent
           )}
         />
       </div>
@@ -455,9 +592,9 @@ function OrientGlyph({
     <span aria-hidden className="flex size-4 items-center justify-center">
       <span
         className={cn(
-          "rounded-[2px]",
+          "h-3.5 w-2 rounded-[2px] transition-transform",
           color,
-          orientation === "horizontal" ? "h-2 w-3.5" : "h-3.5 w-2"
+          orientation === "horizontal" && "rotate-90"
         )}
       />
     </span>

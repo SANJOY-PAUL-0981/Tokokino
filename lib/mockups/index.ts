@@ -1,0 +1,222 @@
+export type MockupOrientation = "portrait" | "landscape"
+
+export type DeviceMockupFile = (typeof DEVICE_MOCKUP_FILES)[number]
+
+export type DeviceMockupAsset = {
+  deviceId: string
+  deviceName: string
+  color: string
+  orientation: MockupOrientation
+  file: DeviceMockupFile
+  src: string
+}
+
+export type DeviceMockup = {
+  id: string
+  name: string
+  colors: string[]
+  orientations: MockupOrientation[]
+  assets: DeviceMockupAsset[]
+}
+
+const R2_PUBLIC_BASE_URL =
+  process.env.NEXT_PUBLIC_R2_PUBLIC_BASE?.replace(/\/$/, "") ??
+  process.env.NEXT_PUBLIC_OVERLAYS_BASE_URL?.replace(/\/[^/]+\/?$/, "").replace(
+    /\/$/,
+    ""
+  ) ??
+  "https://pub-4a1f61370c844ff69cc9d1a7b3689d25.r2.dev"
+
+export const DEVICE_MOCKUPS_BASE_URL =
+  process.env.NEXT_PUBLIC_DEVICE_MOCKUPS_BASE_URL?.replace(/\/$/, "") ??
+  `${R2_PUBLIC_BASE_URL}/device-mockups`
+
+export const DEVICE_MOCKUP_FILES = [
+  "apple_watch_10_42mm_aluminum_sport_band__black_portrait.webp",
+  "apple_watch_10_42mm_aluminum_sport_band__light_blush_portrait.webp",
+  "apple_watch_ultra_2_natural_alpine__dark_green_portrait.webp",
+  "apple_watch_ultra_2_natural_alpine__navy_portrait.webp",
+  "apple_watch_ultra_2_natural_alpine__tan_portrait.webp",
+  "galaxy_s24_ultra__grey_landscape.webp",
+  "galaxy_s24_ultra__grey_portrait.webp",
+  "imac_24__blue_landscape.webp",
+  "imac_24__green_landscape.webp",
+  "imac_24__orange_landscape.webp",
+  "imac_24__purple_landscape.webp",
+  "imac_24__red_landscape.webp",
+  "imac_24__silver_landscape.webp",
+  "imac_24__yellow_landscape.webp",
+  "ipad_air__gray_landscape.webp",
+  "ipad_air__gray_portrait.webp",
+  "ipad_mini__starlight_landscape.webp",
+  "ipad_mini__starlight_portrait.webp",
+  "ipad_pro_11_m4__silver_landscape.webp",
+  "ipad_pro_11_m4__silver_portrait.webp",
+  "ipad_pro_11_m4__space_gray_landscape.webp",
+  "ipad_pro_11_m4__space_gray_portrait.webp",
+  "ipad_pro_13_m4__silver_landscape.webp",
+  "ipad_pro_13_m4__silver_portrait.webp",
+  "ipad_pro_13_m4__space_gray_landscape.webp",
+  "ipad_pro_13_m4__space_gray_portrait.webp",
+  "iphone_17__black_landscape.webp",
+  "iphone_17__black_portrait.webp",
+  "iphone_17__lavender_landscape.webp",
+  "iphone_17__lavender_portrait.webp",
+  "iphone_17__mist_blue_landscape.webp",
+  "iphone_17__mist_blue_portrait.webp",
+  "iphone_17__sage_landscape.webp",
+  "iphone_17__sage_portrait.webp",
+  "iphone_17__white_landscape.webp",
+  "iphone_17__white_portrait.webp",
+  "iphone_17_pro__cosmic_orange_landscape.webp",
+  "iphone_17_pro__cosmic_orange_portrait.webp",
+  "iphone_17_pro__deep_blue_landscape.webp",
+  "iphone_17_pro__deep_blue_portrait.webp",
+  "iphone_17_pro__silver_landscape.webp",
+  "iphone_17_pro__silver_portrait.webp",
+  "iphone_17_pro_max__cosmic_orange_landscape.webp",
+  "iphone_17_pro_max__cosmic_orange_portrait.webp",
+  "iphone_17_pro_max__deep_blue_landscape.webp",
+  "iphone_17_pro_max__deep_blue_portrait.webp",
+  "iphone_17_pro_max__silver_landscape.webp",
+  "iphone_17_pro_max__silver_portrait.webp",
+  "macbook_air_13_gen_4__midnight_landscape.webp",
+  "macbook_pro_14__5th_gen__silver_landscape.webp",
+  "macbook_pro_16__5th_gen__silver_landscape.webp",
+  "nothing_phone__black_landscape.webp",
+  "nothing_phone__black_portrait.webp",
+  "nothing_phone__white_landscape.webp",
+  "nothing_phone__white_portrait.webp",
+  "pixel_7__hazel_landscape.webp",
+  "pixel_7__hazel_portrait.webp",
+  "pixel_7__obsidian_landscape.webp",
+  "pixel_7__obsidian_portrait.webp",
+  "pixel_7__snow_landscape.webp",
+  "pixel_7__snow_portrait.webp",
+  "pro_display_xdr__silver_landscape.webp",
+  "studio_display__silver_landscape.webp",
+] as const
+
+export const DEVICE_MOCKUP_ASSETS = DEVICE_MOCKUP_FILES.map((file) => {
+  const { deviceId, color, orientation } = parseDeviceMockupFile(file)
+
+  return {
+    deviceId,
+    deviceName: formatDeviceName(deviceId),
+    color,
+    orientation,
+    file,
+    src: getDeviceMockupSrc(file),
+  }
+}) satisfies DeviceMockupAsset[]
+
+export const DEVICE_MOCKUPS = DEVICE_MOCKUP_ASSETS.reduce<DeviceMockup[]>(
+  (devices, asset) => {
+    let device = devices.find((item) => item.id === asset.deviceId)
+
+    if (!device) {
+      device = {
+        id: asset.deviceId,
+        name: asset.deviceName,
+        colors: [],
+        orientations: [],
+        assets: [],
+      }
+      devices.push(device)
+    }
+
+    if (!device.colors.includes(asset.color)) device.colors.push(asset.color)
+    if (!device.orientations.includes(asset.orientation)) {
+      device.orientations.push(asset.orientation)
+    }
+    device.assets.push(asset)
+
+    return devices
+  },
+  []
+).map((device) => ({
+  ...device,
+  colors: device.colors.sort((a, b) => a.localeCompare(b)),
+  orientations: device.orientations.sort(sortOrientations),
+  assets: device.assets.sort((a, b) => a.file.localeCompare(b.file)),
+}))
+
+export function getDeviceMockup(deviceId: string) {
+  return DEVICE_MOCKUPS.find((device) => device.id === deviceId)
+}
+
+export function getDeviceMockupAsset(
+  deviceId: string,
+  color: string,
+  orientation: MockupOrientation
+) {
+  return DEVICE_MOCKUP_ASSETS.find(
+    (asset) =>
+      asset.deviceId === deviceId &&
+      asset.color === color &&
+      asset.orientation === orientation
+  )
+}
+
+export function getDeviceMockupSrc(file: DeviceMockupFile) {
+  return `${DEVICE_MOCKUPS_BASE_URL}/${file}`
+}
+
+function parseDeviceMockupFile(file: DeviceMockupFile) {
+  const stem = file.replace(/\.webp$/, "")
+  const separatorIndex = stem.lastIndexOf("__")
+  const deviceId = stem.slice(0, separatorIndex)
+  const variant = stem.slice(separatorIndex + 2)
+  const orientation = variant.endsWith("_portrait") ? "portrait" : "landscape"
+  const color = variant.replace(new RegExp(`_${orientation}$`), "")
+
+  return { deviceId, color, orientation } as const
+}
+
+function formatDeviceName(deviceId: string) {
+  return deviceId
+    .replace(/__/g, "_")
+    .split("_")
+    .filter(Boolean)
+    .map(formatDeviceNamePart)
+    .join(" ")
+}
+
+function formatDeviceNamePart(part: string) {
+  const special: Record<string, string> = {
+    apple: "Apple",
+    air: "Air",
+    aluminum: "Aluminum",
+    alpine: "Alpine",
+    band: "Band",
+    display: "Display",
+    galaxy: "Galaxy",
+    gen: "Gen",
+    imac: "iMac",
+    ipad: "iPad",
+    iphone: "iPhone",
+    macbook: "MacBook",
+    max: "Max",
+    mini: "Mini",
+    natural: "Natural",
+    nothing: "Nothing",
+    phone: "Phone",
+    pixel: "Pixel",
+    pro: "Pro",
+    s24: "S24",
+    se: "SE",
+    sport: "Sport",
+    studio: "Studio",
+    tv: "TV",
+    ultra: "Ultra",
+    watch: "Watch",
+    xdr: "XDR",
+  }
+
+  return special[part] ?? part[0].toUpperCase() + part.slice(1)
+}
+
+function sortOrientations(a: MockupOrientation, b: MockupOrientation) {
+  if (a === b) return 0
+  return a === "portrait" ? -1 : 1
+}

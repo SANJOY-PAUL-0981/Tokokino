@@ -991,7 +991,7 @@ const DEFAULT_STATE: EditorState = {
   screenshot: null,
   originalScreenshot: null,
   lastCropRegion: null,
-  aspect: { id: "16-10", w: 1920, h: 1200 },
+  aspect: { id: "auto", w: 0, h: 0 },
   background: {
     type: "image",
     value: DEFAULT_IMAGE_BACKGROUND,
