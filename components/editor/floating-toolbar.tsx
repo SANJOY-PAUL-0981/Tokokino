@@ -32,6 +32,7 @@ import {
   type EnhancePreset,
   SCREENSHOT_POSITIONS,
   type ScreenshotPosition,
+  screenshotPositionAnchor as screenshotPositionAnchorFn,
   useEditor,
 } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
@@ -124,8 +125,84 @@ function DefaultToolbarContents() {
     setEnhance,
     scale,
     setScale,
+    selectedTextId,
+    selectedAssetId,
+    selectedAnnotationShapeId,
+    texts,
+    assets,
+    annotationShapes,
+    updateText,
+    updateAsset,
+    updateAnnotationShape,
   } = useEditor()
   const assetInputRef = React.useRef<HTMLInputElement>(null)
+
+  // Determine what the position tool should target
+  const selectedText = selectedTextId ? texts.find((t) => t.id === selectedTextId) : null
+  const selectedAsset = selectedAssetId ? assets.find((a) => a.id === selectedAssetId) : null
+  const selectedAnnotation = selectedAnnotationShapeId
+    ? annotationShapes.find((s) => s.id === selectedAnnotationShapeId)
+    : null
+
+  type PositionTarget = "text" | "asset" | "annotation" | "screenshot" | null
+  const positionTarget: PositionTarget = selectedText
+    ? "text"
+    : selectedAsset
+      ? "asset"
+      : selectedAnnotation
+        ? "annotation"
+        : screenshot
+          ? "screenshot"
+          : null
+
+  // Compute current position for the active target
+  const currentPositionId = React.useMemo<ScreenshotPosition | null>(() => {
+    let xPct: number
+    let yPct: number
+    if (positionTarget === "text" && selectedText) {
+      xPct = selectedText.xPct
+      yPct = selectedText.yPct
+    } else if (positionTarget === "asset" && selectedAsset) {
+      xPct = selectedAsset.xPct
+      yPct = selectedAsset.yPct
+    } else if (positionTarget === "annotation" && selectedAnnotation) {
+      xPct = selectedAnnotation.xPct
+      yPct = selectedAnnotation.yPct
+    } else if (positionTarget === "screenshot") {
+      return screenshotPosition
+    } else {
+      return null
+    }
+    // Snap to nearest grid position
+    const col = Math.round(xPct / 25)
+    const row = Math.round(yPct / 25)
+    if (col === 2 && row === 2) return "center"
+    return `${row}-${col}` as ScreenshotPosition
+  }, [positionTarget, selectedText, selectedAsset, selectedAnnotation, screenshotPosition])
+
+  const handlePositionClick = (posId: ScreenshotPosition) => {
+    const anchor = screenshotPositionAnchorFn(posId)
+    if (positionTarget === "text" && selectedTextId) {
+      updateText(selectedTextId, { xPct: anchor.x, yPct: anchor.y })
+    } else if (positionTarget === "asset" && selectedAssetId) {
+      updateAsset(selectedAssetId, { xPct: anchor.x, yPct: anchor.y })
+    } else if (positionTarget === "annotation" && selectedAnnotationShapeId) {
+      updateAnnotationShape(selectedAnnotationShapeId, { xPct: anchor.x, yPct: anchor.y })
+    } else if (positionTarget === "screenshot") {
+      setScreenshotPosition(posId)
+    }
+  }
+
+  const positionTargetLabel =
+    positionTarget === "text"
+      ? "text"
+      : positionTarget === "asset"
+        ? "asset"
+        : positionTarget === "annotation"
+          ? "annotation"
+          : positionTarget === "screenshot"
+            ? "screenshot"
+            : null
 
   const handleAssetUpload = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -291,20 +368,32 @@ function DefaultToolbarContents() {
         }
 
         if (it.id === "position") {
+          const isDisabled = positionTarget === null
           return (
             <Popover key={it.id}>
-              <PopoverTrigger asChild>
-                <button
-                  onClick={() => handleToolClick(it.id)}
-                  aria-label={it.label}
-                  className={cn(
-                    "inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer",
-                    isActive && "bg-accent text-foreground"
-                  )}
-                >
-                  <Icon className="size-4" />
-                </button>
-              </PopoverTrigger>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <button
+                      onClick={() => handleToolClick(it.id)}
+                      aria-label={it.label}
+                      disabled={isDisabled}
+                      className={cn(
+                        "inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer",
+                        isActive && "bg-accent text-foreground",
+                        isDisabled && "opacity-40 cursor-not-allowed"
+                      )}
+                    >
+                      <Icon className="size-4" />
+                    </button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  {isDisabled
+                    ? "Nothing to position — select an element or add a screenshot"
+                    : `Position ${positionTargetLabel}`}
+                </TooltipContent>
+              </Tooltip>
               <PopoverContent
                 side="top"
                 align="center"
@@ -312,18 +401,18 @@ function DefaultToolbarContents() {
                 className="w-52 p-3 border-border/60 bg-popover/95 backdrop-blur-md"
               >
                 <div className="flex flex-col gap-2">
-                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Position</span>
+                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    Position {positionTargetLabel}
+                  </span>
                   <div className="grid grid-cols-5 gap-1.5">
                     {SCREENSHOT_POSITIONS.map((pos) => (
                       <button
                         key={pos.id}
-                        onClick={() =>
-                          setScreenshotPosition(pos.id as ScreenshotPosition)
-                        }
-                        aria-label={`Move screenshot to ${positionLabel(pos.id)}`}
+                        onClick={() => handlePositionClick(pos.id as ScreenshotPosition)}
+                        aria-label={`Move ${positionTargetLabel} to ${positionLabel(pos.id)}`}
                         className={cn(
                           "flex size-8 items-center justify-center rounded-md border transition-all cursor-pointer",
-                          screenshotPosition === pos.id
+                          currentPositionId === pos.id
                             ? "border-primary bg-primary text-white"
                             : "border-border/60 bg-secondary/40 text-muted-foreground hover:border-foreground/30"
                         )}
