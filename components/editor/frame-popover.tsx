@@ -342,6 +342,7 @@ function DeviceTile({
 }) {
   const preview = option.isDevice
     ? (getDeviceMockupAsset(option.id, selectedColor, "portrait")?.src ??
+      getDeviceMockupAsset(option.id, selectedColor, "landscape")?.src ??
       option.previewSrc)
     : option.previewSrc
 
@@ -444,7 +445,11 @@ function deviceToOption(device: DeviceMockup): FrameOption | null {
   const portraitAssets = device.assets.filter(
     (asset) => asset.orientation === "portrait"
   )
-  const preview = portraitAssets[0]
+  const landscapeAssets = device.assets.filter(
+    (asset) => asset.orientation === "landscape"
+  )
+  const primaryAssets = portraitAssets.length > 0 ? portraitAssets : landscapeAssets
+  const preview = primaryAssets[0]
   if (!preview) return null
 
   const size = deviceSize(device.id)
@@ -454,7 +459,7 @@ function deviceToOption(device: DeviceMockup): FrameOption | null {
     w: size.w,
     h: size.h,
     kind: deviceKind(device.id),
-    colors: portraitAssets.map((asset) => asset.color),
+    colors: primaryAssets.map((asset) => asset.color),
     previewSrc: preview.src,
     isDevice: true,
   }
@@ -465,8 +470,9 @@ function resolveFrameColor(device: DeviceMockup | undefined, color: string) {
   const portraitColors = device.assets
     .filter((asset) => asset.orientation === "portrait")
     .map((asset) => asset.color)
-  if (portraitColors.includes(color)) return color
-  return portraitColors[0] ?? device.colors[0] ?? "black"
+  const availableColors = portraitColors.length > 0 ? portraitColors : device.colors
+  if (availableColors.includes(color)) return color
+  return availableColors[0] ?? "black"
 }
 
 function deviceKind(deviceId: string): FrameKind {
@@ -496,6 +502,12 @@ function deviceSize(deviceId: string) {
     ipad_pro_13_m4: { w: 1024, h: 1366 },
     apple_watch_10_42mm_aluminum_sport_band: { w: 198, h: 242 },
     apple_watch_ultra_2_natural_alpine: { w: 205, h: 251 },
+    macbook_air_13_gen_4: { w: 1280, h: 832 },
+    "macbook_pro_14__5th_gen": { w: 1512, h: 982 },
+    "macbook_pro_16__5th_gen": { w: 1728, h: 1117 },
+    imac_24: { w: 1280, h: 720 },
+    pro_display_xdr: { w: 1920, h: 1080 },
+    studio_display: { w: 1920, h: 1080 },
   }
 
   return sizes[deviceId] ?? { w: 390, h: 844 }

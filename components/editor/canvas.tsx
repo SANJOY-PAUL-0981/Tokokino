@@ -29,7 +29,7 @@ import {
   assetFilterCss,
   useEditor,
 } from "@/lib/editor/store"
-import { DEVICE_MOCKUP_SPECS, getDeviceMockupAsset } from "@/lib/mockups"
+import { DEVICE_MOCKUP_SPECS, getDeviceMockup, getDeviceMockupAsset } from "@/lib/mockups"
 
 const NOISE_DATA_URL =
   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.85'/></svg>\")"
@@ -389,10 +389,13 @@ export function Canvas() {
   const noiseEnabled = backdrop.effects.noise > 0
   const noiseOpacity = noiseEnabled ? backdrop.effects.noise / 100 : 0
   const canDragScreenshot = activeTool === "pointer" && positionedStyle
+  const mockupDevice = frame.id === "none" ? null : getDeviceMockup(frame.id)
+  const mockupOrientation =
+    mockupDevice?.orientations.includes("portrait") ? "portrait" : "landscape"
   const mockupAsset =
     frame.id === "none"
       ? null
-      : getDeviceMockupAsset(frame.id, frame.color, "portrait")
+      : getDeviceMockupAsset(frame.id, frame.color, mockupOrientation)
   const mockupSpec = mockupAsset ? deviceMockupSpec(frame.id) : null
 
   const startScreenshotDrag = (e: React.PointerEvent<HTMLImageElement>) => {

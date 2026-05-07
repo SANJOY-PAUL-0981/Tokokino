@@ -340,4 +340,55 @@ export const DEVICE_MOCKUP_SPECS: Record<
       borderRadius: 24,
     },
   },
+  macbook_air_13_gen_4: {
+    aspectRatio: "1610 / 1050",
+    screen: {
+      aspectRatio: "1280 / 832",
+      scale: 0.814912,
+      borderRadius: 0,
+    },
+  },
+  macbook_pro_14__5th_gen: {
+    aspectRatio: "986 / 641",
+    screen: {
+      aspectRatio: "1512 / 982",
+      scale: 0.778049,
+      borderRadius: 0,
+    },
+  },
+  macbook_pro_16__5th_gen: {
+    aspectRatio: "217 / 143",
+    screen: {
+      aspectRatio: "1728 / 1117",
+      scale: 0.813086,
+      borderRadius: 0,
+    },
+  },
+  imac_24: {
+    aspectRatio: "27 / 23",
+    screen: {
+      aspectRatio: "1280 / 720",
+      scale: 0.926061,
+      offsetY: -25,
+      borderRadius: 0,
+    },
+  },
+  pro_display_xdr: {
+    aspectRatio: "6316 / 4765",
+    screen: {
+      aspectRatio: "1920 / 1080",
+      scale: 0.959251,
+      offsetY: -15.9,
+      borderRadius: 0,
+    },
+  },
+  studio_display: {
+    aspectRatio: "669 / 514",
+    screen: {
+      aspectRatio: "1920 / 1080",
+      scale: 0.959251,
+      offsetY: -17.3,
+      borderRadius: 0,
+    },
+  },
 }
