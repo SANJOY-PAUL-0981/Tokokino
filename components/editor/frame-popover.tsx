@@ -229,7 +229,6 @@ export function FramePopover({
                     active={value.id === option.id}
                     onSelect={() => {
                       selectDevice(option)
-                      setOpen(false)
                     }}
                   />
                 ))}
