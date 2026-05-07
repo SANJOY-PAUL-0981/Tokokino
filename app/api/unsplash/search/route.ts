@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 
-const UNSPLASH_ACCESS_KEY =
-  process.env.UNSPLASH_ACCESS_KEY ?? process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY
+import { env } from "@/lib/env"
+
+const UNSPLASH_ACCESS_KEY = env.UNSPLASH_ACCESS_KEY
 
 type UnsplashSearchPhoto = {
   id: string

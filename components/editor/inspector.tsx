@@ -1111,7 +1111,6 @@ function BackgroundSection() {
 
   const selectUnsplashImage = (photo: UnsplashResult) => {
     setBackground({ type: "image", value: photo.full })
-    setUnsplashOpen(false)
     void fetch(
       `/api/unsplash/download?url=${encodeURIComponent(photo.downloadLocation)}`
     )

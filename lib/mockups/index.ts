@@ -1,3 +1,5 @@
+import { env } from "@/lib/env"
+
 export type MockupOrientation = "portrait" | "landscape"
 
 export type DeviceMockupFile = (typeof DEVICE_MOCKUP_FILES)[number]
@@ -19,17 +21,9 @@ export type DeviceMockup = {
   assets: DeviceMockupAsset[]
 }
 
-const R2_PUBLIC_BASE_URL =
-  process.env.NEXT_PUBLIC_R2_PUBLIC_BASE?.replace(/\/$/, "") ??
-  process.env.NEXT_PUBLIC_OVERLAYS_BASE_URL?.replace(/\/[^/]+\/?$/, "").replace(
-    /\/$/,
-    ""
-  ) ??
-  "https://pub-4a1f61370c844ff69cc9d1a7b3689d25.r2.dev"
+const R2_PUBLIC_BASE_URL = env.NEXT_PUBLIC_R2_PUBLIC_BASE.replace(/\/$/, "")
 
-export const DEVICE_MOCKUPS_BASE_URL =
-  process.env.NEXT_PUBLIC_DEVICE_MOCKUPS_BASE_URL?.replace(/\/$/, "") ??
-  `${R2_PUBLIC_BASE_URL}/device-mockups`
+export const DEVICE_MOCKUPS_BASE_URL = `${R2_PUBLIC_BASE_URL}/Device-Mockups/device-mockups`
 
 export const DEVICE_MOCKUP_FILES = [
   "apple_watch_10_42mm_aluminum_sport_band__black_portrait.webp",

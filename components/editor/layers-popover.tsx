@@ -460,6 +460,10 @@ function LayerEffects({
   onOpacityChange: (opacity: number) => void
   onBlendChange: (blendMode: AssetBlendMode) => void
 }) {
+  const [blendOpen, setBlendOpen] = React.useState(false)
+  const activeLabel =
+    ASSET_BLEND_MODES.find((m) => m.id === layer.blendMode)?.label ?? "Normal"
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -473,17 +477,75 @@ function LayerEffects({
           <RiBlurOffLine className="size-3.5" />
           Blend
         </div>
-        <select
-          value={layer.blendMode}
-          onChange={(e) => onBlendChange(e.target.value as AssetBlendMode)}
-          className="h-8 w-full rounded-md border border-border/60 bg-background px-2 text-[12px] transition-colors outline-none hover:border-foreground/30 focus:border-primary/60"
-        >
-          {ASSET_BLEND_MODES.map((mode) => (
-            <option key={mode.id} value={mode.id}>
-              {mode.label}
-            </option>
-          ))}
-        </select>
+        <Popover open={blendOpen} onOpenChange={setBlendOpen}>
+          <PopoverTrigger asChild>
+            <button
+              className="flex h-8 w-full cursor-pointer items-center justify-between rounded-md border border-border/60 bg-background px-2 text-[12px] transition-colors outline-none hover:border-foreground/30 focus:border-primary/60"
+            >
+              <span>{activeLabel}</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-muted-foreground"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            side="bottom"
+            align="start"
+            sideOffset={4}
+            className="w-56 border-border/60 bg-popover/95 p-1 backdrop-blur-md"
+          >
+            <div className="flex max-h-[240px] flex-col gap-0.5 overflow-y-auto">
+              {ASSET_BLEND_MODES.map((mode) => {
+                const active = layer.blendMode === mode.id
+                return (
+                  <button
+                    key={mode.id}
+                    onClick={() => {
+                      onBlendChange(mode.id)
+                      setBlendOpen(false)
+                    }}
+                    className={cn(
+                      "flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] transition-colors",
+                      active
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "text-foreground hover:bg-accent"
+                    )}
+                  >
+                    {active && (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="shrink-0"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                    {!active && <span className="inline-block w-[14px]" />}
+                    {mode.label}
+                  </button>
+                )
+              })}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-[11px] text-muted-foreground">

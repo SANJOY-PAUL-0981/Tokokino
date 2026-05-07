@@ -1,3 +1,4 @@
+import { env } from "@/lib/env"
 import BACKGROUND_DATA from "./backgrounds-data.json"
 import type {
   BackgroundCategory,
@@ -19,9 +20,7 @@ export const ANNOTATION_STROKES = [2, 4, 7, 11] as const
 
 export const OVERLAY_COUNT = 100
 
-const OVERLAY_BASE_URL =
-  process.env.NEXT_PUBLIC_OVERLAYS_BASE_URL ??
-  "https://pub-4a1f61370c844ff69cc9d1a7b3689d25.r2.dev/overlays"
+const OVERLAY_BASE_URL = `${env.NEXT_PUBLIC_R2_PUBLIC_BASE}/overlays`
 
 export function overlayUrl(id: number): string {
   return `${OVERLAY_BASE_URL}/${String(id).padStart(3, "0")}.png`
