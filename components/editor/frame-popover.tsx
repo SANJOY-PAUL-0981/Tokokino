@@ -244,80 +244,85 @@ export function FramePopover({
         </div>
 
         <div className="shrink-0 border-t border-border/60 bg-popover p-2">
-          {currentDevice ? (
-            <>
-              <div className="mb-2 flex items-center gap-2 px-1">
-                <span className="label-eyebrow !text-[9px]">Color</span>
-                <span className="truncate font-mono text-[10px] text-muted-foreground">
-                  {formatColor(currentColor)}
-                </span>
+          <div className="flex flex-wrap items-start gap-3">
+            {currentDevice ? (
+              <div className="min-w-[120px] flex-1">
+                <div className="mb-2 flex items-center gap-2 px-1">
+                  <span className="label-eyebrow !text-[9px]">Color</span>
+                  <span className="truncate font-mono text-[10px] text-muted-foreground">
+                    {formatColor(currentColor)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto px-1 pb-1">
+                  {current.colors.map((color) => {
+                    const active = color === currentColor
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        aria-label={formatColor(color)}
+                        aria-pressed={active}
+                        title={formatColor(color)}
+                        onClick={() =>
+                          onChange({
+                            id: current.id,
+                            color,
+                            orientation: "vertical",
+                          })
+                        }
+                        className={cn(
+                          "grid size-8 shrink-0 place-items-center rounded-full border transition-all",
+                          active
+                            ? "border-primary bg-primary/10 ring-2 ring-primary/25"
+                            : "border-border/70 bg-secondary/50 hover:border-foreground/30"
+                        )}
+                      >
+                        <span
+                          className="size-5 rounded-full border border-black/10 shadow-sm"
+                          style={colorSwatchStyle(color)}
+                        />
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-              <div className="mb-2 flex items-center gap-2 overflow-x-auto px-1 pb-1">
-                {current.colors.map((color) => {
-                  const active = color === currentColor
+            ) : null}
+
+            <div className="w-[140px] shrink-0">
+              <div className="label-eyebrow mb-1.5 px-1 !text-[9px]">
+                Orientation
+              </div>
+              <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-secondary/40 p-0.5">
+                {(["vertical", "horizontal"] as const).map((orientation) => {
+                  const active = orientation === "vertical"
+                  const disabled = orientation === "horizontal"
                   return (
                     <button
-                      key={color}
-                      type="button"
-                      aria-label={formatColor(color)}
-                      aria-pressed={active}
-                      title={formatColor(color)}
+                      key={orientation}
+                      disabled={disabled}
+                      aria-label={formatOrientation(orientation)}
+                      title={formatOrientation(orientation)}
                       onClick={() =>
                         onChange({
                           id: current.id,
-                          color,
-                          orientation: "vertical",
+                          color: currentColor,
+                          orientation,
                         })
                       }
                       className={cn(
-                        "grid size-8 shrink-0 place-items-center rounded-full border transition-all",
+                        "flex flex-1 items-center justify-center rounded-md px-2 py-1.5 transition-colors",
                         active
-                          ? "border-primary bg-primary/10 ring-2 ring-primary/25"
-                          : "border-border/70 bg-secondary/50 hover:border-foreground/30"
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground",
+                        disabled && "cursor-not-allowed opacity-35"
                       )}
                     >
-                      <span
-                        className="size-5 rounded-full border border-black/10 shadow-sm"
-                        style={colorSwatchStyle(color)}
-                      />
+                      <OrientGlyph orientation={orientation} active={active} />
                     </button>
                   )
                 })}
               </div>
-            </>
-          ) : null}
-
-          <div className="label-eyebrow mb-1.5 px-1 !text-[9px]">
-            Orientation
-          </div>
-          <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-secondary/40 p-0.5">
-            {(["vertical", "horizontal"] as const).map((orientation) => {
-              const active = orientation === "vertical"
-              const disabled = orientation === "horizontal"
-              return (
-                <button
-                  key={orientation}
-                  disabled={disabled}
-                  onClick={() =>
-                    onChange({
-                      id: current.id,
-                      color: currentColor,
-                      orientation,
-                    })
-                  }
-                  className={cn(
-                    "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] capitalize transition-colors",
-                    active
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground",
-                    disabled && "cursor-not-allowed opacity-35"
-                  )}
-                >
-                  <OrientGlyph orientation={orientation} active={active} />
-                  {orientation}
-                </button>
-              )
-            })}
+            </div>
           </div>
           <p className="mt-1.5 px-1 font-mono text-[10px] text-muted-foreground">
             Horizontal mockups are parked until the landscape fit is tuned.
@@ -518,6 +523,10 @@ function formatColor(color: string) {
     .filter(Boolean)
     .map((part) => part[0].toUpperCase() + part.slice(1))
     .join(" ")
+}
+
+function formatOrientation(orientation: FrameOrientation) {
+  return orientation[0].toUpperCase() + orientation.slice(1)
 }
 
 function colorSwatchStyle(color: string): React.CSSProperties {
