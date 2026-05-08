@@ -33,7 +33,12 @@ export function CanvasBackdrop({
   portrait,
   overlay,
 }: CanvasBackdropProps) {
-  const portraitStyle = portraitOverlayCss(portrait.mode, portrait.intensity)
+  const portraitStyle = portraitOverlayCss(
+    portrait.mode,
+    portrait.intensity,
+    portrait.position,
+    portrait.distance
+  )
 
   return (
     <>
@@ -80,7 +85,11 @@ export function CanvasBackdrop({
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
-          style={portraitStyle}
+          style={
+            portrait.mode === "blur" || portrait.mode === "stage"
+              ? { ...portraitStyle, zIndex: 200 }
+              : portraitStyle
+          }
         />
       ) : null}
 

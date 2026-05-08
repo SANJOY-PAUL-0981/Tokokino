@@ -106,9 +106,7 @@ export function ScreenshotBare({
             ? "cursor-grabbing transition-none"
             : "transition-all duration-300 ease-out",
           activeTool === "pointer" && "cursor-grab",
-          isScreenshotSelected &&
-            activeTool === "pointer" &&
-            "ring-2 ring-blue-400/90"
+          isScreenshotSelected && activeTool === "pointer" && "outline-none"
         )}
       />
 

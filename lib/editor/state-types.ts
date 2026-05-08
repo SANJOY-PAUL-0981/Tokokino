@@ -74,11 +74,21 @@ export type DeviceFrame = {
   orientation: FrameOrientation
 }
 
-export type PortraitMode = "off" | "soft" | "studio" | "spot" | "frame" | "iris"
+export type PortraitMode =
+  | "off"
+  | "soft"
+  | "studio"
+  | "spot"
+  | "frame"
+  | "iris"
+  | "blur"
+  | "stage"
 
 export type Portrait = {
   mode: PortraitMode
   intensity: number
+  position: number
+  distance: number
 }
 
 export type AssetFilter =

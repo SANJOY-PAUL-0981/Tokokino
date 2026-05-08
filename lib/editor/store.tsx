@@ -132,6 +132,8 @@ const DEFAULT_STATE: EditorState = {
   portrait: {
     mode: "off",
     intensity: 60,
+    position: 50,
+    distance: 50,
   },
   texts: [],
   assets: [],

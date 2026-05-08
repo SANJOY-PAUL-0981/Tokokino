@@ -8,24 +8,47 @@ export const NOISE_DATA_URL =
 
 export function portraitOverlayCss(
   mode: PortraitMode,
-  intensity: number
+  intensity: number,
+  position = 50,
+  distance = 50
 ): React.CSSProperties | null {
   if (mode === "off") return null
   const t = Math.max(0, Math.min(100, intensity)) / 100
+  const px = Math.max(0, Math.min(100, position))
+  const d = Math.max(0, Math.min(100, distance))
+
+  if (mode === "blur" || mode === "stage") {
+    const blurEm = ((100 - d) * 0.01).toFixed(3)
+    const start = px - d
+    const center = px
+    const end = px + d
+    const mask = `linear-gradient(0deg, rgba(100,100,100,1) ${start}%, rgba(100,100,100,0) ${center}%, rgba(100,100,100,1) ${end}%), linear-gradient(0deg, rgba(100,100,100,1) ${start}%, rgba(100,100,100,0) ${center}%, rgba(100,100,100,1) ${end}%)`
+    return {
+      willChange: "backdrop-filter, mask-image",
+      background:
+        mode === "stage" ? `rgba(0,0,0,${(0.3 * t).toFixed(3)})` : "none",
+      backdropFilter: `blur(${blurEm}em)`,
+      WebkitBackdropFilter: `blur(${blurEm}em)`,
+      maskImage: mask,
+      WebkitMaskImage: mask,
+    }
+  }
+
+  const dPct = d * 0.4
   switch (mode) {
     case "soft":
       return {
-        background: `radial-gradient(ellipse at center, transparent ${40 + t * 10}%, rgba(0,0,0,${0.45 * t}) 100%)`,
+        background: `radial-gradient(ellipse at ${px}% 50%, transparent ${30 + dPct}%, rgba(0,0,0,${0.45 * t}) 100%)`,
         mixBlendMode: "multiply",
       }
     case "studio":
       return {
-        background: `radial-gradient(ellipse 70% 60% at 50% 45%, transparent 0%, transparent ${20 + t * 10}%, rgba(0,0,0,${0.85 * t}) 100%)`,
+        background: `radial-gradient(ellipse 70% 60% at ${px}% 45%, transparent 0%, transparent ${15 + dPct}%, rgba(0,0,0,${0.85 * t}) 100%)`,
         mixBlendMode: "multiply",
       }
     case "spot":
       return {
-        background: `radial-gradient(circle at 50% 45%, rgba(255,255,255,${0.18 * t}) 0%, transparent ${25 + t * 15}%), radial-gradient(circle at 50% 45%, transparent ${30 + t * 10}%, rgba(0,0,0,${0.7 * t}) 100%)`,
+        background: `radial-gradient(circle at ${px}% 45%, rgba(255,255,255,${0.18 * t}) 0%, transparent ${20 + dPct}%), radial-gradient(circle at ${px}% 45%, transparent ${25 + dPct}%, rgba(0,0,0,${0.7 * t}) 100%)`,
         mixBlendMode: "normal",
       }
     case "frame":
@@ -35,7 +58,7 @@ export function portraitOverlayCss(
       }
     case "iris":
       return {
-        background: `radial-gradient(circle at 50% 50%, transparent ${35 + t * 15}%, rgba(0,0,0,${0.55 * t}) ${55 + t * 10}%, rgba(0,0,0,${0.95 * t}) 100%)`,
+        background: `radial-gradient(circle at ${px}% 50%, transparent ${25 + dPct}%, rgba(0,0,0,${0.55 * t}) ${50 + dPct}%, rgba(0,0,0,${0.95 * t}) 100%)`,
         mixBlendMode: "multiply",
       }
     default:

@@ -43,6 +43,8 @@ const PORTRAIT_MODES: { id: PortraitMode; label: string }[] = [
   { id: "spot", label: "Spot" },
   { id: "frame", label: "Frame" },
   { id: "iris", label: "Iris" },
+  { id: "blur", label: "Blur" },
+  { id: "stage", label: "Stage" },
 ]
 
 function portraitPreviewCss(mode: PortraitMode): React.CSSProperties {
@@ -77,6 +79,17 @@ function portraitPreviewCss(mode: PortraitMode): React.CSSProperties {
       return {
         background:
           "radial-gradient(circle at 50% 50%, oklch(0.7 0 0) 30%, #000 55%, #000 100%)",
+      }
+    case "blur":
+      return {
+        background:
+          "linear-gradient(135deg, oklch(0.7 0 0), oklch(0.5 0 0))",
+        filter: "blur(2px)",
+      }
+    case "stage":
+      return {
+        background:
+          "radial-gradient(circle at 50% 45%, oklch(0.8 0 0) 0%, oklch(0.55 0 0) 12%, #000 38%, #000 100%)",
       }
     default:
       return {}
@@ -752,7 +765,14 @@ export function BackdropSection() {
             <PopoverHeader
               title="Portrait Mode"
               description="Cinematic depth — blends a vignette around your screenshot."
-              onReset={() => setPortrait({ mode: "off", intensity: 60 })}
+              onReset={() =>
+                setPortrait({
+                  mode: "off",
+                  intensity: 60,
+                  position: 50,
+                  distance: 50,
+                })
+              }
               resetTitle="Reset portrait"
             />
             <div className="grid grid-cols-3 gap-1.5">
@@ -788,25 +808,66 @@ export function BackdropSection() {
               })}
             </div>
             {portrait.mode !== "off" ? (
-              <div className="space-y-2 pt-2 border-t border-border/40">
-                <div className="flex items-baseline justify-between">
-                  <span className="text-[11px] text-muted-foreground">Intensity</span>
-                  <EditableValue
-                    value={portrait.intensity}
-                    onChange={(v) => setPortrait({ ...portrait, intensity: v })}
-                    min={0}
+              <div className="space-y-3 pt-2 border-t border-border/40">
+                <div>
+                  <div className="mb-2 flex items-baseline justify-between">
+                    <span className="text-[11px] text-muted-foreground">Intensity</span>
+                    <EditableValue
+                      value={portrait.intensity}
+                      onChange={(v) => setPortrait({ ...portrait, intensity: v })}
+                      min={0}
+                      max={100}
+                      suffix="%"
+                    />
+                  </div>
+                  <Slider
+                    value={[portrait.intensity]}
+                    onValueChange={([v]) =>
+                      setPortrait({ ...portrait, intensity: v })
+                    }
                     max={100}
-                    suffix="%"
+                    className="cursor-pointer"
                   />
                 </div>
-                <Slider
-                  value={[portrait.intensity]}
-                  onValueChange={([v]) =>
-                    setPortrait({ ...portrait, intensity: v })
-                  }
-                  max={100}
-                  className="cursor-pointer"
-                />
+                <div>
+                  <div className="mb-2 flex items-baseline justify-between">
+                    <span className="text-[11px] text-muted-foreground">Position</span>
+                    <EditableValue
+                      value={portrait.position}
+                      onChange={(v) => setPortrait({ ...portrait, position: v })}
+                      min={0}
+                      max={100}
+                    />
+                  </div>
+                  <Slider
+                    value={[portrait.position]}
+                    onValueChange={([v]) =>
+                      setPortrait({ ...portrait, position: v })
+                    }
+                    max={100}
+                    className="cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <div className="mb-2 flex items-baseline justify-between">
+                    <span className="text-[11px] text-muted-foreground">Distance</span>
+                    <EditableValue
+                      value={portrait.distance}
+                      onChange={(v) => setPortrait({ ...portrait, distance: v })}
+                      min={0}
+                      max={100}
+                    />
+                  </div>
+                  <Slider
+                    value={[portrait.distance]}
+                    onValueChange={([v]) =>
+                      setPortrait({ ...portrait, distance: v })
+                    }
+                    min={0}
+                    max={100}
+                    className="cursor-pointer"
+                  />
+                </div>
               </div>
             ) : null}
           </PopoverContent>
