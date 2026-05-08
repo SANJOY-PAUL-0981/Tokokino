@@ -2,11 +2,11 @@
 
 import * as React from "react"
 import {
+  RiAndroidLine,
   RiAppleLine,
   RiArrowRightSLine,
   RiCheckboxBlankCircleLine,
   RiComputerLine,
-  RiGoogleLine,
   RiMacLine,
   RiSearchLine,
   RiSmartphoneLine,
@@ -75,7 +75,7 @@ const SECTIONS: FrameSection[] = [
   {
     id: "android",
     label: "Android",
-    icon: RiGoogleLine,
+    icon: RiAndroidLine,
     options: DEVICE_OPTIONS.filter(
       (o) =>
         o.id.startsWith("pixel") ||
