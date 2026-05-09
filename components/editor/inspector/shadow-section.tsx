@@ -46,54 +46,92 @@ export function ShadowSection() {
     setShadow({ ...shadow, type: t })
   }
   const setIntensity = (n: number) => setShadow({ ...shadow, intensity: n })
-  const setLightSource = (id: string) => setShadow({ ...shadow, lightSource: id })
+  const setLightSource = (id: string) =>
+    setShadow({ ...shadow, lightSource: id })
   const setColor = (c: string) => setShadow({ ...shadow, color: c })
 
-  const thumbBg = "bg-[#d1d5db]"
-  const thumbCard = "rounded-[3px] bg-white"
+  const thumbBg = "bg-transparent"
+  const thumbCard = "rounded-[3px] bg-black dark:bg-white"
 
   const types = [
     {
-      id: "none" as const, label: "None", icon: (
+      id: "none" as const,
+      label: "None",
+      icon: (
         <div className={cn("size-full rounded-sm p-3", thumbBg)}>
-          <div className="size-full rounded-[3px] border-2 border-dashed border-gray-400" />
+          <div className="size-full rounded-[3px] border-2 border-dashed border-black dark:border-white" />
         </div>
-      )
+      ),
     },
     {
-      id: "drop" as const, label: "Drop", icon: (
-        <div className={cn("size-full rounded-sm p-3 pb-4 pr-4", thumbBg)}>
-          <div className={cn("size-full shadow-[5px_5px_8px_0px_rgba(0,0,0,0.45)]", thumbCard)} />
+      id: "drop" as const,
+      label: "Drop",
+      icon: (
+        <div className={cn("size-full rounded-sm p-3 pr-4 pb-4", thumbBg)}>
+          <div
+            className={cn(
+              "size-full shadow-[5px_5px_8px_0px_rgba(0,0,0,0.45)] dark:shadow-[5px_5px_8px_0px_rgba(255,255,255,0.45)]",
+              thumbCard
+            )}
+          />
         </div>
-      )
+      ),
     },
     {
-      id: "soft" as const, label: "Soft", icon: (
+      id: "soft" as const,
+      label: "Soft",
+      icon: (
         <div className={cn("size-full rounded-sm px-3 pt-2 pb-5", thumbBg)}>
-          <div className={cn("size-full shadow-[0_8px_20px_2px_rgba(0,0,0,0.3)]", thumbCard)} />
+          <div
+            className={cn(
+              "size-full shadow-[0_8px_20px_2px_rgba(0,0,0,0.3)] dark:shadow-[0_8px_20px_2px_rgba(255,255,255,0.3)]",
+              thumbCard
+            )}
+          />
         </div>
-      )
+      ),
     },
     {
-      id: "hard" as const, label: "Hard", icon: (
-        <div className={cn("size-full rounded-sm p-3 pb-4 pr-4", thumbBg)}>
-          <div className={cn("size-full shadow-[5px_5px_0px_0px_rgba(0,0,0,0.75)]", thumbCard)} />
+      id: "hard" as const,
+      label: "Hard",
+      icon: (
+        <div className={cn("size-full rounded-sm p-3 pr-4 pb-4", thumbBg)}>
+          <div
+            className={cn(
+              "size-full shadow-[5px_5px_0px_0px_rgba(0,0,0,0.75)] dark:shadow-[5px_5px_0px_0px_rgba(255,255,255,0.75)]",
+              thumbCard
+            )}
+          />
         </div>
-      )
+      ),
     },
     {
-      id: "glow" as const, label: "Glow", icon: (
+      id: "glow" as const,
+      label: "Glow",
+      icon: (
         <div className={cn("size-full rounded-sm p-3", thumbBg)}>
-          <div className={cn("size-full shadow-[0_0_14px_3px_rgba(0,0,0,0.35)]", thumbCard)} />
+          <div
+            className={cn(
+              "size-full shadow-[0_0_14px_3px_rgba(0,0,0,0.35)]",
+              thumbCard
+            )}
+          />
         </div>
-      )
+      ),
     },
     {
-      id: "float" as const, label: "Float", icon: (
+      id: "float" as const,
+      label: "Float",
+      icon: (
         <div className={cn("size-full rounded-sm px-3 pt-2 pb-5", thumbBg)}>
-          <div className={cn("size-full shadow-[0_4px_6px_0px_rgba(0,0,0,0.25),0_12px_20px_0px_rgba(0,0,0,0.2)]", thumbCard)} />
+          <div
+            className={cn(
+              "size-full shadow-[0_4px_6px_0px_rgba(0,0,0,0.25),0_12px_20px_0px_rgba(0,0,0,0.2)] dark:shadow-[0_4px_6px_0px_rgba(255,255,255,0.25),0_12px_20px_0px_rgba(255,255,255,0.2)]",
+              thumbCard
+            )}
+          />
         </div>
-      )
+      ),
     },
   ]
 
@@ -109,17 +147,21 @@ export function ShadowSection() {
             key={t.id}
             onClick={() => setType(t.id)}
             className={cn(
-              "flex flex-col items-center gap-1.5 rounded-lg border p-1.5 transition-all cursor-pointer",
+              "flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border p-1.5 transition-all",
               type === t.id
                 ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
                 : "border-border/60 bg-secondary/20 hover:border-foreground/30"
             )}
           >
             <div className="aspect-square w-full">{t.icon}</div>
-            <span className={cn(
-              "text-[9px] font-medium",
-              type === t.id ? "text-primary" : "text-muted-foreground"
-            )}>{t.label}</span>
+            <span
+              className={cn(
+                "text-[9px] font-medium",
+                type === t.id ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              {t.label}
+            </span>
           </button>
         ))}
       </div>
@@ -148,13 +190,20 @@ export function ShadowSection() {
             suffix="%"
           />
         </div>
-        <Slider value={[intensity]} onValueChange={([v]) => setIntensity(v)} max={100} className="cursor-pointer" />
+        <Slider
+          value={[intensity]}
+          onValueChange={([v]) => setIntensity(v)}
+          max={100}
+          className="cursor-pointer"
+        />
       </div>
 
-      <div className={cn(lightSourceDisabled && "pointer-events-none opacity-50")}>
+      <div
+        className={cn(lightSourceDisabled && "pointer-events-none opacity-50")}
+      >
         <SubHeader>Light Source</SubHeader>
         <div className="mt-2">
-          <div className="grid grid-cols-5 gap-1.5 w-full">
+          <div className="grid w-full grid-cols-5 gap-1.5">
             {LIGHT_POSITIONS.map((pos) => {
               const isActive = lightSource === pos.id
               return (
@@ -162,7 +211,7 @@ export function ShadowSection() {
                   key={pos.id}
                   onClick={() => setLightSource(pos.id)}
                   className={cn(
-                    "flex w-full aspect-square items-center justify-center rounded-md border transition-all cursor-pointer",
+                    "flex aspect-square w-full cursor-pointer items-center justify-center rounded-md border transition-all",
                     isActive
                       ? "border-primary bg-primary text-white"
                       : "border-border/60 bg-secondary/40 text-muted-foreground hover:border-foreground/30"

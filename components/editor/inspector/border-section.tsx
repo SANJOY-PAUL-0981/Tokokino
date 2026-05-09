@@ -22,7 +22,14 @@ const BORDER_PRESETS = [
 const DEFAULT_BORDER_COLOR = BORDER_PRESETS[0]
 
 export function BorderSection() {
-  const { border, setBorder, borderRadius, setBorderRadius, background, screenshot } = useEditor()
+  const {
+    border,
+    setBorder,
+    borderRadius,
+    setBorderRadius,
+    background,
+    screenshot,
+  } = useEditor()
   const enabled = border.color !== null
   const currentColor = border.color || DEFAULT_BORDER_COLOR
 
@@ -45,7 +52,10 @@ export function BorderSection() {
         } catch {
           if (active) setDynamicColors([])
         }
-      } else if (background.type === "gradient" || background.type === "solid") {
+      } else if (
+        background.type === "gradient" ||
+        background.type === "solid"
+      ) {
         const matches = background.value.match(/#[0-9a-fA-F]{3,8}/g) ?? []
         if (active) setDynamicColors(matches.slice(0, 4))
       } else {
@@ -58,9 +68,10 @@ export function BorderSection() {
     }
   }, [background, screenshot])
 
-  const presets = dynamicColors.length > 0
-    ? ["#ffffff", "#0f172a", ...dynamicColors]
-    : [...BORDER_PRESETS]
+  const presets =
+    dynamicColors.length > 0
+      ? ["#ffffff", "#0f172a", ...dynamicColors]
+      : [...BORDER_PRESETS]
 
   while (presets.length < 6) {
     presets.push(BORDER_PRESETS[presets.length])
@@ -71,50 +82,62 @@ export function BorderSection() {
     enabled &&
     !finalPresets.some((c) => c.toLowerCase() === currentColor.toLowerCase())
 
-  const thumbBg = "bg-[#d1d5db]"
+  const thumbBg = "bg-transparent"
 
   const borderStyles = [
     {
-      id: "solid" as const, label: "Solid", icon: (
+      id: "solid" as const,
+      label: "Solid",
+      icon: (
         <div className={cn("size-full rounded-sm p-2", thumbBg)}>
-          <div className="size-full rounded-[3px] border-[3px] border-solid border-gray-500" />
+          <div className="size-full rounded-[3px] border-[3px] border-solid border-black dark:border-white" />
         </div>
-      )
+      ),
     },
     {
-      id: "dashed" as const, label: "Dashed", icon: (
+      id: "dashed" as const,
+      label: "Dashed",
+      icon: (
         <div className={cn("size-full rounded-sm p-2", thumbBg)}>
-          <div className="size-full rounded-[3px] border-[3px] border-dashed border-gray-500" />
+          <div className="size-full rounded-[3px] border-[3px] border-dashed border-black dark:border-white" />
         </div>
-      )
+      ),
     },
     {
-      id: "dotted" as const, label: "Dotted", icon: (
+      id: "dotted" as const,
+      label: "Dotted",
+      icon: (
         <div className={cn("size-full rounded-sm p-2", thumbBg)}>
-          <div className="size-full rounded-[3px] border-[3px] border-dotted border-gray-500" />
+          <div className="size-full rounded-[3px] border-[3px] border-dotted border-black dark:border-white" />
         </div>
-      )
+      ),
     },
     {
-      id: "double" as const, label: "Double", icon: (
+      id: "double" as const,
+      label: "Double",
+      icon: (
         <div className={cn("size-full rounded-sm p-2", thumbBg)}>
-          <div className="size-full rounded-[3px] border-[4px] border-double border-gray-500" />
+          <div className="size-full rounded-[3px] border-[4px] border-double border-black dark:border-white" />
         </div>
-      )
+      ),
     },
     {
-      id: "groove" as const, label: "Groove", icon: (
+      id: "groove" as const,
+      label: "Groove",
+      icon: (
         <div className={cn("size-full rounded-sm p-2", thumbBg)}>
-          <div className="size-full rounded-[3px] border-[3px] border-groove border-gray-500" />
+          <div className="border-groove size-full rounded-[3px] border-[3px] border-black dark:border-white" />
         </div>
-      )
+      ),
     },
     {
-      id: "ridge" as const, label: "Ridge", icon: (
+      id: "ridge" as const,
+      label: "Ridge",
+      icon: (
         <div className={cn("size-full rounded-sm p-2", thumbBg)}>
-          <div className="size-full rounded-[3px] border-[3px] border-ridge border-gray-500" />
+          <div className="border-ridge size-full rounded-[3px] border-[3px] border-black dark:border-white" />
         </div>
-      )
+      ),
     },
   ]
 
@@ -175,7 +198,9 @@ export function BorderSection() {
 
       <div>
         <div className="mb-2 flex items-baseline justify-between">
-          <span className="text-[11px] text-muted-foreground">Inner Padding</span>
+          <span className="text-[11px] text-muted-foreground">
+            Inner Padding
+          </span>
           <EditableValue
             value={border.padding}
             onChange={(v) => setBorder({ ...border, padding: v })}
@@ -195,7 +220,7 @@ export function BorderSection() {
 
       <div>
         <SubHeader>Style</SubHeader>
-        <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="mb-4 grid grid-cols-3 gap-2">
           {borderStyles.map((t) => (
             <button
               key={t.id}
@@ -205,17 +230,23 @@ export function BorderSection() {
                 setBorder({ ...border, ...patch })
               }}
               className={cn(
-                "flex flex-col items-center gap-1.5 rounded-lg border p-1.5 transition-all cursor-pointer",
+                "flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border p-1.5 transition-all",
                 (border.style || "solid") === t.id
                   ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
                   : "border-border/60 bg-secondary/20 hover:border-foreground/30"
               )}
             >
               <div className="aspect-square w-full">{t.icon}</div>
-              <span className={cn(
-                "text-[9px] font-medium",
-                (border.style || "solid") === t.id ? "text-primary" : "text-muted-foreground"
-              )}>{t.label}</span>
+              <span
+                className={cn(
+                  "text-[9px] font-medium",
+                  (border.style || "solid") === t.id
+                    ? "text-primary"
+                    : "text-muted-foreground"
+                )}
+              >
+                {t.label}
+              </span>
             </button>
           ))}
         </div>
