@@ -43,6 +43,7 @@ type ScreenshotMockupProps = {
   transform: string
   shadowFilter: string | undefined
   screenshotOffset: { x: number; y: number }
+  screenshotAnchor: { x: number; y: number }
   enhanceFilter: string | undefined
   isScreenshotDragging: boolean
   activeTool: EditorTool
@@ -68,6 +69,7 @@ export function ScreenshotMockup({
   transform,
   shadowFilter,
   screenshotOffset,
+  screenshotAnchor,
   enhanceFilter,
   isScreenshotDragging,
   activeTool,
@@ -109,24 +111,24 @@ export function ScreenshotMockup({
     [shadowFilter, enhanceFilter].filter(Boolean).join(" ") || undefined
   return (
     <div
-      className="group/mockup pointer-events-none flex h-full w-full items-center justify-center"
-      style={{
-        transform: `translate(${screenshotOffset.x}px, ${screenshotOffset.y}px) ${transform}`,
-      }}
+      className="group/mockup pointer-events-none relative h-full w-full"
     >
       <div
         className={cn(
-          "pointer-events-auto relative max-h-full max-w-full select-none",
+          "pointer-events-auto absolute top-0 left-0 max-h-full max-w-full select-none",
           screenshotLayer.hidden && "pointer-events-none",
           isScreenshotDragging
             ? "cursor-grabbing transition-none"
-            : "transition-transform duration-300 ease-out",
+            : "transition-all duration-300 ease-out",
           activeTool === "pointer" && "cursor-grab"
         )}
         style={{
           aspectRatio: mockupSpec.aspectRatio,
           height: "100%",
           width: "auto",
+          left: `${screenshotAnchor.x}%`,
+          top: `${screenshotAnchor.y}%`,
+          transform: `translate(-${screenshotAnchor.x}%, -${screenshotAnchor.y}%) translate(${screenshotOffset.x}px, ${screenshotOffset.y}px) ${transform}`,
           filter: combinedFilter,
           opacity: screenshotLayer.hidden ? 0 : screenshotLayer.opacity / 100,
           mixBlendMode: screenshotLayer.blendMode,

@@ -29,12 +29,12 @@ export function Inspector({ className }: { className?: string }) {
   return (
     <aside
       className={cn(
-        "flex h-full min-h-0 w-[308px] shrink-0 flex-col border-l border-dashed border-border/70 bg-sidebar overflow-hidden",
+        "flex h-full min-h-0 w-[308px] shrink-0 flex-col overflow-hidden border-l border-dashed border-border/70 bg-sidebar",
         className
       )}
     >
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-border/60 px-4">
-        <span className="text-[13px] font-medium tracking-tight">Properties</span>
+        <span className="text-[13px] font-medium tracking-tight">Tools</span>
       </div>
 
       <ScrollArea className="min-h-0 flex-1">

@@ -991,6 +991,7 @@ export function Canvas() {
                   transform={transform}
                   shadowFilter={computedShadowFilter}
                   screenshotOffset={effectiveOffset}
+                  screenshotAnchor={screenshotAnchor}
                   enhanceFilter={enhanceFilter}
                   isScreenshotDragging={isScreenshotDragging}
                   activeTool={activeTool}
@@ -1064,6 +1065,7 @@ export function Canvas() {
                 onBrowse={() => fileInputRef.current?.click()}
                 transform={transform}
                 screenshotOffset={effectiveOffset}
+                screenshotAnchor={screenshotAnchor}
                 isScreenshotDragging={isScreenshotDragging}
                 activeTool={activeTool}
                 onPointerDown={(e) => {

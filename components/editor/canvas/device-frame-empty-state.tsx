@@ -18,6 +18,7 @@ type DeviceFrameEmptyStateProps = {
   onBrowse: () => void
   transform: string
   screenshotOffset: { x: number; y: number }
+  screenshotAnchor: { x: number; y: number }
   isScreenshotDragging: boolean
   activeTool: EditorTool
   onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void
@@ -32,6 +33,7 @@ export function DeviceFrameEmptyState({
   onBrowse,
   transform,
   screenshotOffset,
+  screenshotAnchor,
   isScreenshotDragging,
   activeTool,
   onPointerDown,
@@ -58,23 +60,23 @@ export function DeviceFrameEmptyState({
 
   return (
     <div
-      className="pointer-events-none flex h-full w-full items-center justify-center"
-      style={{
-        transform: `translate(${screenshotOffset.x}px, ${screenshotOffset.y}px) ${transform}`,
-      }}
+      className="pointer-events-none relative h-full w-full"
     >
       <div
         className={cn(
-          "pointer-events-auto relative max-h-full max-w-full select-none",
+          "pointer-events-auto absolute top-0 left-0 max-h-full max-w-full select-none",
           isScreenshotDragging
             ? "cursor-grabbing transition-none"
-            : "transition-transform duration-300 ease-out",
+            : "transition-all duration-300 ease-out",
           activeTool === "pointer" && !isScreenshotDragging && "cursor-grab"
         )}
         style={{
           aspectRatio: mockupSpec.aspectRatio,
           height: "100%",
           width: "auto",
+          left: `${screenshotAnchor.x}%`,
+          top: `${screenshotAnchor.y}%`,
+          transform: `translate(-${screenshotAnchor.x}%, -${screenshotAnchor.y}%) translate(${screenshotOffset.x}px, ${screenshotOffset.y}px) ${transform}`,
         }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}

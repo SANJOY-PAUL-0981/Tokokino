@@ -115,6 +115,7 @@ function DefaultToolbarContents() {
     addAsset,
     setSelectedAssetId,
     screenshot,
+    frame,
     enhance,
     setEnhance,
     scale,
@@ -138,13 +139,14 @@ function DefaultToolbarContents() {
     : null
 
   type PositionTarget = "text" | "asset" | "annotation" | "screenshot" | null
+  const hasDeviceFrame = frame.id !== "none"
   const positionTarget: PositionTarget = selectedText
     ? "text"
     : selectedAsset
       ? "asset"
       : selectedAnnotation
         ? "annotation"
-        : screenshot
+        : screenshot || hasDeviceFrame
           ? "screenshot"
           : null
 
@@ -192,7 +194,9 @@ function DefaultToolbarContents() {
         : positionTarget === "annotation"
           ? "annotation"
           : positionTarget === "screenshot"
-            ? "screenshot"
+            ? hasDeviceFrame
+              ? "device frame"
+              : "screenshot"
             : null
 
   const handleAssetUpload = (file: File) => {
