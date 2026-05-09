@@ -1,6 +1,7 @@
 export const BROWSER_FRAME_ID = "browser"
 export const SAFARI_BROWSER_FRAME_ID = BROWSER_FRAME_ID
 export const CHROME_BROWSER_FRAME_ID = "chrome"
+export const ARC_BROWSER_FRAME_ID = "arc"
 export const BROWSER_FRAME_DEFAULT_URL = "your-url.com"
 export const BROWSER_FRAME_PREVIEW_URL = "https://www.apple.com/in/safari/"
 export const BROWSER_FRAME_PREVIEW_IMAGE_URL =
@@ -13,6 +14,7 @@ export type BrowserFrameColor = (typeof BROWSER_FRAME_COLORS)[number]
 export const BROWSER_FRAME_IDS = [
   SAFARI_BROWSER_FRAME_ID,
   CHROME_BROWSER_FRAME_ID,
+  ARC_BROWSER_FRAME_ID,
 ] as const
 
 export type BrowserFrameId = (typeof BROWSER_FRAME_IDS)[number]
@@ -35,6 +37,16 @@ export const BROWSER_FRAMES = [
     colors: BROWSER_FRAME_COLORS,
     defaultUrl: BROWSER_FRAME_DEFAULT_URL,
     previewUrl: "https://www.google.com/chrome/",
+    previewImageUrl: BROWSER_FRAME_PREVIEW_IMAGE_URL,
+    size: { w: 1200, h: 700 },
+  },
+  {
+    id: ARC_BROWSER_FRAME_ID,
+    name: "Arc",
+    aspectRatio: "1228 / 728",
+    colors: BROWSER_FRAME_COLORS,
+    defaultUrl: BROWSER_FRAME_DEFAULT_URL,
+    previewUrl: "https://arc.net/",
     previewImageUrl: BROWSER_FRAME_PREVIEW_IMAGE_URL,
     size: { w: 1200, h: 700 },
   },

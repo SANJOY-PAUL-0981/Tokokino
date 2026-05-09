@@ -43,9 +43,11 @@ import {
   mockupScreenClipStyle,
   mockupScreenTransform,
 } from "@/components/editor/canvas/helpers"
+import { Arc } from "@/components/ui/arc"
 import { Chrome } from "@/components/ui/chrome"
 import { Safari } from "@/components/ui/safari"
 import {
+  ARC_BROWSER_FRAME_ID,
   BROWSER_FRAMES,
   CHROME_BROWSER_FRAME_ID,
   getBrowserFrame,
@@ -348,7 +350,10 @@ export function FramePopover({
               <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-secondary/40 p-0.5">
                 {(["vertical", "horizontal"] as const).map((orientation) => {
                   const active = effectiveOrientation === orientation
-                  const disabled = !currentDevice || current.kind === "desktop" || current.kind === "watch"
+                  const disabled =
+                    !currentDevice ||
+                    current.kind === "desktop" ||
+                    current.kind === "watch"
                   return (
                     <button
                       key={orientation}
@@ -546,7 +551,6 @@ function BrowserTilePreview({
   screenshot: string | null
 }) {
   const frame = getBrowserFrame(frameId)
-  const FrameComponent = frameId === CHROME_BROWSER_FRAME_ID ? Chrome : Safari
   const scale = BROWSER_TILE_PREVIEW_WIDTH / BROWSER_TILE_PREVIEW_VIRTUAL_WIDTH
 
   return (
@@ -565,16 +569,32 @@ function BrowserTilePreview({
           transformOrigin: "top left",
         }}
       >
-        <FrameComponent
-          imageSrc={screenshot ?? frame?.previewImageUrl}
-          colorMode={color === "dark" ? "dark" : "light"}
-          url={screenshot ? frame?.defaultUrl : frame?.previewUrl}
-          {...(frameId === CHROME_BROWSER_FRAME_ID
-            ? { frameBorderRadius: "5px" }
-            : {})}
-          screenBorderRadius="0 0 4px 4px"
-          className="block w-full"
-        />
+        {frameId === ARC_BROWSER_FRAME_ID ? (
+          <Arc
+            imageSrc={screenshot ?? frame?.previewImageUrl}
+            colorMode={color === "dark" ? "dark" : "light"}
+            frameBorderRadius="5px"
+            screenBorderRadius="4px"
+            className="block w-full"
+          />
+        ) : frameId === CHROME_BROWSER_FRAME_ID ? (
+          <Chrome
+            imageSrc={screenshot ?? frame?.previewImageUrl}
+            colorMode={color === "dark" ? "dark" : "light"}
+            url={screenshot ? frame?.defaultUrl : frame?.previewUrl}
+            frameBorderRadius="5px"
+            screenBorderRadius="0 0 4px 4px"
+            className="block w-full"
+          />
+        ) : (
+          <Safari
+            imageSrc={screenshot ?? frame?.previewImageUrl}
+            colorMode={color === "dark" ? "dark" : "light"}
+            url={screenshot ? frame?.defaultUrl : frame?.previewUrl}
+            screenBorderRadius="0 0 4px 4px"
+            className="block w-full"
+          />
+        )}
       </div>
     </div>
   )

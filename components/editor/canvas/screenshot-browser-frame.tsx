@@ -4,9 +4,11 @@ import * as React from "react"
 import { RiCropLine, RiDeleteBinLine, RiRefreshLine } from "@remixicon/react"
 
 import { DeviceFrameEmptyContent } from "@/components/editor/canvas/device-frame-empty-content"
+import { Arc } from "@/components/ui/arc"
 import { Chrome } from "@/components/ui/chrome"
 import { Safari } from "@/components/ui/safari"
 import {
+  ARC_BROWSER_FRAME_ID,
   BROWSER_FRAME_ASPECT_RATIO,
   CHROME_BROWSER_FRAME_ID,
   getBrowserFrame,
@@ -15,6 +17,10 @@ import {
 } from "@/lib/browser-frame"
 import type { EditorTool, ScreenshotLayer } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
+
+type SelectEvent = {
+  stopPropagation: () => void
+}
 
 type ScreenshotBrowserFrameProps = {
   screenshot: string
@@ -30,7 +36,7 @@ type ScreenshotBrowserFrameProps = {
   activeTool: EditorTool
   stageRef: React.RefObject<HTMLDivElement | null>
   imageRef: React.RefObject<HTMLImageElement | null>
-  onSelect: (e: React.MouseEvent) => void
+  onSelect: (e: SelectEvent) => void
   onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void
   onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void
   onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void
@@ -81,12 +87,17 @@ export function ScreenshotBrowserFrame({
   const replaceInputRef = React.useRef<HTMLInputElement>(null)
   const [address, setAddress] = React.useState("")
   const frame = getBrowserFrame(frameId)
-  const FrameComponent = frameId === CHROME_BROWSER_FRAME_ID ? Chrome : Safari
+  const frameFitStyle = browserFrameFitStyle(
+    frame?.aspectRatio ?? BROWSER_FRAME_ASPECT_RATIO
+  )
   const combinedFilter =
     [shadowFilter, enhanceFilter].filter(Boolean).join(" ") || undefined
 
   return (
-    <div className="group/browser-frame pointer-events-none relative h-full w-full">
+    <div
+      className="group/browser-frame pointer-events-none relative h-full w-full"
+      style={{ containerType: "size" }}
+    >
       <div
         className={cn(
           "pointer-events-auto absolute top-0 left-0 max-h-full max-w-full select-none",
@@ -97,9 +108,7 @@ export function ScreenshotBrowserFrame({
           activeTool === "pointer" && "cursor-grab"
         )}
         style={{
-          aspectRatio: frame?.aspectRatio ?? BROWSER_FRAME_ASPECT_RATIO,
-          height: "100%",
-          width: "auto",
+          ...frameFitStyle,
           left: `${screenshotAnchor.x}%`,
           top: `${screenshotAnchor.y}%`,
           transform: `translate(-${screenshotAnchor.x}%, -${screenshotAnchor.y}%) translate(${screenshotOffset.x}px, ${screenshotOffset.y}px) ${transform}`,
@@ -109,21 +118,51 @@ export function ScreenshotBrowserFrame({
           mixBlendMode: screenshotLayer.blendMode,
         }}
         onClick={onSelect}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter" && e.key !== " ") return
+          e.preventDefault()
+          onSelect(e)
+        }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        role="button"
+        tabIndex={activeTool === "pointer" && !screenshotLayer.hidden ? 0 : -1}
+        aria-label="Select browser screenshot"
       >
-        <FrameComponent
-          imageSrc={screenshot}
-          colorMode={color === "dark" ? "dark" : "light"}
-          addressValue={address}
-          onAddressChange={setAddress}
-          screenRef={stageRef}
-          imageRef={imageRef}
-          onImageLoad={onImageLoad}
-          className="h-full w-full"
-        />
+        {frameId === ARC_BROWSER_FRAME_ID ? (
+          <Arc
+            imageSrc={screenshot}
+            colorMode={color === "dark" ? "dark" : "light"}
+            screenRef={stageRef}
+            imageRef={imageRef}
+            onImageLoad={onImageLoad}
+            className="h-full w-full"
+          />
+        ) : frameId === CHROME_BROWSER_FRAME_ID ? (
+          <Chrome
+            imageSrc={screenshot}
+            colorMode={color === "dark" ? "dark" : "light"}
+            addressValue={address}
+            onAddressChange={setAddress}
+            screenRef={stageRef}
+            imageRef={imageRef}
+            onImageLoad={onImageLoad}
+            className="h-full w-full"
+          />
+        ) : (
+          <Safari
+            imageSrc={screenshot}
+            colorMode={color === "dark" ? "dark" : "light"}
+            addressValue={address}
+            onAddressChange={setAddress}
+            screenRef={stageRef}
+            imageRef={imageRef}
+            onImageLoad={onImageLoad}
+            className="h-full w-full"
+          />
+        )}
 
         {activeTool === "pointer" && !screenshotLayer.hidden ? (
           <div
@@ -183,10 +222,15 @@ export function BrowserFrameEmptyState({
   const [url, setUrl] = React.useState("")
   const [address, setAddress] = React.useState("")
   const frame = getBrowserFrame(frameId)
-  const FrameComponent = frameId === CHROME_BROWSER_FRAME_ID ? Chrome : Safari
+  const frameFitStyle = browserFrameFitStyle(
+    frame?.aspectRatio ?? BROWSER_FRAME_ASPECT_RATIO
+  )
 
   return (
-    <div className="pointer-events-none relative h-full w-full">
+    <div
+      className="pointer-events-none relative h-full w-full"
+      style={{ containerType: "size" }}
+    >
       <div
         className={cn(
           "pointer-events-auto absolute top-0 left-0 max-h-full max-w-full select-none",
@@ -196,9 +240,7 @@ export function BrowserFrameEmptyState({
           activeTool === "pointer" && !isScreenshotDragging && "cursor-grab"
         )}
         style={{
-          aspectRatio: frame?.aspectRatio ?? BROWSER_FRAME_ASPECT_RATIO,
-          height: "100%",
-          width: "auto",
+          ...frameFitStyle,
           left: `${screenshotAnchor.x}%`,
           top: `${screenshotAnchor.y}%`,
           transform: `translate(-${screenshotAnchor.x}%, -${screenshotAnchor.y}%) translate(${screenshotOffset.x}px, ${screenshotOffset.y}px) ${transform}`,
@@ -209,32 +251,47 @@ export function BrowserFrameEmptyState({
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
-        <FrameComponent
-          colorMode={color === "dark" ? "dark" : "light"}
-          addressValue={address}
-          onAddressChange={setAddress}
-          className="h-full w-full"
-        >
-          <div
-            data-drag-over={isDragOver}
-            className={cn(
-              "relative size-full bg-black text-white transition-all duration-200",
-              "data-[drag-over=true]:ring-2 data-[drag-over=true]:ring-primary/60"
-            )}
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 0)",
-              backgroundSize: "16px 16px",
-              containerType: "inline-size",
-            }}
+        {frameId === ARC_BROWSER_FRAME_ID ? (
+          <Arc
+            colorMode={color === "dark" ? "dark" : "light"}
+            className="h-full w-full"
           >
-            <DeviceFrameEmptyContent
+            <BrowserFrameEmptyContent
+              isDragOver={isDragOver}
               url={url}
               onUrlChange={setUrl}
               onBrowse={onBrowse}
             />
-          </div>
-        </FrameComponent>
+          </Arc>
+        ) : frameId === CHROME_BROWSER_FRAME_ID ? (
+          <Chrome
+            colorMode={color === "dark" ? "dark" : "light"}
+            addressValue={address}
+            onAddressChange={setAddress}
+            className="h-full w-full"
+          >
+            <BrowserFrameEmptyContent
+              isDragOver={isDragOver}
+              url={url}
+              onUrlChange={setUrl}
+              onBrowse={onBrowse}
+            />
+          </Chrome>
+        ) : (
+          <Safari
+            colorMode={color === "dark" ? "dark" : "light"}
+            addressValue={address}
+            onAddressChange={setAddress}
+            className="h-full w-full"
+          >
+            <BrowserFrameEmptyContent
+              isDragOver={isDragOver}
+              url={url}
+              onUrlChange={setUrl}
+              onBrowse={onBrowse}
+            />
+          </Safari>
+        )}
       </div>
     </div>
   )
@@ -274,4 +331,57 @@ function FrameActionButton({
 
 export function browserFrameColorFromValue(color: string) {
   return resolveBrowserFrameColor(color)
+}
+
+function browserFrameFitStyle(aspectRatio: string): React.CSSProperties {
+  const ratio = parseAspectRatio(aspectRatio) ?? 16 / 10
+
+  return {
+    aspectRatio,
+    width: `min(100cqw, calc(100cqh * ${ratio}))`,
+    height: "auto",
+  }
+}
+
+function parseAspectRatio(aspectRatio: string) {
+  const [width, height] = aspectRatio
+    .split("/")
+    .map((part) => Number(part.trim()))
+
+  if (!width || !height) return null
+  return width / height
+}
+
+function BrowserFrameEmptyContent({
+  isDragOver,
+  url,
+  onUrlChange,
+  onBrowse,
+}: {
+  isDragOver: boolean
+  url: string
+  onUrlChange: (url: string) => void
+  onBrowse: () => void
+}) {
+  return (
+    <div
+      data-drag-over={isDragOver}
+      className={cn(
+        "relative size-full bg-black text-white transition-all duration-200",
+        "data-[drag-over=true]:ring-2 data-[drag-over=true]:ring-primary/60"
+      )}
+      style={{
+        backgroundImage:
+          "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 0)",
+        backgroundSize: "16px 16px",
+        containerType: "inline-size",
+      }}
+    >
+      <DeviceFrameEmptyContent
+        url={url}
+        onUrlChange={onUrlChange}
+        onBrowse={onBrowse}
+      />
+    </div>
+  )
 }
