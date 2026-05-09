@@ -18,9 +18,9 @@ const LEFT_PCT = (SCREEN_X / SAFARI_WIDTH) * 100
 const TOP_PCT = (SCREEN_Y / SAFARI_HEIGHT) * 100
 const WIDTH_PCT = (SCREEN_WIDTH / SAFARI_WIDTH) * 100
 const HEIGHT_PCT = (SCREEN_HEIGHT / SAFARI_HEIGHT) * 100
-const ADDRESS_LEFT_PCT = (580 / SAFARI_WIDTH) * 100
+const ADDRESS_LEFT_PCT = (286 / SAFARI_WIDTH) * 100
 const ADDRESS_TOP_PCT = (11 / SAFARI_HEIGHT) * 100
-const ADDRESS_WIDTH_PCT = (92 / SAFARI_WIDTH) * 100
+const ADDRESS_WIDTH_PCT = (666 / SAFARI_WIDTH) * 100
 const ADDRESS_HEIGHT_PCT = (30 / SAFARI_HEIGHT) * 100
 
 type SafariMode = "default" | "simple"
@@ -152,25 +152,41 @@ export function Safari({
       ) : null}
 
       {editableAddress ? (
-        <input
-          type="text"
-          inputMode="url"
+        <label
           aria-label="Browser address"
-          value={addressText}
-          placeholder={addressPlaceholder}
-          spellCheck={false}
-          onChange={(e) => onAddressChange?.(e.target.value)}
+          className="absolute z-20 flex items-center justify-center overflow-hidden px-[2cqw]"
           onPointerDown={(e) => e.stopPropagation()}
           onPointerUp={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
-          className="absolute z-20 border-0 bg-transparent font-sans text-[clamp(7px,1cqw,12px)] text-[#8a8a8a] outline-none placeholder:text-[#a3a3a3]"
           style={{
             left: `${ADDRESS_LEFT_PCT}%`,
             top: `${ADDRESS_TOP_PCT}%`,
             width: `${ADDRESS_WIDTH_PCT}%`,
             height: `${ADDRESS_HEIGHT_PCT}%`,
           }}
-        />
+        >
+          <span className="flex max-w-full items-center justify-center gap-[0.45cqw]">
+            <svg
+              aria-hidden
+              viewBox="0 0 12 14"
+              className="h-[clamp(7px,1cqw,12px)] w-auto shrink-0 fill-[#8a8a8a]"
+            >
+              <path d="M2.1 6V4.25C2.1 1.95 3.72.4 6 .4s3.9 1.55 3.9 3.85V6h.3c.84 0 1.3.46 1.3 1.3v4.9c0 .84-.46 1.3-1.3 1.3H1.8c-.84 0-1.3-.46-1.3-1.3V7.3C.5 6.46.96 6 1.8 6h.3Zm1.35 0h5.1V4.25c0-1.55-1.02-2.55-2.55-2.55S3.45 2.7 3.45 4.25V6Z" />
+            </svg>
+            <input
+              type="text"
+              inputMode="url"
+              value={addressText}
+              placeholder={addressPlaceholder}
+              spellCheck={false}
+              onChange={(e) => onAddressChange?.(e.target.value)}
+              className="max-w-[52ch] min-w-[9ch] border-0 bg-transparent text-center font-sans text-[clamp(7px,1cqw,12px)] text-[#8a8a8a] outline-none placeholder:text-[#a3a3a3]"
+              style={{
+                width: `${Math.max(addressText.length, addressPlaceholder.length, 9)}ch`,
+              }}
+            />
+          </span>
+        </label>
       ) : null}
 
       <svg
@@ -234,7 +250,7 @@ export function Safari({
             d="M286 17C286 13.6863 288.686 11 292 11H946C949.314 11 952 13.6863 952 17V35C952 38.3137 949.314 41 946 41H292C288.686 41 286 38.3137 286 35V17Z"
             className={chromeFill}
           />
-          <g className="mix-blend-luminosity">
+          <g className="mix-blend-luminosity" opacity={editableAddress ? 0 : 1}>
             <path
               d="M566.269 32.0852H572.426C573.277 32.0852 573.696 31.6663 573.696 30.7395V25.9851C573.696 25.1472 573.353 24.7219 572.642 24.6521V23.0842C572.642 20.6721 571.036 19.5105 569.348 19.5105C567.659 19.5105 566.053 20.6721 566.053 23.0842V24.6711C565.393 24.7727 565 25.1917 565 25.9851V30.7395C565 31.6663 565.418 32.0852 566.269 32.0852ZM567.272 22.97C567.272 21.491 568.211 20.6785 569.348 20.6785C570.478 20.6785 571.423 21.491 571.423 22.97V24.6394L567.272 24.6458V22.97Z"
               fill="#A3A3A3"
