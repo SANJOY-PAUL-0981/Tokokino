@@ -59,6 +59,7 @@ export function Chrome({
 }: ChromeProps) {
   const hasVideo = !!videoSrc
   const addressText = addressValue ?? url ?? ""
+  const tabTitle = chromeTabTitle(addressText)
   const editableAddress = !!onAddressChange
 
   const frameClasses =
@@ -157,7 +158,7 @@ export function Chrome({
         <div
           className={`absolute bottom-0 left-[8.153078%] flex h-[82%] w-[19.467554%] items-center gap-[0.55cqw] rounded-t-[0.8cqw] px-[1.15cqw] text-[1cqw] ${activeTabClasses}`}
         >
-          <span className="truncate opacity-90">New Tab</span>
+          <span className="truncate opacity-90">{tabTitle}</span>
           <span className="ml-auto text-[1.05em] opacity-50">x</span>
         </div>
         <div
@@ -254,6 +255,24 @@ function ChromeArrow({ direction }: { direction: "left" | "right" }) {
       />
     </svg>
   )
+}
+
+function chromeTabTitle(address: string) {
+  const value = address.trim()
+  if (!value) return "New Tab"
+
+  const withoutProtocol = value.replace(/^[a-z][a-z0-9+.-]*:\/\//i, "")
+  const hostOrText = withoutProtocol.split(/[/?#]/, 1)[0] ?? ""
+  const withoutAuth = hostOrText.split("@").pop() ?? hostOrText
+  const withoutPort = withoutAuth.replace(/:\d+$/, "")
+  const withoutWww = withoutPort.replace(/^www\./i, "")
+  const firstPart = withoutWww.split(".").find(Boolean)
+
+  return capitalizeTabTitle(firstPart || value)
+}
+
+function capitalizeTabTitle(value: string) {
+  return value ? value[0].toUpperCase() + value.slice(1) : value
 }
 
 function ChromeRefresh() {
