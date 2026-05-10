@@ -23,6 +23,7 @@ import {
   RiArrowDownSLine,
   RiArrowUpSLine,
   RiBlurOffLine,
+  RiDeleteBinLine,
   RiDraggable,
   RiEyeCloseLine,
   RiEyeLine,
@@ -43,6 +44,7 @@ import { Slider } from "@/components/ui/slider"
 import {
   backgroundCss,
   type AssetBlendMode,
+  type DeviceFrame,
   useEditor,
 } from "@/lib/editor/store"
 import { getDeviceMockup } from "@/lib/mockups"
@@ -122,6 +124,7 @@ export function LayersPanelContent() {
     activeCanvasId,
     setActiveCanvasId,
     frame,
+    setFrame,
   } = useEditor()
   const [selectedLayerKey, setSelectedLayerKey] = React.useState<string | null>(
     null
@@ -326,7 +329,11 @@ export function LayersPanelContent() {
       </DndContext>
 
       {frame.id !== "none" ? (
-        <FrameLockedLayer frameId={frame.id} />
+        <FrameLockedLayer
+          frame={frame}
+          onReplace={(f) => setFrame(f)}
+          onRemove={() => setFrame({ id: "none", color: "black", orientation: "vertical" })}
+        />
       ) : null}
 
       <div className="mt-1 rounded-md border border-border/60 bg-secondary/20 px-1.5 py-1.5">
@@ -636,9 +643,17 @@ function annotationName(kind: string) {
   return "Arrow"
 }
 
-function FrameLockedLayer({ frameId }: { frameId: string }) {
-  const browserFrame = BROWSER_FRAMES.find((f) => f.id === frameId)
-  const deviceMockup = getDeviceMockup(frameId)
+function FrameLockedLayer({
+  frame,
+  onReplace,
+  onRemove,
+}: {
+  frame: DeviceFrame
+  onReplace: (f: DeviceFrame) => void
+  onRemove: () => void
+}) {
+  const browserFrame = BROWSER_FRAMES.find((f) => f.id === frame.id)
+  const deviceMockup = getDeviceMockup(frame.id)
 
   let name = "Frame"
   let meta = "Locked frame"
@@ -650,6 +665,13 @@ function FrameLockedLayer({ frameId }: { frameId: string }) {
     name = deviceMockup.name
     meta = "Device frame · locked"
   }
+
+  // Get available colors for this frame
+  const availableColors: string[] = browserFrame
+    ? [...browserFrame.colors]
+    : deviceMockup
+      ? deviceMockup.colors
+      : []
 
   return (
     <div className="mt-1 rounded-md border border-border/60 bg-secondary/20 px-1.5 py-1.5">
@@ -663,8 +685,116 @@ function FrameLockedLayer({ frameId }: { frameId: string }) {
           </div>
           <div className="text-[10px] leading-tight">{meta}</div>
         </div>
-        <RiLock2Line className="size-3.5 shrink-0 text-muted-foreground/60" />
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-label="Frame options"
+              className="inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground/60 transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <RiMoreFill className="size-3.5" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            side="right"
+            align="start"
+            sideOffset={8}
+            collisionPadding={8}
+            className="w-48 p-2"
+          >
+            {availableColors.length > 1 ? (
+              <div className="mb-2">
+                <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Color
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {availableColors.map((color) => {
+                    const isActive = frame.color === color
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        aria-label={formatColorName(color)}
+                        title={formatColorName(color)}
+                        onClick={() =>
+                          onReplace({
+                            ...frame,
+                            color,
+                          })
+                        }
+                        className={cn(
+                          "size-6 rounded-full border-2 transition-all",
+                          isActive
+                            ? "border-foreground scale-110 shadow-md"
+                            : "border-transparent hover:border-foreground/30 hover:scale-105"
+                        )}
+                        style={frameColorSwatch(color)}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={onRemove}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[12px] text-red-500 transition-colors hover:bg-accent"
+            >
+              <RiDeleteBinLine className="size-3.5" />
+              Remove frame
+            </button>
+          </PopoverContent>
+        </Popover>
       </div>
     </div>
   )
+}
+
+function formatColorName(color: string) {
+  return color
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(" ")
+}
+
+const FRAME_COLOR_MAP: Record<string, string> = {
+  black: "#111111",
+  blue: "#8fc5e8",
+  cosmic_orange: "#ff8a3d",
+  dark: "#262626",
+  dark_green: "#264133",
+  deep_blue: "#1d314d",
+  gray: "#8a8a86",
+  green: "#86a877",
+  grey: "#777b82",
+  hazel: "#6e7463",
+  lavender: "#c9b7df",
+  light: "#f7f7f4",
+  light_blush: "#efc7c5",
+  midnight: "#202637",
+  mist_blue: "#bdd4e8",
+  natural: "#b7aaa0",
+  navy: "#182740",
+  obsidian: "#1b1b1d",
+  orange: "#f28a45",
+  purple: "#9a85c7",
+  red: "#d4544d",
+  sage: "#a6b9a1",
+  silver: "#d6d6d2",
+  snow: "#f1f0ea",
+  space_gray: "#72716d",
+  starlight: "#eee4d6",
+  tan: "#b39069",
+  white: "#f7f7f4",
+  yellow: "#f2d66d",
+}
+
+function frameColorSwatch(color: string): React.CSSProperties {
+  return {
+    background:
+      FRAME_COLOR_MAP[color] ??
+      "linear-gradient(135deg, #2d2d2d 0 25%, #525252 25% 50%, #2d2d2d 50% 75%, #525252 75%)",
+  }
 }
