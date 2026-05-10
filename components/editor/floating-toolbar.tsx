@@ -184,7 +184,7 @@ function DefaultToolbarContents() {
         ? "annotation"
         : isScreenshotSelected && (screenshot || hasDeviceFrame)
           ? "screenshot"
-          : bulkEditMode && canvases.length > 1
+          : bulkEditMode
             ? "canvas"
             : screenshot || hasDeviceFrame
               ? "screenshot"

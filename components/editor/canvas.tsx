@@ -3,7 +3,7 @@
 import * as React from "react"
 import { createPortal } from "react-dom"
 import { motion } from "motion/react"
-import { RiDeleteBinLine, RiDragMove2Line } from "@remixicon/react"
+import { RiDeleteBinLine, RiDragMove2Line, RiFileCopyLine } from "@remixicon/react"
 import { toast } from "sonner"
 
 import { CornerMarkers } from "@/components/editor/corner-marker"
@@ -1311,6 +1311,10 @@ export function Canvas() {
   const [livePositions, setLivePositions] = React.useState<
     Record<string, { x: number; y: number }>
   >({})
+  const [centerGuides, setCenterGuides] = React.useState<{
+    x: boolean
+    y: boolean
+  }>({ x: false, y: false })
 
   const aw = aspect.w || 16
   const ah = aspect.h || 10
@@ -1364,18 +1368,27 @@ export function Canvas() {
     }
   }
 
+  const SNAP_THRESHOLD = 12
+
   const moveCanvasDrag = (e: React.PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current
     if (!drag || drag.pointerId !== e.pointerId) return
     e.preventDefault()
     const dx = (e.clientX - drag.startClientX) / drag.zoomScale
     const dy = (e.clientY - drag.startClientY) / drag.zoomScale
+    let newX = drag.startX + dx
+    let newY = drag.startY + dy
+
+    // Snap to center and show guides
+    const snapX = Math.abs(newX) < SNAP_THRESHOLD
+    const snapY = Math.abs(newY) < SNAP_THRESHOLD
+    if (snapX) newX = 0
+    if (snapY) newY = 0
+    setCenterGuides({ x: snapX, y: snapY })
+
     setLivePositions((prev) => ({
       ...prev,
-      [drag.canvasId]: {
-        x: drag.startX + dx,
-        y: drag.startY + dy,
-      },
+      [drag.canvasId]: { x: newX, y: newY },
     }))
   }
 
@@ -1392,6 +1405,7 @@ export function Canvas() {
       })
     }
     dragRef.current = null
+    setCenterGuides({ x: false, y: false })
   }
 
   return (
@@ -1443,6 +1457,10 @@ export function Canvas() {
                     canRemove={canvases.length > 1}
                     onActivate={() => setActiveCanvasId(canvas.id)}
                     onRemove={() => removeCanvas(canvas.id)}
+                    onDuplicate={() => {
+                      const newId = useEditorStore.getState().duplicateCanvas(canvas.id)
+                      if (newId) toast("Canvas duplicated")
+                    }}
                     onDragStart={(e) => startCanvasDrag(e, canvas.id)}
                     onDragMove={moveCanvasDrag}
                     onDragEnd={stopCanvasDrag}
@@ -1460,6 +1478,20 @@ export function Canvas() {
             )
           })}
         </div>
+
+        {/* Center alignment guides */}
+        {centerGuides.x ? (
+          <div
+            className="pointer-events-none absolute left-1/2 top-0 h-full w-px -translate-x-1/2"
+            style={{ background: "rgba(99,102,241,0.6)" }}
+          />
+        ) : null}
+        {centerGuides.y ? (
+          <div
+            className="pointer-events-none absolute left-0 top-1/2 h-px w-full -translate-y-1/2"
+            style={{ background: "rgba(99,102,241,0.6)" }}
+          />
+        ) : null}
       </div>
 
     </section>
@@ -1472,6 +1504,7 @@ function CanvasChrome({
   canRemove,
   onActivate,
   onRemove,
+  onDuplicate,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -1482,6 +1515,7 @@ function CanvasChrome({
   canRemove: boolean
   onActivate: () => void
   onRemove: () => void
+  onDuplicate: () => void
   onDragStart: (e: React.PointerEvent<HTMLDivElement>) => void
   onDragMove: (e: React.PointerEvent<HTMLDivElement>) => void
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void
@@ -1577,6 +1611,25 @@ function CanvasChrome({
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="top">Drag to move</TooltipContent>
+                    </Tooltip>
+
+                    <span className="mx-0.5 h-5 w-px bg-border" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDuplicate()
+                          }}
+                          aria-label="Duplicate canvas"
+                          className="inline-flex size-9 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground shrink-0"
+                        >
+                          <RiFileCopyLine className="size-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Duplicate</TooltipContent>
                     </Tooltip>
 
                     {canRemove ? (

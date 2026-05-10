@@ -81,9 +81,6 @@ export function TopBar() {
   const handleBulkEditClick = () => {
     if (!bulkEditMode) {
       setBulkEditMode(true)
-      if (canvasCount <= 1) {
-        addCanvas()
-      }
       toast("Bulk edit enabled")
     } else {
       if (canvasCount > 1) {
