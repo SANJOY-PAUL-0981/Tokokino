@@ -172,6 +172,8 @@ function DefaultToolbarContents() {
   const activeCanvasId = useEditorStore((s) => s.present.activeCanvasId)
   const setCanvasPosition = useEditorStore((s) => s.setCanvasPosition)
 
+  const isScreenshotSelected = useEditorStore((s) => s.isScreenshotSelected)
+
   type PositionTarget = "text" | "asset" | "annotation" | "screenshot" | "canvas" | null
   const hasDeviceFrame = frame.id !== "none"
   const positionTarget: PositionTarget = selectedText
@@ -180,11 +182,13 @@ function DefaultToolbarContents() {
       ? "asset"
       : selectedAnnotation
         ? "annotation"
-        : bulkEditMode && canvases.length > 1
-          ? "canvas"
-          : screenshot || hasDeviceFrame
-            ? "screenshot"
-            : null
+        : isScreenshotSelected && (screenshot || hasDeviceFrame)
+          ? "screenshot"
+          : bulkEditMode && canvases.length > 1
+            ? "canvas"
+            : screenshot || hasDeviceFrame
+              ? "screenshot"
+              : null
 
   const currentPositionId = React.useMemo<ScreenshotPosition | null>(() => {
     let xPct: number

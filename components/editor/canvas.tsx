@@ -119,6 +119,8 @@ function CanvasViewInner({
     updateAnnotationShape,
     deleteAnnotationShape,
     setSelectedAnnotationShapeId,
+    isScreenshotSelected,
+    setIsScreenshotSelected,
   } = useEditor()
   const bulkEditMode = useEditorStore((s) => s.bulkEditMode)
   const canvasRef = React.useRef<HTMLDivElement>(null)
@@ -149,7 +151,6 @@ function CanvasViewInner({
     imgW: number
     imgH: number
   } | null>(null)
-  const [isScreenshotSelected, setIsScreenshotSelected] = React.useState(false)
   const [isScreenshotDragging, setIsScreenshotDragging] = React.useState(false)
   const [liveOffset, setLiveOffset] = React.useState<{
     x: number
@@ -965,6 +966,7 @@ function CanvasViewInner({
             setSelectedTextId(null)
             setSelectedAssetId(null)
             setSelectedAnnotationShapeId(null)
+            setIsScreenshotSelected(false)
           }}
           onPointerDownCapture={() => {
             if (!isActive) onActivate()

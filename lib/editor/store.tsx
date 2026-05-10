@@ -264,6 +264,7 @@ type EditorActions = {
   sendAssetToBack: (id: string, canvasId?: string) => void
   setSelectedAssetId: (id: string | null) => void
   setSelectedAnnotationShapeId: (id: string | null) => void
+  setIsScreenshotSelected: (selected: boolean) => void
   setIsPreviewMode: (p: boolean) => void
   setBulkEditMode: (b: boolean) => void
   reset: () => void
@@ -287,6 +288,7 @@ type EditorStore = {
   selectedTextId: string | null
   selectedAssetId: string | null
   selectedAnnotationShapeId: string | null
+  isScreenshotSelected: boolean
 } & EditorActions
 
 const computeNextZ = (items: { zIndex: number }[]) => {
@@ -425,6 +427,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     selectedTextId: null,
     selectedAssetId: null,
     selectedAnnotationShapeId: null,
+    isScreenshotSelected: false,
 
     setActiveTool: (t) => commit({ activeTool: t }, null),
     setScreenshot: (screenshot, canvasId) =>
@@ -775,6 +778,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     setSelectedAssetId: (id) => set({ selectedAssetId: id }),
     setSelectedAnnotationShapeId: (id) =>
       set({ selectedAnnotationShapeId: id }),
+    setIsScreenshotSelected: (selected) => set({ isScreenshotSelected: selected }),
     setIsPreviewMode: (p) => set({ isPreviewMode: p }),
     setBulkEditMode: (b) => {
       if (!b) {
@@ -943,6 +947,7 @@ export type EditorContext = Omit<EditorState, "canvases"> &
     selectedTextId: string | null
     selectedAssetId: string | null
     selectedAnnotationShapeId: string | null
+    isScreenshotSelected: boolean
     canUndo: boolean
     canRedo: boolean
     canvases: CanvasState[]
@@ -1001,6 +1006,7 @@ export function useEditor(): EditorContext {
     selectedTextId: store.selectedTextId,
     selectedAssetId: store.selectedAssetId,
     selectedAnnotationShapeId: store.selectedAnnotationShapeId,
+    isScreenshotSelected: store.isScreenshotSelected,
     canUndo: store.past.length > 0,
     canRedo: store.future.length > 0,
 
@@ -1078,6 +1084,7 @@ export function useEditor(): EditorContext {
       store.sendAssetToBack(id, canvasId ?? targetId),
     setSelectedAssetId: store.setSelectedAssetId,
     setSelectedAnnotationShapeId: store.setSelectedAnnotationShapeId,
+    setIsScreenshotSelected: store.setIsScreenshotSelected,
     setIsPreviewMode: store.setIsPreviewMode,
     setBulkEditMode: store.setBulkEditMode,
     reset: store.reset,
