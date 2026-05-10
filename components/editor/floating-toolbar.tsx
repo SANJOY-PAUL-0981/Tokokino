@@ -407,10 +407,13 @@ function DefaultToolbarContents() {
                   : `Position ${positionTargetLabel}`
               }
               contentClassName="w-52 p-3"
+              onOpenChange={(open) => {
+                if (!open) setActiveTool("pointer")
+              }}
               trigger={({ open }) => (
                 <ToolbarButton
                   aria-label={it.label}
-                  active={open || isActive}
+                  active={open}
                   disabled={isDisabled}
                   onClick={() => handleToolClick(it.id)}
                 >
