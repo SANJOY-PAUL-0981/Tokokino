@@ -22,7 +22,7 @@ import { toast } from "sonner"
 import { BrandLogo } from "@/components/editor/brand-logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
-import { useEditor, useEditorStore } from "@/lib/editor/store"
+import { MAX_CANVASES, useEditor, useEditorStore } from "@/lib/editor/store"
 import {
   Dialog,
   DialogContent,
@@ -375,8 +375,17 @@ function SidebarNavItem({ active, onClick, icon: Icon, label, description }: {
 }
 
 function MobileOverflowMenu() {
-  const { undo, redo, canUndo, canRedo, reset, setIsPreviewMode, addCanvas } =
-    useEditor()
+  const {
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    reset,
+    setIsPreviewMode,
+    addCanvas,
+    canvasCount,
+  } = useEditor()
+  const atCanvasCap = canvasCount >= MAX_CANVASES
   const [showResetAlert, setShowResetAlert] = React.useState(false)
   return (
     <>
@@ -423,9 +432,11 @@ function MobileOverflowMenu() {
           Open
         </DropdownMenuItem>
         <DropdownMenuItem
+          disabled={atCanvasCap}
           onClick={() => {
-            addCanvas()
-            toast("Canvas added")
+            const id = addCanvas()
+            if (id) toast("Canvas added")
+            else toast(`Canvas limit reached (${MAX_CANVASES})`)
           }}
         >
           <RiAddLine />

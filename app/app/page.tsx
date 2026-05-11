@@ -7,6 +7,7 @@ import { FloatingToolbar } from "@/components/editor/floating-toolbar"
 import { Inspector } from "@/components/editor/inspector"
 import { IpadProSidebar } from "@/components/editor/ipad-pro-sidebar"
 import { MobileControls } from "@/components/editor/mobile-controls"
+import { MobileOnlyWarning } from "@/components/editor/mobile-only-warning"
 import { TopBar } from "@/components/editor/top-bar"
 import { EditorProvider, useEditor } from "@/lib/editor/store"
 import { Button } from "@/components/ui/button"
@@ -68,6 +69,7 @@ export default function ScreenshotsPage() {
   return (
     <EditorProvider>
       <EditorLayout />
+      <MobileOnlyWarning />
     </EditorProvider>
   )
 }

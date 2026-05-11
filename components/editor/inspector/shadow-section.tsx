@@ -176,6 +176,7 @@ export function ShadowSection() {
           onCustomColor={setColor}
           isCustom={isCustomColor}
           customLabel="Custom shadow color"
+          tileShape="rect"
         />
       </div>
 

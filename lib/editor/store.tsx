@@ -177,6 +177,8 @@ const DEFAULT_STATE: EditorState = {
 const HISTORY_LIMIT = 100
 const GROUP_MERGE_MS = 600
 
+export const MAX_CANVASES = 20
+
 type SetPatch =
   | Partial<EditorState>
   | ((state: EditorState) => Partial<EditorState>)
@@ -274,7 +276,7 @@ type EditorActions = {
   reset: () => void
   undo: () => void
   redo: () => void
-  addCanvas: () => string
+  addCanvas: () => string | null
   removeCanvas: (id: string) => void
   duplicateCanvas: (id?: string) => string | null
   setActiveCanvasId: (id: string) => void
@@ -949,6 +951,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       })
     },
     addCanvas: () => {
+      if (get().present.canvases.length >= MAX_CANVASES) return null
       const id = makeId()
       commit((state) => {
         const newCanvas = createCanvas(id, placementAfterCanvas(state))
@@ -983,6 +986,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       })
     },
     duplicateCanvas: (sourceId) => {
+      if (get().present.canvases.length >= MAX_CANVASES) return null
       const newId = makeId()
       let didCopy = false
       commit((state) => {

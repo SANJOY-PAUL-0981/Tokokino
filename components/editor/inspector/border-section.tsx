@@ -259,6 +259,7 @@ export function BorderSection() {
           onCustomColor={(hex) => setBorder({ ...border, color: hex })}
           isCustom={isCustom}
           customLabel="Custom border color"
+          tileShape="rect"
         />
       </div>
     </div>

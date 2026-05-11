@@ -35,6 +35,7 @@ import {
 import {
   type EditorTool,
   type EnhancePreset,
+  MAX_CANVASES,
   SCREENSHOT_POSITIONS,
   type ScreenshotPosition,
   screenshotPositionAnchor as screenshotPositionAnchorFn,
@@ -229,17 +230,23 @@ export function FloatingToolbar() {
               <TooltipTrigger asChild>
                 <button
                   type="button"
+                  disabled={canvases.length >= MAX_CANVASES}
                   onClick={() => {
-                    addCanvas()
-                    toast("Canvas added")
+                    const id = addCanvas()
+                    if (id) toast("Canvas added")
+                    else toast(`Canvas limit reached (${MAX_CANVASES})`)
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-foreground transition-colors hover:bg-accent cursor-pointer whitespace-nowrap"
+                  className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-foreground transition-colors hover:bg-accent cursor-pointer whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
                 >
                   <RiAddLine className="size-4" />
                   Add canvas
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="top">Insert a new canvas</TooltipContent>
+              <TooltipContent side="top">
+                {canvases.length >= MAX_CANVASES
+                  ? `Canvas limit reached (${MAX_CANVASES})`
+                  : "Insert a new canvas"}
+              </TooltipContent>
             </Tooltip>
           </motion.div>
         ) : null}

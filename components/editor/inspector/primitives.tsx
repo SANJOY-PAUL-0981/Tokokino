@@ -109,8 +109,12 @@ export function PopoverHeader({
   )
 }
 
-const presetTileClass =
-  "aspect-square w-full overflow-hidden rounded-xl border cursor-pointer"
+const presetTileBaseClass =
+  "w-full overflow-hidden rounded-xl border cursor-pointer"
+const presetTileAspectClass = {
+  square: "aspect-square",
+  rect: "aspect-[4/3]",
+} as const
 const presetActiveClass =
   "border-transparent ring-1 ring-primary/35 ring-offset-1 ring-offset-sidebar"
 const presetIdleClass = "border-border/60"
@@ -124,6 +128,7 @@ export function ColorPresetGrid({
   onCustomColor,
   isCustom,
   customLabel = "Custom color",
+  tileShape = "square",
 }: {
   presets: string[]
   selected: string | null
@@ -132,7 +137,9 @@ export function ColorPresetGrid({
   onCustomColor: (hex: string) => void
   isCustom: boolean
   customLabel?: string
+  tileShape?: "square" | "rect"
 }) {
+  const tileClass = cn(presetTileBaseClass, presetTileAspectClass[tileShape])
   return (
     <div className="grid grid-cols-3 gap-2 px-1 py-1">
       {presets.map((c) => {
@@ -143,7 +150,7 @@ export function ColorPresetGrid({
             <button
               onClick={() => onSelect(c)}
               className={cn(
-                presetTileClass,
+                tileClass,
                 active ? presetActiveClass : presetIdleClass
               )}
             >
@@ -160,7 +167,7 @@ export function ColorPresetGrid({
           <button
             className={cn(
               "relative",
-              presetTileClass,
+              tileClass,
               isCustom ? presetActiveClass : presetIdleClass
             )}
             aria-label={customLabel}

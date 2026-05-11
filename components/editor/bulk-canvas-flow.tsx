@@ -41,7 +41,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { useEditorStore } from "@/lib/editor/store"
+import { MAX_CANVASES, useEditorStore } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
 
 import { CanvasView } from "./canvas"
@@ -70,6 +70,7 @@ function CanvasNode({ data }: NodeProps<CanvasFlowNode>) {
   const onDuplicate = React.useCallback(() => {
     const newId = useEditorStore.getState().duplicateCanvas(canvasId)
     if (newId) toast("Canvas duplicated")
+    else toast(`Canvas limit reached (${MAX_CANVASES})`)
   }, [canvasId])
 
   const zoom = useFlowStore((s) => s.transform[2])
@@ -122,17 +123,22 @@ function CanvasNode({ data }: NodeProps<CanvasFlowNode>) {
           <TooltipTrigger asChild>
             <button
               type="button"
+              disabled={canvasCount >= MAX_CANVASES}
               onClick={(e) => {
                 e.stopPropagation()
                 onDuplicate()
               }}
               aria-label="Duplicate canvas"
-              className="nodrag inline-flex size-9 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="nodrag inline-flex size-9 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
             >
               <RiFileCopyLine className="size-4" />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="top">Duplicate</TooltipContent>
+          <TooltipContent side="top">
+            {canvasCount >= MAX_CANVASES
+              ? `Canvas limit reached (${MAX_CANVASES})`
+              : "Duplicate"}
+          </TooltipContent>
         </Tooltip>
 
         {canvasCount > 1 ? (
