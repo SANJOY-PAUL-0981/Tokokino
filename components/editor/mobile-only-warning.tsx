@@ -66,14 +66,10 @@ export function MobileOnlyWarning() {
           >
             Best viewed{" "}
             <span className="italic text-primary">
-              after dark
-              <span
-                aria-hidden
-                className="ml-0.5 inline-block size-1.5 -translate-y-3 rounded-full bg-primary align-middle shadow-[0_0_10px_rgba(255,90,90,0.9)]"
-              />
+              on a wider screen
             </span>
-            <br />
-            on a wider screen.
+
+
           </motion.h1>
 
           <motion.p
@@ -82,7 +78,7 @@ export function MobileOnlyWarning() {
             transition={{ duration: 0.55, ease: "easeOut", delay: 0.6 }}
             className="mt-5 max-w-[34ch] text-[13.5px] leading-relaxed text-foreground/60"
           >
-            The Noctivy editor was designed for desktops — its toolbars,
+            The Noctivy editor was designed for desktops  its toolbars,
             inspectors, and canvas don&apos;t fit comfortably on phones yet.
             Hop on a laptop or tablet, and we&apos;ll be waiting.
           </motion.p>
