@@ -8,6 +8,7 @@ import {
   RiCursorLine,
   RiDragMove2Line,
   RiFocus3Line,
+  RiGalleryLine,
   RiImageAddLine,
   RiLayoutColumnLine,
   RiLayoutGridLine,
@@ -297,6 +298,9 @@ function DefaultToolbarContents() {
     updateText,
     updateAsset,
     updateAnnotationShape,
+    addScreenshotSlot,
+    screenshotSlots,
+    setSelectedScreenshotSlotId,
   } = useEditor()
   const assetInputRef = React.useRef<HTMLInputElement>(null)
 
@@ -461,6 +465,21 @@ function DefaultToolbarContents() {
         onClick={() => assetInputRef.current?.click()}
       >
         <RiImageAddLine className="size-4" />
+      </ToolbarButton>
+      <ToolbarButton
+        aria-label="Add screenshot box"
+        tooltip={
+          screenshotSlots.length >= 6
+            ? "Maximum 6 screenshot boxes"
+            : "Add screenshot box"
+        }
+        disabled={screenshotSlots.length >= 6}
+        onClick={() => {
+          const id = addScreenshotSlot()
+          setSelectedScreenshotSlotId(id)
+        }}
+      >
+        <RiGalleryLine className="size-4" />
       </ToolbarButton>
       <span className="mx-1 h-5 w-px bg-border" />
       {items.map((it) => {

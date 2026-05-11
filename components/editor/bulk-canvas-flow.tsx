@@ -73,7 +73,10 @@ function CanvasNode({ data }: NodeProps<CanvasFlowNode>) {
   }, [canvasId])
 
   const zoom = useFlowStore((s) => s.transform[2])
-  const inverseZoom = zoom > 0 ? 1 / zoom : 1
+  // Counter-scale the toolbar against the canvas zoom so it stays readable,
+  // but cap and soften the inverse so it does not become huge when fit-view
+  // pushes the zoom well below 1.
+  const inverseZoom = zoom > 0 ? Math.min(10, 1 / Math.sqrt(zoom/2)) : 1
 
   return (
     <div

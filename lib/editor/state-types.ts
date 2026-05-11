@@ -308,6 +308,25 @@ export type GradientCategory = {
   items: string[]
 }
 
+export type ScreenshotSlot = {
+  id: string
+  src: string | null
+  xPct: number
+  yPct: number
+  widthPct: number
+  heightPct: number
+  rotation: number
+  borderRadius: number
+  zIndex: number
+  shadow: Shadow
+  border: Border
+  enhance: EnhancePreset
+  filter: AssetFilter
+  opacity: number
+  blendMode: AssetBlendMode
+  hidden?: boolean
+}
+
 export type CanvasPosition = { x: number; y: number }
 
 export type CanvasState = {
@@ -336,6 +355,7 @@ export type CanvasState = {
   enhance: EnhancePreset
   annotations: AnnotationStroke[]
   annotationShapes: AnnotationShape[]
+  screenshotSlots: ScreenshotSlot[]
 }
 
 export type EditorState = {

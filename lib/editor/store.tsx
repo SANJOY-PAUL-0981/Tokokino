@@ -27,6 +27,7 @@ import type {
   Portrait,
   ScreenshotLayer,
   ScreenshotPosition,
+  ScreenshotSlot,
   Shadow,
   TextElement,
   Tilt,
@@ -145,6 +146,7 @@ const DEFAULT_CANVAS_BASE: Omit<CanvasState, "id" | "position"> = {
   enhance: "off",
   annotations: [],
   annotationShapes: [],
+  screenshotSlots: [],
 }
 
 const createCanvas = (
@@ -264,6 +266,7 @@ type EditorActions = {
   sendAssetToBack: (id: string, canvasId?: string) => void
   setSelectedAssetId: (id: string | null) => void
   setSelectedAnnotationShapeId: (id: string | null) => void
+  setSelectedScreenshotSlotId: (id: string | null) => void
   setIsScreenshotSelected: (selected: boolean) => void
   setIsPreviewMode: (p: boolean) => void
   setBulkEditMode: (b: boolean) => void
@@ -278,6 +281,20 @@ type EditorActions = {
   setCanvasPosition: (id: string, position: { x: number; y: number }) => void
   setCanvasPositions: (positions: Record<string, { x: number; y: number }>) => void
   requestBulkFitView: () => void
+  addScreenshotSlot: (canvasId?: string) => string
+  updateScreenshotSlot: (
+    id: string,
+    patch: Partial<ScreenshotSlot>,
+    canvasId?: string
+  ) => void
+  setScreenshotSlotImage: (
+    id: string,
+    src: string | null,
+    canvasId?: string
+  ) => void
+  deleteScreenshotSlot: (id: string, canvasId?: string) => void
+  duplicateScreenshotSlot: (id: string, canvasId?: string) => string | null
+  arrangeScreenshotSlotsInRow: (canvasId?: string) => void
 }
 
 type EditorStore = {
@@ -293,6 +310,7 @@ type EditorStore = {
   selectedTextId: string | null
   selectedAssetId: string | null
   selectedAnnotationShapeId: string | null
+  selectedScreenshotSlotId: string | null
   isScreenshotSelected: boolean
 } & EditorActions
 
@@ -367,15 +385,107 @@ function moveLayerInStack(
   return applyLayerOrder(c, refs)
 }
 
-const NEW_CANVAS_OFFSET = { x: 60, y: 40 }
+const SLOT_ROW_MARGIN = 6
+const SLOT_ROW_GAP = 3
+const SLOT_DEFAULT_HEIGHT_PCT = 62
 
-const placementForNewCanvas = (state: EditorState) => {
+const layoutSlotsInRow = (slots: ScreenshotSlot[]): ScreenshotSlot[] => {
+  const n = slots.length
+  if (n === 0) return slots
+  const usableW = Math.max(20, 100 - 2 * SLOT_ROW_MARGIN - (n - 1) * SLOT_ROW_GAP)
+  const widthPct = usableW / n
+  return slots.map((slot, i) => ({
+    ...slot,
+    xPct: SLOT_ROW_MARGIN + widthPct / 2 + i * (widthPct + SLOT_ROW_GAP),
+    yPct: 50,
+    widthPct,
+    heightPct: SLOT_DEFAULT_HEIGHT_PCT,
+    rotation: 0,
+  }))
+}
+
+const createScreenshotSlot = (
+  base: Partial<ScreenshotSlot>,
+  zIndex: number
+): ScreenshotSlot => ({
+  id: makeId(),
+  src: null,
+  xPct: 50,
+  yPct: 50,
+  widthPct: 60,
+  heightPct: SLOT_DEFAULT_HEIGHT_PCT,
+  rotation: 0,
+  borderRadius: 12,
+  zIndex,
+  shadow: {
+    type: "drop",
+    intensity: 35,
+    lightSource: "center",
+    color: "#000000",
+  },
+  border: { color: null, width: 1, style: "solid", padding: 0 },
+  enhance: "off",
+  filter: "none",
+  opacity: 100,
+  blendMode: "normal",
+  ...base,
+})
+
+const CANVAS_BASE_W = 1100
+const CANVAS_GAP = 80
+
+/**
+ * Place a new canvas adjacent to an existing canvas without overlap.
+ * - With an explicit `sourceId`: place to the right of that canvas, then if
+ *   that spot collides with any other canvas, fall back to the rightmost free
+ *   slot in the grid.
+ * - Without a source: place to the right of the visually-rightmost canvas.
+ */
+const placementAfterCanvas = (
+  state: EditorState,
+  sourceId?: string
+): { x: number; y: number } => {
   if (state.canvases.length === 0) return { x: 0, y: 0 }
-  const last = state.canvases[state.canvases.length - 1]
-  return {
-    x: last.position.x + NEW_CANVAS_OFFSET.x,
-    y: last.position.y + NEW_CANVAS_OFFSET.y,
+
+  const aw = state.aspect.w || 16
+  const ah = state.aspect.h || 10
+  const canvasW = CANVAS_BASE_W
+  const canvasH = (CANVAS_BASE_W * ah) / aw
+  const strideX = canvasW + CANVAS_GAP
+  const strideY = canvasH + CANVAS_GAP
+
+  const collidesWithExisting = (pos: { x: number; y: number }) =>
+    state.canvases.some(
+      (c) => Math.abs(c.position.x - pos.x) < 1 && Math.abs(c.position.y - pos.y) < 1
+    )
+
+  // Anchor: the source canvas (when duplicating) or the rightmost canvas.
+  const src = sourceId
+    ? state.canvases.find((c) => c.id === sourceId)
+    : state.canvases.reduce((best, c) =>
+        c.position.x > best.position.x ? c : best,
+      state.canvases[0])
+
+  if (!src) {
+    const rightmost = state.canvases.reduce((max, c) =>
+      c.position.x > max.position.x ? c : max,
+      state.canvases[0])
+    return { x: rightmost.position.x + strideX, y: rightmost.position.y }
   }
+
+  // First choice: directly to the right of the source.
+  let candidate = { x: src.position.x + strideX, y: src.position.y }
+  if (!collidesWithExisting(candidate)) return candidate
+
+  // Otherwise, find the rightmost canvas overall and place after it.
+  const rightmost = state.canvases.reduce((max, c) =>
+    c.position.x > max.position.x ? c : max,
+    state.canvases[0])
+  candidate = { x: rightmost.position.x + strideX, y: rightmost.position.y }
+  if (!collidesWithExisting(candidate)) return candidate
+
+  // As a final fallback, drop one row below the source.
+  return { x: src.position.x, y: src.position.y + strideY }
 }
 
 export const useEditorStore = create<EditorStore>((set, get) => {
@@ -434,6 +544,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     selectedTextId: null,
     selectedAssetId: null,
     selectedAnnotationShapeId: null,
+    selectedScreenshotSlotId: null,
     isScreenshotSelected: false,
 
     setActiveTool: (t) => commit({ activeTool: t }, null),
@@ -785,6 +896,8 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     setSelectedAssetId: (id) => set({ selectedAssetId: id }),
     setSelectedAnnotationShapeId: (id) =>
       set({ selectedAnnotationShapeId: id }),
+    setSelectedScreenshotSlotId: (id) =>
+      set({ selectedScreenshotSlotId: id }),
     setIsScreenshotSelected: (selected) => set({ isScreenshotSelected: selected }),
     setIsPreviewMode: (p) => set({ isPreviewMode: p }),
     setBulkEditMode: (b) => {
@@ -838,18 +951,19 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     addCanvas: () => {
       const id = makeId()
       commit((state) => {
-        const newCanvas = createCanvas(id, placementForNewCanvas(state))
+        const newCanvas = createCanvas(id, placementAfterCanvas(state))
         return {
           canvases: [...state.canvases, newCanvas],
           activeCanvasId: id,
         }
       }, null)
-      set({
+      set((s) => ({
         selectedTextId: null,
         selectedAssetId: null,
         selectedAnnotationShapeId: null,
         bulkEditMode: true,
-      })
+        bulkFitViewSeq: s.bulkFitViewSeq + 1,
+      }))
       return id
     },
     removeCanvas: (id) => {
@@ -873,19 +987,26 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       let didCopy = false
       commit((state) => {
         const targetId = sourceId ?? state.activeCanvasId
-        const src = state.canvases.find((c) => c.id === targetId)
-        if (!src) return {}
+        const srcIndex = state.canvases.findIndex((c) => c.id === targetId)
+        if (srcIndex < 0) return {}
         didCopy = true
+        const src = state.canvases[srcIndex]
         const copy: CanvasState = {
           ...src,
           id: newId,
-          position: placementForNewCanvas(state),
+          position: placementAfterCanvas(state, src.id),
         }
+        // Insert the copy right after the source canvas
+        const canvases = [...state.canvases]
+        canvases.splice(srcIndex + 1, 0, copy)
         return {
-          canvases: [...state.canvases, copy],
+          canvases,
           activeCanvasId: newId,
         }
       }, null)
+      if (didCopy) {
+        set((s) => ({ bulkFitViewSeq: s.bulkFitViewSeq + 1 }))
+      }
       return didCopy ? newId : null
     },
     setActiveCanvasId: (id) => {
@@ -920,6 +1041,90 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     },
     requestBulkFitView: () =>
       set((s) => ({ bulkFitViewSeq: s.bulkFitViewSeq + 1 })),
+
+    addScreenshotSlot: (canvasId) => {
+      const id = makeId()
+      commitCanvas(
+        canvasId,
+        (canvas) => {
+          const next = createScreenshotSlot(
+            { id },
+            computeNextLayerZ(canvas)
+          )
+          return {
+            screenshotSlots: layoutSlotsInRow([
+              ...canvas.screenshotSlots,
+              next,
+            ]),
+          }
+        },
+        null
+      )
+      return id
+    },
+    updateScreenshotSlot: (id, patch, canvasId) =>
+      commitCanvas(
+        canvasId,
+        (canvas) => ({
+          screenshotSlots: canvas.screenshotSlots.map((slot) =>
+            slot.id === id ? { ...slot, ...patch } : slot
+          ),
+        }),
+        `screenshot-slot-${id}`
+      ),
+    setScreenshotSlotImage: (id, src, canvasId) =>
+      commitCanvas(
+        canvasId,
+        (canvas) => ({
+          screenshotSlots: canvas.screenshotSlots.map((slot) =>
+            slot.id === id ? { ...slot, src } : slot
+          ),
+        }),
+        null
+      ),
+    deleteScreenshotSlot: (id, canvasId) =>
+      commitCanvas(
+        canvasId,
+        (canvas) => ({
+          screenshotSlots: layoutSlotsInRow(
+            canvas.screenshotSlots.filter((slot) => slot.id !== id)
+          ),
+        }),
+        null
+      ),
+    duplicateScreenshotSlot: (id, canvasId) => {
+      const copyId = makeId()
+      let didCopy = false
+      commitCanvas(
+        canvasId,
+        (canvas) => {
+          const src = canvas.screenshotSlots.find((slot) => slot.id === id)
+          if (!src) return { screenshotSlots: canvas.screenshotSlots }
+          didCopy = true
+          const copy: ScreenshotSlot = {
+            ...src,
+            id: copyId,
+            zIndex: computeNextLayerZ(canvas),
+          }
+          return {
+            screenshotSlots: layoutSlotsInRow([
+              ...canvas.screenshotSlots,
+              copy,
+            ]),
+          }
+        },
+        null
+      )
+      return didCopy ? copyId : null
+    },
+    arrangeScreenshotSlotsInRow: (canvasId) =>
+      commitCanvas(
+        canvasId,
+        (canvas) => ({
+          screenshotSlots: layoutSlotsInRow(canvas.screenshotSlots),
+        }),
+        null
+      ),
   }
 })
 
@@ -968,6 +1173,7 @@ export type EditorContext = Omit<EditorState, "canvases"> &
     selectedTextId: string | null
     selectedAssetId: string | null
     selectedAnnotationShapeId: string | null
+    selectedScreenshotSlotId: string | null
     isScreenshotSelected: boolean
     canUndo: boolean
     canRedo: boolean
@@ -1021,6 +1227,7 @@ export function useEditor(): EditorContext {
     enhance: canvas.enhance,
     annotations: canvas.annotations,
     annotationShapes: canvas.annotationShapes,
+    screenshotSlots: canvas.screenshotSlots,
 
     isPreviewMode: store.isPreviewMode,
     bulkEditMode: store.bulkEditMode,
@@ -1028,6 +1235,7 @@ export function useEditor(): EditorContext {
     selectedTextId: store.selectedTextId,
     selectedAssetId: store.selectedAssetId,
     selectedAnnotationShapeId: store.selectedAnnotationShapeId,
+    selectedScreenshotSlotId: store.selectedScreenshotSlotId,
     isScreenshotSelected: store.isScreenshotSelected,
     canUndo: store.past.length > 0,
     canRedo: store.future.length > 0,
@@ -1106,6 +1314,7 @@ export function useEditor(): EditorContext {
       store.sendAssetToBack(id, canvasId ?? targetId),
     setSelectedAssetId: store.setSelectedAssetId,
     setSelectedAnnotationShapeId: store.setSelectedAnnotationShapeId,
+    setSelectedScreenshotSlotId: store.setSelectedScreenshotSlotId,
     setIsScreenshotSelected: store.setIsScreenshotSelected,
     setIsPreviewMode: store.setIsPreviewMode,
     setBulkEditMode: store.setBulkEditMode,
@@ -1120,6 +1329,18 @@ export function useEditor(): EditorContext {
     setCanvasPosition: store.setCanvasPosition,
     setCanvasPositions: store.setCanvasPositions,
     requestBulkFitView: store.requestBulkFitView,
+    addScreenshotSlot: (canvasId) =>
+      store.addScreenshotSlot(canvasId ?? targetId),
+    updateScreenshotSlot: (id, patch, canvasId) =>
+      store.updateScreenshotSlot(id, patch, canvasId ?? targetId),
+    setScreenshotSlotImage: (id, src, canvasId) =>
+      store.setScreenshotSlotImage(id, src, canvasId ?? targetId),
+    deleteScreenshotSlot: (id, canvasId) =>
+      store.deleteScreenshotSlot(id, canvasId ?? targetId),
+    duplicateScreenshotSlot: (id, canvasId) =>
+      store.duplicateScreenshotSlot(id, canvasId ?? targetId),
+    arrangeScreenshotSlotsInRow: (canvasId) =>
+      store.arrangeScreenshotSlotsInRow(canvasId ?? targetId),
     canvasCount: store.present.canvases.length,
   }
 }

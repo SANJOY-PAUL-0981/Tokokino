@@ -42,6 +42,7 @@ import {
 } from "./canvas/screenshot-browser-frame"
 import { ScreenshotMockup } from "./canvas/screenshot-mockup"
 import { BulkCanvasFlow } from "./bulk-canvas-flow"
+import { ScreenshotSlotView } from "./screenshot-slot-element"
 
 const BASE_CANVAS_WIDTH = 1100
 
@@ -96,6 +97,8 @@ function CanvasViewInner({
     assets,
     updateAsset,
     setSelectedAssetId,
+    screenshotSlots,
+    setSelectedScreenshotSlotId,
     addAnnotationStroke,
     updateAnnotationStroke,
     addAnnotationShape,
@@ -949,6 +952,7 @@ function CanvasViewInner({
             setSelectedTextId(null)
             setSelectedAssetId(null)
             setSelectedAnnotationShapeId(null)
+            setSelectedScreenshotSlotId(null)
             setIsScreenshotSelected(false)
           }}
           onPointerDownCapture={() => {
@@ -1160,7 +1164,7 @@ function CanvasViewInner({
                 onPointerMove={moveMockup}
                 onPointerUp={stopMockupDrag}
               />
-            ) : (
+            ) : screenshotSlots.length > 0 ? null : (
               <CanvasEmptyState
                 isDragOver={isDragOver}
                 onBrowse={() => fileInputRef.current?.click()}
@@ -1182,6 +1186,14 @@ function CanvasViewInner({
 
           {assets.map((a) => (
             <AssetElementView key={a.id} asset={a} canvasRef={canvasRef} />
+          ))}
+
+          {screenshotSlots.map((slot) => (
+            <ScreenshotSlotView
+              key={slot.id}
+              slot={slot}
+              canvasRef={canvasRef}
+            />
           ))}
 
           {texts.map((t) => (
@@ -1277,6 +1289,9 @@ export function Canvas() {
   const setSelectedAnnotationShapeId = useEditorStore(
     (s) => s.setSelectedAnnotationShapeId
   )
+  const setSelectedScreenshotSlotId = useEditorStore(
+    (s) => s.setSelectedScreenshotSlotId
+  )
 
   const aw = aspect.w || 16
   const ah = aspect.h || 10
@@ -1325,6 +1340,7 @@ export function Canvas() {
         setSelectedTextId(null)
         setSelectedAssetId(null)
         setSelectedAnnotationShapeId(null)
+        setSelectedScreenshotSlotId(null)
       }}
     >
       <CornerMarkers className="text-border" size={12} />
