@@ -8,12 +8,18 @@ import { cn } from "@/lib/utils"
 type CanvasEmptyStateProps = {
   isDragOver: boolean
   onBrowse: () => void
+  isActive?: boolean
 }
 
-export function CanvasEmptyState({ isDragOver, onBrowse }: CanvasEmptyStateProps) {
+export function CanvasEmptyState({
+  isDragOver,
+  onBrowse,
+  isActive = false,
+}: CanvasEmptyStateProps) {
   return (
     <div
       data-drag-over={isDragOver}
+      data-active={isActive}
       className={cn(
         "pointer-events-auto relative flex h-full w-full items-center justify-center px-4 py-3 text-white transition-all duration-300 sm:px-6 md:px-8",
         "data-[drag-over=true]:scale-[1.005]"
@@ -21,9 +27,13 @@ export function CanvasEmptyState({ isDragOver, onBrowse }: CanvasEmptyStateProps
     >
       <div
         data-drag-over={isDragOver}
+        data-active={isActive}
         className={cn(
-          "group/empty relative flex w-full max-w-[560px] flex-col overflow-hidden rounded-3xl border border-white/12 bg-black/30 backdrop-blur-md transition-all duration-300",
-          "hover:border-white/24",
+          "group/empty relative flex w-full max-w-[560px] flex-col overflow-hidden rounded-3xl border backdrop-blur-md transition-all duration-300",
+          isActive
+            ? "border-dashed border-border/70 bg-sidebar/90 ring-1 ring-primary/40"
+            : "border-white/12 bg-black/30 hover:border-white/24",
+          "data-[active=true]:bg-primary/10",
           "data-[drag-over=true]:border-primary/70 data-[drag-over=true]:bg-primary/8 data-[drag-over=true]:ring-2 data-[drag-over=true]:ring-primary/35"
         )}
       >
@@ -43,7 +53,11 @@ export function CanvasEmptyState({ isDragOver, onBrowse }: CanvasEmptyStateProps
 
         <button
           type="button"
-          onClick={onBrowse}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation()
+            onBrowse()
+          }}
           aria-label="Browse for an image"
           className={cn(
             "group relative z-10 flex flex-col items-center justify-center px-6 pt-9 pb-7 text-center transition-colors sm:px-8 sm:pt-11 sm:pb-9 md:pt-14 md:pb-11",

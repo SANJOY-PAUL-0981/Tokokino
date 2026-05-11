@@ -3,13 +3,13 @@
 import * as React from "react"
 import { createPortal } from "react-dom"
 import {
-  RiAddLine,
   RiDeleteBinLine,
   RiRefreshLine,
   RiSparkling2Line,
 } from "@remixicon/react"
 import { toast } from "sonner"
 
+import { CanvasEmptyState } from "@/components/editor/canvas/canvas-empty-state"
 import {
   ToolbarButton,
   ToolbarDeleteButton,
@@ -395,41 +395,30 @@ export function ScreenshotSlotView({
             />
           </div>
         ) : (
-          <button
-            type="button"
-            data-drag-over={isDragOver}
-            onClick={(e) => {
-              e.stopPropagation()
-              select(e)
-              fileInputRef.current?.click()
-            }}
+          <div
             className={cn(
-              "group/empty relative flex h-full w-full flex-col items-center justify-center gap-2 overflow-hidden border border-dashed border-white/25 bg-black/70 text-white/80 transition-all",
-              "hover:border-white/50 hover:bg-black/80",
-              "data-[drag-over=true]:border-primary/70 data-[drag-over=true]:bg-primary/10 data-[drag-over=true]:ring-2 data-[drag-over=true]:ring-primary/35",
+              "relative h-full w-full overflow-hidden",
               isSelected &&
                 "outline-2 outline-offset-2 outline-[#9BCD64]/95 outline-dashed"
             )}
             style={{
               borderRadius: slot.borderRadius,
               boxShadow: computedShadow,
-              backgroundImage:
-                "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 0)",
-              backgroundSize: "14px 14px",
             }}
           >
-            <span
-              className={cn(
-                "grid size-12 place-items-center rounded-full border border-white/20 bg-white/10 text-white/90 transition-all",
-                "group-hover/empty:scale-105 group-hover/empty:border-white/35 group-hover/empty:bg-white/16"
-              )}
-            >
-              <RiAddLine className="size-6" />
-            </span>
-            <span className="text-[11px] font-medium tracking-tight text-white/60">
-              Add screenshot
-            </span>
-          </button>
+            <CanvasEmptyState
+              isDragOver={isDragOver}
+              isActive={isSelected}
+              onBrowse={() => {
+                setSelectedScreenshotSlotId(slot.id)
+                setSelectedAssetId(null)
+                setSelectedTextId(null)
+                setSelectedAnnotationShapeId(null)
+                setIsScreenshotSelected(false)
+                fileInputRef.current?.click()
+              }}
+            />
+          </div>
         )}
 
         {isSelected ? (
