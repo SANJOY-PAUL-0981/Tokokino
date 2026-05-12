@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { motion } from "motion/react"
 import {
   RiAndroidLine,
   RiAppleLine,
@@ -55,6 +56,8 @@ import {
   isBrowserFrame,
 } from "@/lib/browser-frame"
 import { cn } from "@/lib/utils"
+
+const POP_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 type FrameKind = "browser" | "phone" | "tablet" | "watch" | "desktop" | "none"
 
@@ -286,7 +289,12 @@ export function FramePopover({
         collisionPadding={8}
         className="flex h-[min(640px,82vh)] max-h-[min(640px,82vh)] w-[min(420px,calc(100vw-1rem))] flex-col gap-0 overflow-hidden bg-popover p-0"
       >
-        <div className="relative shrink-0 border-b border-border/60 p-2">
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: POP_EASE, delay: 0.02 }}
+          className="relative shrink-0 border-b border-border/60 p-2"
+        >
           <RiSearchLine className="pointer-events-none absolute top-1/2 left-4 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search devices..."
@@ -294,14 +302,23 @@ export function FramePopover({
             onChange={(e) => setQuery(e.target.value)}
             className="h-8 !pl-8 text-[12px]"
           />
-        </div>
+        </motion.div>
 
         <ScrollFadeBody
           rootClassName="min-h-0 flex-1"
           className="h-full overscroll-contain p-3"
         >
           {visibleSections.map((section, idx) => (
-            <React.Fragment key={section.id}>
+            <motion.div
+              key={section.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.32,
+                ease: POP_EASE,
+                delay: 0.06 + idx * 0.04,
+              }}
+            >
               {idx !== 0 ? <div className="mt-4 h-px bg-border/50" /> : null}
               <div className="mt-3 mb-2.5 flex items-center gap-1.5 first:mt-0">
                 <section.icon className="size-3.5 text-foreground/80" />
@@ -314,20 +331,31 @@ export function FramePopover({
               </div>
 
               <div className="grid grid-cols-3 gap-2">
-                {section.options.map((option) => (
-                  <DeviceTile
+                {section.options.map((option, optIdx) => (
+                  <motion.div
                     key={option.id}
-                    option={option}
-                    selectedColor={currentColor}
-                    active={value.id === option.id}
-                    screenshot={previewScreenshot}
-                    onSelect={() => {
-                      selectFrame(option)
+                    initial={{ opacity: 0, scale: 0.92, y: 6 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{
+                      duration: 0.3,
+                      ease: POP_EASE,
+                      delay:
+                        0.08 + idx * 0.04 + Math.min(optIdx, 8) * 0.025,
                     }}
-                  />
+                  >
+                    <DeviceTile
+                      option={option}
+                      selectedColor={currentColor}
+                      active={value.id === option.id}
+                      screenshot={previewScreenshot}
+                      onSelect={() => {
+                        selectFrame(option)
+                      }}
+                    />
+                  </motion.div>
                 ))}
               </div>
-            </React.Fragment>
+            </motion.div>
           ))}
 
           {visibleSections.length === 0 ? (
@@ -337,7 +365,12 @@ export function FramePopover({
           ) : null}
         </ScrollFadeBody>
 
-        <div className="relative z-10 shrink-0 border-t border-border/60 bg-popover p-2">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: POP_EASE, delay: 0.12 }}
+          className="relative z-10 shrink-0 border-t border-border/60 bg-popover p-2"
+        >
           <div className="flex flex-wrap items-start justify-between gap-3">
             {current.colors.length > 0 ? (
               <div className="w-[160px] max-w-full shrink-0">
@@ -414,7 +447,7 @@ export function FramePopover({
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </PopoverContent>
     </Popover>
   )

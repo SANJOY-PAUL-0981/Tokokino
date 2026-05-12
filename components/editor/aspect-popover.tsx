@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { motion } from "motion/react"
 import {
   RiAppStoreLine,
   RiArrowRightSLine,
@@ -30,6 +31,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+
+const POP_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 type AspectOption = {
   id: string
@@ -426,7 +429,12 @@ export function AspectPopover({
         className="flex h-[min(560px,80vh)] max-h-[min(560px,80vh)] w-[min(360px,calc(100vw-1rem))] flex-col gap-0 overflow-hidden bg-popover p-0"
       >
         {/* Search */}
-        <div className="relative shrink-0 border-b border-border/60 p-2">
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: POP_EASE, delay: 0.02 }}
+          className="relative shrink-0 border-b border-border/60 p-2"
+        >
           <RiSearchLine className="pointer-events-none absolute top-1/2 left-4 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search ratios…"
@@ -434,7 +442,7 @@ export function AspectPopover({
             onChange={(e) => setQuery(e.target.value)}
             className="h-8 !pl-8 text-[12px]"
           />
-        </div>
+        </motion.div>
 
         {/* Sections */}
         <ScrollFadeBody
@@ -442,7 +450,16 @@ export function AspectPopover({
           className="h-full overscroll-contain p-3"
         >
           {visibleSections.map((section, idx) => (
-            <React.Fragment key={section.id}>
+            <motion.div
+              key={section.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.32,
+                ease: POP_EASE,
+                delay: 0.06 + idx * 0.035,
+              }}
+            >
               {section.id !== "basic" ? (
                 <div className="mt-5 mb-3 flex items-center gap-1.5">
                   {section.icon ? (
@@ -455,22 +472,33 @@ export function AspectPopover({
               ) : null}
 
               <div className="flex flex-wrap items-end gap-x-2 gap-y-3">
-                {section.options.map((o) => (
-                  <AspectTile
+                {section.options.map((o, optIdx) => (
+                  <motion.div
                     key={o.id}
-                    option={o}
-                    active={value === o.id}
-                    onSelect={() => {
-                      onChange(o.id)
-                      setOpen(false)
+                    initial={{ opacity: 0, scale: 0.9, y: 6 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{
+                      duration: 0.28,
+                      ease: POP_EASE,
+                      delay:
+                        0.08 + idx * 0.035 + Math.min(optIdx, 10) * 0.018,
                     }}
-                  />
+                  >
+                    <AspectTile
+                      option={o}
+                      active={value === o.id}
+                      onSelect={() => {
+                        onChange(o.id)
+                        setOpen(false)
+                      }}
+                    />
+                  </motion.div>
                 ))}
               </div>
               {idx === 0 && visibleSections.length > 1 ? (
                 <div className="mt-4 h-px bg-border/50" />
               ) : null}
-            </React.Fragment>
+            </motion.div>
           ))}
 
           {visibleSections.length === 0 ? (
@@ -481,7 +509,12 @@ export function AspectPopover({
         </ScrollFadeBody>
 
         {/* Custom */}
-        <div className="relative z-10 shrink-0 border-t border-border/60 bg-popover p-2">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: POP_EASE, delay: 0.12 }}
+          className="relative z-10 shrink-0 border-t border-border/60 bg-popover p-2"
+        >
           <div className="label-eyebrow mb-1.5 px-1 !text-[9px]">
             Custom size
           </div>
@@ -512,7 +545,7 @@ export function AspectPopover({
               Apply
             </button>
           </div>
-        </div>
+        </motion.div>
       </PopoverContent>
     </Popover>
   )

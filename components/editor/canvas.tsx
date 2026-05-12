@@ -26,8 +26,11 @@ import { getDeviceMockup, getDeviceMockupAsset } from "@/lib/mockups"
 
 import { AnnotationLayer } from "./canvas/annotation-layer"
 import { CanvasBackdrop } from "./canvas/canvas-backdrop"
+import { BoxEmptyState } from "./canvas/box-empty-state"
+import { BoxHoverActions } from "./canvas/box-hover-actions"
 import { CanvasEmptyState } from "./canvas/canvas-empty-state"
 import { DeviceFrameEmptyState } from "./canvas/device-frame-empty-state"
+import { FramedScreenshotVisual } from "./canvas/framed-screenshot-visual"
 import {
   annotationPath,
   clamp,
@@ -45,6 +48,17 @@ import { BulkCanvasFlow } from "./bulk-canvas-flow"
 import { ScreenshotSlotView } from "./screenshot-slot-element"
 
 const BASE_CANVAS_WIDTH = 1100
+const SCREENSHOT_ROW_MARGIN = 4
+const SCREENSHOT_ROW_GAP = 3
+
+const screenshotRowItemWidth = (count: number) => {
+  if (count <= 1) return 66
+  const usableW = Math.max(
+    20,
+    100 - 2 * SCREENSHOT_ROW_MARGIN - (count - 1) * SCREENSHOT_ROW_GAP
+  )
+  return usableW / count
+}
 
 type CanvasViewProps = {
   canvasId: string
@@ -99,6 +113,7 @@ function CanvasViewInner({
     setSelectedAssetId,
     screenshotSlots,
     setSelectedScreenshotSlotId,
+    setScreenshotSlotImage,
     addAnnotationStroke,
     updateAnnotationStroke,
     addAnnotationShape,
@@ -143,6 +158,9 @@ function CanvasViewInner({
     y: number
   } | null>(null)
   const [isCropModalOpen, setIsCropModalOpen] = React.useState(false)
+  const [croppingSlotId, setCroppingSlotId] = React.useState<string | null>(
+    null
+  )
   const [centerGuides, setCenterGuides] = React.useState({ x: false, y: false })
   const [textCenterGuides, setTextCenterGuides] = React.useState({
     x: false,
@@ -325,6 +343,24 @@ function CanvasViewInner({
   const aw = autoDims ? autoDims.w : aspect.w || 16
   const ah = autoDims ? autoDims.h : aspect.h || 10
   const aspectRatio = `${aw} / ${ah}`
+  const screenshotBoxAspect = aw / ah < 0.85 ? "10 / 14" : "16 / 10"
+  const rowItemCount = screenshotSlots.length + 1
+  const rowItemWidth = screenshotRowItemWidth(rowItemCount)
+  const rowTotalWidth =
+    rowItemWidth * rowItemCount + SCREENSHOT_ROW_GAP * (rowItemCount - 1)
+  const rowStartX = 50 - rowTotalWidth / 2
+  const mainScreenshotRowStyle: React.CSSProperties | null =
+    screenshotSlots.length > 0
+      ? {
+          position: "absolute",
+          left: `${rowStartX + rowItemWidth / 2}%`,
+          top: "50%",
+          width: `${rowItemWidth}%`,
+          aspectRatio: screenshotBoxAspect,
+          transform: "translate(-50%, -50%)",
+          zIndex: 60 + screenshotLayer.zIndex,
+        }
+      : null
 
   const transform = [
     `perspective(1400px)`,
@@ -1013,12 +1049,44 @@ function CanvasViewInner({
             overlay={overlay}
           />
 
+          {mainScreenshotRowStyle ? (
+            <MainScreenshotRowItem
+              style={mainScreenshotRowStyle}
+              screenshot={screenshot}
+              frame={frame}
+              transform={transform}
+              isDragOver={isDragOver}
+              imgStyle={imgStyle}
+              shadowFilter={computedShadowFilter}
+              filterChain={enhanceFilter}
+              isSelected={isScreenshotSelected}
+              activeTool={activeTool}
+              onSelect={handleScreenshotClickSelect}
+              onBrowse={() => fileInputRef.current?.click()}
+              onCropClick={() => setIsCropModalOpen(true)}
+              onReplaceFile={readFile}
+              onDelete={() => {
+                setIsScreenshotSelected(false)
+                setScreenshot(null)
+              }}
+            />
+          ) : null}
+
           <div
-            className="pointer-events-none relative flex h-full w-full items-center justify-center"
-            style={{
-              padding: `${(padding / 1200) * 100}%`,
-              zIndex: 60 + screenshotLayer.zIndex,
-            }}
+            className={cn(
+              "pointer-events-none flex items-center justify-center",
+              mainScreenshotRowStyle
+                ? "hidden"
+                : "relative h-full w-full"
+            )}
+            style={
+              mainScreenshotRowStyle
+                ? undefined
+                : {
+                    padding: `${(padding / 1200) * 100}%`,
+                    zIndex: 60 + screenshotLayer.zIndex,
+                  }
+            }
           >
             {screenshot ? (
               browserFrame ? (
@@ -1200,6 +1268,8 @@ function CanvasViewInner({
               key={slot.id}
               slot={slot}
               canvasRef={canvasRef}
+              canvasAspectRatio={aw / ah}
+              onCropRequest={(id) => setCroppingSlotId(id)}
             />
           ))}
 
@@ -1265,7 +1335,120 @@ function CanvasViewInner({
         initialRegion={lastCropRegion}
         onCrop={applyCroppedScreenshot}
       />
+
+      <CropModal
+        open={croppingSlotId !== null}
+        onOpenChange={(open) => {
+          if (!open) setCroppingSlotId(null)
+        }}
+        screenshotUrl={
+          croppingSlotId
+            ? (screenshotSlots.find((s) => s.id === croppingSlotId)?.src ?? null)
+            : null
+        }
+        onCrop={(cropped) => {
+          if (croppingSlotId) {
+            setScreenshotSlotImage(croppingSlotId, cropped)
+            setCroppingSlotId(null)
+          }
+        }}
+      />
     </>
+  )
+}
+
+type MainScreenshotRowItemProps = {
+  style: React.CSSProperties
+  screenshot: string | null
+  frame: import("@/lib/editor/state-types").DeviceFrame
+  transform: string
+  isDragOver: boolean
+  imgStyle: React.CSSProperties
+  shadowFilter: string | undefined
+  filterChain: string | undefined
+  isSelected: boolean
+  activeTool: import("@/lib/editor/store").EditorTool
+  onSelect: (e: React.MouseEvent | React.PointerEvent) => void
+  onBrowse: () => void
+  onCropClick: () => void
+  onReplaceFile: (file: File) => void
+  onDelete: () => void
+}
+
+function MainScreenshotRowItem({
+  style,
+  screenshot,
+  frame,
+  transform,
+  isDragOver,
+  imgStyle,
+  shadowFilter,
+  filterChain,
+  isSelected,
+  activeTool,
+  onSelect,
+  onBrowse,
+  onCropClick,
+  onReplaceFile,
+  onDelete,
+}: MainScreenshotRowItemProps) {
+  return (
+    <div
+      className={cn(
+        "group/main-row pointer-events-auto",
+        activeTool === "pointer" && "cursor-pointer"
+      )}
+      style={style}
+      onClick={onSelect}
+    >
+      <div
+        className={cn(
+          "relative h-full w-full",
+          isSelected &&
+            activeTool === "pointer" &&
+            "outline-2 outline-offset-2 outline-[#9BCD64]/95 outline-dashed"
+        )}
+        style={{
+          transform,
+          transformStyle: "preserve-3d",
+          opacity: imgStyle.opacity as number | undefined,
+          mixBlendMode: imgStyle.mixBlendMode as React.CSSProperties["mixBlendMode"],
+          borderRadius: imgStyle.borderRadius as number | undefined,
+          boxShadow:
+            frame.id === "none"
+              ? (imgStyle.boxShadow as string | undefined)
+              : undefined,
+        }}
+      >
+        <FramedScreenshotVisual
+          src={screenshot}
+          frame={frame}
+          imageFilter={filterChain}
+          shadowFilter={frame.id === "none" ? undefined : shadowFilter}
+          borderRadius={imgStyle.borderRadius as number | undefined}
+          outline={
+            imgStyle.outline
+              ? {
+                  width: 0,
+                  color: null,
+                }
+              : undefined
+          }
+          emptyState={
+            <BoxEmptyState isDragOver={isDragOver} onBrowse={onBrowse} />
+          }
+        />
+
+        {screenshot && activeTool === "pointer" ? (
+          <BoxHoverActions
+            hoverGroupClass="group-hover/main-row:opacity-100"
+            onCrop={onCropClick}
+            onReplaceFile={onReplaceFile}
+            onDelete={onDelete}
+          />
+        ) : null}
+      </div>
+    </div>
   )
 }
 

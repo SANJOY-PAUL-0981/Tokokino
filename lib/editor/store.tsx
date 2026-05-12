@@ -400,23 +400,29 @@ function moveLayerInStack(
   return applyLayerOrder(c, refs)
 }
 
-const SLOT_ROW_GAP = 4
-const SLOT_DEFAULT_HEIGHT_PCT = 64
+const SLOT_ROW_MARGIN = 4
+const SLOT_ROW_GAP = 3
+const SLOT_DEFAULT_HEIGHT_PCT = 28
 
 const slotWidthForCount = (count: number) => {
-  if (count <= 2) return 30
-  return 28
+  if (count <= 1) return 66
+  const usableW = Math.max(
+    20,
+    100 - 2 * SLOT_ROW_MARGIN - (count - 1) * SLOT_ROW_GAP
+  )
+  return usableW / count
 }
 
 const layoutSlotsInRow = (slots: ScreenshotSlot[]): ScreenshotSlot[] => {
   const n = slots.length
   if (n === 0) return slots
-  const widthPct = slotWidthForCount(n)
-  const totalW = widthPct * n + SLOT_ROW_GAP * (n - 1)
+  const totalItems = n + 1
+  const widthPct = slotWidthForCount(totalItems)
+  const totalW = widthPct * totalItems + SLOT_ROW_GAP * (totalItems - 1)
   const startX = 50 - totalW / 2
   return slots.map((slot, i) => ({
     ...slot,
-    xPct: startX + widthPct / 2 + i * (widthPct + SLOT_ROW_GAP),
+    xPct: startX + widthPct / 2 + (i + 1) * (widthPct + SLOT_ROW_GAP),
     yPct: 50,
     widthPct,
     heightPct: SLOT_DEFAULT_HEIGHT_PCT,

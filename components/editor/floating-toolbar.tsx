@@ -14,7 +14,6 @@ import {
   RiLayoutGridLine,
   RiLayoutRowLine,
   RiResetLeftLine,
-  RiSmartphoneLine,
   RiSparkling2Line,
   RiStackLine,
   RiText,
@@ -23,7 +22,6 @@ import { AnimatePresence, motion } from "motion/react"
 import { toast } from "sonner"
 
 import { AnnotationToolbar } from "@/components/editor/annotation-toolbar"
-import { FramePopover } from "@/components/editor/frame-popover"
 import { LayersPanelContent } from "@/components/editor/layers-popover"
 import {
   ToolbarButton,
@@ -297,7 +295,6 @@ function DefaultToolbarContents() {
     setIsScreenshotSelected,
     screenshot,
     frame,
-    setFrame,
     enhance,
     setEnhance,
     scale,
@@ -579,39 +576,6 @@ function DefaultToolbarContents() {
       >
         <RiGalleryLine className="size-4" />
       </ToolbarButton>
-      <ToolbarPopover
-        tooltip={
-          selectedSlot
-            ? "Frame for selected screenshot box"
-            : "Frame for main screenshot"
-        }
-        contentClassName="w-72 p-3"
-        trigger={({ open }) => (
-          <ToolbarButton
-            aria-label="Frame"
-            active={open || activeFrame.id !== "none"}
-          >
-            <RiSmartphoneLine className="size-4" />
-          </ToolbarButton>
-        )}
-      >
-        <div className="flex flex-col gap-2">
-          <span className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-            {selectedSlot ? "Screenshot box frame" : "Main screenshot frame"}
-          </span>
-          <FramePopover
-            value={activeFrame}
-            previewImage={selectedSlot ? selectedSlot.src : undefined}
-            onChange={(nextFrame) => {
-              if (selectedSlot) {
-                updateScreenshotSlot(selectedSlot.id, { frame: nextFrame })
-                return
-              }
-              setFrame(nextFrame)
-            }}
-          />
-        </div>
-      </ToolbarPopover>
       <span className="mx-1 h-5 w-px bg-border" />
       {items.map((it) => {
         const isActive = activeTool === it.id
