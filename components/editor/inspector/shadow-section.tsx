@@ -5,7 +5,7 @@ import { RiArrowRightLine, RiFocus3Line } from "@remixicon/react"
 
 import { EditableValue } from "@/components/editor/editable-value"
 import { Slider } from "@/components/ui/slider"
-import { useEditor } from "@/lib/editor/store"
+import { useActiveCanvasField, useEditorStore } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
 
 import { ColorPresetGrid, SubHeader } from "./primitives"
@@ -35,7 +35,8 @@ const LIGHT_POSITIONS = Array.from({ length: 25 }, (_, i) => {
 })
 
 export function ShadowSection() {
-  const { shadow, setShadow } = useEditor()
+  const shadow = useActiveCanvasField((c) => c.shadow)
+  const setShadow = useEditorStore((s) => s.setShadow)
   const { type, intensity, lightSource, color = "#000000" } = shadow
 
   const setType = (t: typeof shadow.type) => {

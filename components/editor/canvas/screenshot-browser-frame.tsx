@@ -120,7 +120,10 @@ export function ScreenshotBrowserFrame({
           transformOrigin: "center",
           filter: combinedFilter,
           opacity: screenshotLayer.hidden ? 0 : screenshotLayer.opacity / 100,
-          mixBlendMode: screenshotLayer.blendMode,
+          mixBlendMode:
+            screenshotLayer.blendMode && screenshotLayer.blendMode !== "normal"
+              ? screenshotLayer.blendMode
+              : undefined,
         }}
         onClick={onSelect}
         onKeyDown={(e) => {

@@ -31,7 +31,8 @@ import {
   overlayThumbUrl,
   patternCssFor,
   sampleImageColors,
-  useEditor,
+  useActiveCanvasField,
+  useEditorStore,
   type AssetFilter,
   type PortraitMode,
 } from "@/lib/editor/store"
@@ -425,19 +426,17 @@ function BackdropFilterGrid({
 }
 
 export function BackdropSection() {
-  const {
-    backdrop,
-    background,
-    overlay,
-    portrait,
-    canvasBorderRadius,
-    setBackdropEffects,
-    setBackdropPattern,
-    setBackdropFilter,
-    setOverlay,
-    setPortrait,
-    setCanvasBorderRadius,
-  } = useEditor()
+  const backdrop = useActiveCanvasField((c) => c.backdrop)
+  const background = useActiveCanvasField((c) => c.background)
+  const overlay = useActiveCanvasField((c) => c.overlay)
+  const portrait = useActiveCanvasField((c) => c.portrait)
+  const canvasBorderRadius = useActiveCanvasField((c) => c.canvasBorderRadius)
+  const setBackdropEffects = useEditorStore((s) => s.setBackdropEffects)
+  const setBackdropPattern = useEditorStore((s) => s.setBackdropPattern)
+  const setBackdropFilter = useEditorStore((s) => s.setBackdropFilter)
+  const setOverlay = useEditorStore((s) => s.setOverlay)
+  const setPortrait = useEditorStore((s) => s.setPortrait)
+  const setCanvasBorderRadius = useEditorStore((s) => s.setCanvasBorderRadius)
   const { effects, pattern, filter: backdropFilter = "none" } = backdrop
   const [imageColors, setImageColors] = React.useState<string[] | null>(null)
 

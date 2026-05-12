@@ -5,7 +5,11 @@ import * as React from "react"
 import { EditableValue } from "@/components/editor/editable-value"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
-import { sampleImageColorsRaw, useEditor } from "@/lib/editor/store"
+import {
+  sampleImageColorsRaw,
+  useActiveCanvasField,
+  useEditorStore,
+} from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
 
 import { ColorPresetGrid, SubHeader } from "./primitives"
@@ -22,14 +26,12 @@ const BORDER_PRESETS = [
 const DEFAULT_BORDER_COLOR = BORDER_PRESETS[0]
 
 export function BorderSection() {
-  const {
-    border,
-    setBorder,
-    borderRadius,
-    setBorderRadius,
-    background,
-    screenshot,
-  } = useEditor()
+  const border = useActiveCanvasField((c) => c.border)
+  const borderRadius = useActiveCanvasField((c) => c.borderRadius)
+  const background = useActiveCanvasField((c) => c.background)
+  const screenshot = useActiveCanvasField((c) => c.screenshot)
+  const setBorder = useEditorStore((s) => s.setBorder)
+  const setBorderRadius = useEditorStore((s) => s.setBorderRadius)
   const enabled = border.color !== null
   const currentColor = border.color || DEFAULT_BORDER_COLOR
 

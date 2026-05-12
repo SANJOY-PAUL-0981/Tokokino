@@ -42,7 +42,8 @@ import {
   SOLID_PRESETS,
   generateAutoGradients,
   sampleImageColorsRaw,
-  useEditor,
+  useActiveCanvasField,
+  useEditorStore,
   type BackgroundEntry,
   type BgType,
 } from "@/lib/editor/store"
@@ -431,7 +432,9 @@ function GradientCustomizerPopover({
 }
 
 export function BackgroundSection() {
-  const { background, setBackground, screenshot } = useEditor()
+  const background = useActiveCanvasField((c) => c.background)
+  const screenshot = useActiveCanvasField((c) => c.screenshot)
+  const setBackground = useEditorStore((s) => s.setBackground)
   const fileRef = React.useRef<HTMLInputElement>(null)
   const [unsplashQuery, setUnsplashQuery] = React.useState("")
   const [unsplashStatus, setUnsplashStatus] = React.useState<

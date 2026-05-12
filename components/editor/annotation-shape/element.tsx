@@ -478,7 +478,10 @@ export function AnnotationShapeElement({
           transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
           zIndex: 60 + shape.zIndex,
           opacity: (shape.opacity ?? 100) / 100,
-          mixBlendMode: shape.blendMode ?? "normal",
+          mixBlendMode:
+            shape.blendMode && shape.blendMode !== "normal"
+              ? shape.blendMode
+              : undefined,
           display: shape.hidden ? "none" : undefined,
         }}
       >

@@ -1168,6 +1168,18 @@ const FALLBACK_CANVAS: CanvasState = {
   position: { x: 0, y: 0 },
 }
 
+export function useActiveCanvasField<T>(selector: (canvas: CanvasState) => T): T {
+  const scopeId = React.useContext(CanvasIdContext)
+  return useEditorStore((s) => {
+    const id = scopeId ?? s.present.activeCanvasId
+    const canvas =
+      s.present.canvases.find((c) => c.id === id) ??
+      s.present.canvases[0] ??
+      FALLBACK_CANVAS
+    return selector(canvas)
+  })
+}
+
 export type EditorContext = Omit<EditorState, "canvases"> &
   CanvasState &
   EditorActions & {

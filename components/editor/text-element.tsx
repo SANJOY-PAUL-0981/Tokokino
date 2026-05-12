@@ -549,7 +549,10 @@ export function TextElementView({ text, canvasRef, onCenterGuideChange }: Props)
         width: outerWidth,
         height: outerHeight,
         opacity: (text.opacity ?? 100) / 100,
-        mixBlendMode: text.blendMode ?? "normal",
+        mixBlendMode:
+          text.blendMode && text.blendMode !== "normal"
+            ? text.blendMode
+            : undefined,
         display: text.hidden ? "none" : undefined,
       }}
       onPointerDown={isEditing ? undefined : startDrag}

@@ -4,7 +4,7 @@ import * as React from "react"
 
 import { EditableValue } from "@/components/editor/editable-value"
 import { Slider } from "@/components/ui/slider"
-import { useEditor } from "@/lib/editor/store"
+import { useActiveCanvasField, useEditorStore } from "@/lib/editor/store"
 
 function DegreeRow({
   label,
@@ -39,7 +39,10 @@ function DegreeRow({
 }
 
 export function TiltSection() {
-  const { tilt, setTilt, scale, setScale } = useEditor()
+  const tilt = useActiveCanvasField((c) => c.tilt)
+  const scale = useActiveCanvasField((c) => c.scale)
+  const setTilt = useEditorStore((s) => s.setTilt)
+  const setScale = useEditorStore((s) => s.setScale)
   return (
     <>
       <DegreeRow

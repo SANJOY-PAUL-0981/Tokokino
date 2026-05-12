@@ -4,11 +4,12 @@ import * as React from "react"
 
 import { EditableValue } from "@/components/editor/editable-value"
 import { Slider } from "@/components/ui/slider"
-import { useEditor } from "@/lib/editor/store"
+import { useActiveCanvasField, useEditorStore } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
 
 export function PaddingSection() {
-  const { padding, setPadding } = useEditor()
+  const padding = useActiveCanvasField((c) => c.padding)
+  const setPadding = useEditorStore((s) => s.setPadding)
   const quick = [16, 40, 80, 120]
   return (
     <>

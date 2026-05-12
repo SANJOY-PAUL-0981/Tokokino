@@ -11,7 +11,7 @@ import {
 } from "@remixicon/react"
 
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { useEditor } from "@/lib/editor/store"
+import { useActiveCanvasField } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
 
 import { BackdropSection } from "./inspector/backdrop-section"
@@ -23,8 +23,8 @@ import { ShadowSection } from "./inspector/shadow-section"
 import { TiltSection } from "./inspector/tilt-section"
 
 export function Inspector({ className }: { className?: string }) {
-  const { frame } = useEditor()
-  const hasDeviceFrame = frame.id !== "none"
+  const frameId = useActiveCanvasField((c) => c.frame.id)
+  const hasDeviceFrame = frameId !== "none"
 
   return (
     <aside

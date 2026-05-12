@@ -1,5 +1,7 @@
 "use client"
 
+import * as React from "react"
+
 import { cn } from "@/lib/utils"
 import {
   assetFilterCss,
@@ -24,7 +26,7 @@ type CanvasBackdropProps = {
   overlay: Overlay
 }
 
-export function CanvasBackdrop({
+function CanvasBackdropImpl({
   background,
   backdrop,
   effectsFilter,
@@ -106,3 +108,5 @@ export function CanvasBackdrop({
     </>
   )
 }
+
+export const CanvasBackdrop = React.memo(CanvasBackdropImpl)

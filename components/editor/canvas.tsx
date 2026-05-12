@@ -360,7 +360,9 @@ function CanvasViewInner({
     boxShadow: computedShadow,
     filter: enhanceFilter,
     opacity: screenshotLayer.hidden ? 0 : screenshotLayer.opacity / 100,
-    mixBlendMode: screenshotLayer.blendMode,
+  }
+  if (screenshotLayer.blendMode && screenshotLayer.blendMode !== "normal") {
+    imgStyle.mixBlendMode = screenshotLayer.blendMode
   }
   if (border.color && border.width > 0) {
     imgStyle.outline = `${border.width}px ${border.style || "solid"} ${border.color}`
@@ -1168,6 +1170,7 @@ function CanvasViewInner({
               <CanvasEmptyState
                 isDragOver={isDragOver}
                 onBrowse={() => fileInputRef.current?.click()}
+                previewStyle={imgStyle}
               />
             )}
           </div>

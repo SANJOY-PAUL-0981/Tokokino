@@ -317,7 +317,10 @@ export function AssetElementView({
           height: heightStyle,
           transform: `translate(-50%, -50%) rotate(${asset.rotation}deg)`,
           zIndex: 60 + asset.zIndex,
-          mixBlendMode: asset.blendMode,
+          mixBlendMode:
+            asset.blendMode && asset.blendMode !== "normal"
+              ? asset.blendMode
+              : undefined,
           display: asset.hidden ? "none" : undefined,
         }}
       >

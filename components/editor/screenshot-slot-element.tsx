@@ -322,7 +322,9 @@ export function ScreenshotSlotView({
     transform: `translate(-50%, -50%) rotate(${slot.rotation}deg)`,
     zIndex: 60 + slot.zIndex,
     display: slot.hidden ? "none" : undefined,
-    mixBlendMode: slot.blendMode,
+  }
+  if (slot.blendMode && slot.blendMode !== "normal") {
+    containerStyle.mixBlendMode = slot.blendMode
   }
 
   const imageBoxStyle: React.CSSProperties = {

@@ -9,12 +9,14 @@ type CanvasEmptyStateProps = {
   isDragOver: boolean
   onBrowse: () => void
   isActive?: boolean
+  previewStyle?: React.CSSProperties
 }
 
 export function CanvasEmptyState({
   isDragOver,
   onBrowse,
   isActive = false,
+  previewStyle,
 }: CanvasEmptyStateProps) {
   return (
     <div
@@ -28,8 +30,14 @@ export function CanvasEmptyState({
       <div
         data-drag-over={isDragOver}
         data-active={isActive}
+        style={
+          previewStyle
+            ? { transition: "none", ...previewStyle }
+            : undefined
+        }
         className={cn(
-          "group/empty relative flex w-full max-w-[560px] flex-col overflow-hidden rounded-3xl border backdrop-blur-md transition-all duration-300",
+          "group/empty relative flex w-full max-w-[560px] flex-col overflow-hidden rounded-3xl border backdrop-blur-md",
+          !previewStyle && "transition-all duration-300",
           isActive
             ? "border-dashed border-border/70 bg-sidebar/90 ring-1 ring-primary/40"
             : "border-white/12 bg-black/30 hover:border-white/24",

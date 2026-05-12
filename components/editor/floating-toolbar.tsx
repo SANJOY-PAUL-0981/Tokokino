@@ -326,6 +326,7 @@ function DefaultToolbarContents() {
 
   type PositionTarget = "text" | "asset" | "annotation" | "screenshot" | "canvas" | null
   const hasDeviceFrame = frame.id !== "none"
+  const hasScalableContent = Boolean(screenshot || hasDeviceFrame)
   const positionTarget: PositionTarget = selectedText
     ? "text"
     : selectedAsset
@@ -640,8 +641,8 @@ function DefaultToolbarContents() {
 
       <ToolbarButton
         aria-label="Zoom out"
-        tooltip={screenshot ? "Zoom out" : "Add a screenshot first"}
-        disabled={!screenshot}
+        tooltip={hasScalableContent ? "Zoom out" : "Add a screenshot or frame first"}
+        disabled={!hasScalableContent || scale <= 10}
         onClick={() => setScale(Math.max(10, scale - 10))}
       >
         <span className="text-base leading-none">−</span>
@@ -649,11 +650,11 @@ function DefaultToolbarContents() {
 
       <button
         type="button"
-        disabled={!screenshot}
+        disabled={!hasScalableContent}
         onClick={() => setScale(100)}
         className={cn(
           "tabular min-w-[3.25rem] rounded-md px-1 py-1.5 font-mono text-[11px] text-foreground/85 hover:bg-accent cursor-pointer",
-          !screenshot && "opacity-40 cursor-not-allowed"
+          !hasScalableContent && "opacity-40 cursor-not-allowed"
         )}
       >
         {scale}%
@@ -661,8 +662,8 @@ function DefaultToolbarContents() {
 
       <ToolbarButton
         aria-label="Zoom in"
-        tooltip={screenshot ? "Zoom in" : "Add a screenshot first"}
-        disabled={!screenshot}
+        tooltip={hasScalableContent ? "Zoom in" : "Add a screenshot or frame first"}
+        disabled={!hasScalableContent || scale >= 300}
         onClick={() => setScale(Math.min(300, scale + 10))}
       >
         <span className="text-base leading-none">+</span>
