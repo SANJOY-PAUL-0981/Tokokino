@@ -58,6 +58,7 @@ type EditorLayer = {
   key: string
   id: string
   type: EditableLayerType
+  source?: "annotation-shape" | "annotation-stroke"
   name: string
   meta: string
   zIndex: number
@@ -114,6 +115,8 @@ export function LayersPanelContent() {
     updateAsset,
     texts,
     updateText,
+    annotations,
+    updateAnnotationStrokeLayer,
     annotationShapes,
     updateAnnotationShape,
     selectedAssetId,
@@ -203,11 +206,30 @@ export function LayersPanelContent() {
       })
     }
 
+    for (const [index, stroke] of annotations.entries()) {
+      if (stroke.mode === "eraser") continue
+      next.push({
+        key: `annotation-stroke:${stroke.id}`,
+        id: stroke.id,
+        type: "annotation",
+        source: "annotation-stroke",
+        name: annotationStrokeName(stroke.mode),
+        meta: "Annotation",
+        zIndex: stroke.zIndex ?? index + 1,
+        hidden: Boolean(stroke.hidden),
+        opacity: stroke.opacity ?? 100,
+        blendMode:
+          stroke.blendMode ??
+          (stroke.mode === "highlight" ? "multiply" : "normal"),
+      })
+    }
+
     for (const shape of annotationShapes) {
       next.push({
         key: `annotation:${shape.id}`,
         id: shape.id,
         type: "annotation",
+        source: "annotation-shape",
         name: annotationName(shape.kind),
         meta: shape.kind === "blur" ? "Redaction" : "Annotation",
         zIndex: shape.zIndex,
@@ -220,6 +242,7 @@ export function LayersPanelContent() {
     return next.sort((a, b) => b.zIndex - a.zIndex)
   }, [
     assets,
+    annotations,
     annotationShapes,
     screenshot,
     screenshotLayer,
@@ -260,7 +283,10 @@ export function LayersPanelContent() {
     if (layer.type === "slot") updateScreenshotSlot(layer.id, layerPatch)
     if (layer.type === "asset") updateAsset(layer.id, layerPatch)
     if (layer.type === "text") updateText(layer.id, layerPatch)
-    if (layer.type === "annotation") updateAnnotationShape(layer.id, layerPatch)
+    if (layer.source === "annotation-stroke")
+      updateAnnotationStrokeLayer(layer.id, layerPatch)
+    if (layer.source === "annotation-shape")
+      updateAnnotationShape(layer.id, layerPatch)
   }
 
   function applyLayerOrder(nextTopFirst: EditorLayer[]) {
@@ -295,7 +321,9 @@ export function LayersPanelContent() {
     setSelectedScreenshotSlotId(layer.type === "slot" ? layer.id : null)
     setSelectedAssetId(layer.type === "asset" ? layer.id : null)
     setSelectedTextId(layer.type === "text" ? layer.id : null)
-    setSelectedAnnotationShapeId(layer.type === "annotation" ? layer.id : null)
+    setSelectedAnnotationShapeId(
+      layer.source === "annotation-shape" ? layer.id : null
+    )
   }
 
   return (
@@ -683,6 +711,11 @@ function annotationName(kind: string) {
   if (kind === "ellipse") return "Ellipse"
   if (kind === "blur") return "Blur layer"
   return "Arrow"
+}
+
+function annotationStrokeName(mode: string) {
+  if (mode === "highlight") return "Highlighter"
+  return "Pen stroke"
 }
 
 function FrameLockedLayer({

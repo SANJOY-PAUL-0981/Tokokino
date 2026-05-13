@@ -900,9 +900,10 @@ function CanvasViewInner({
     if (dx * dx + dy * dy < 1) return
 
     drag.points = [...drag.points, point]
-    const path = annotationLayerRef.current?.querySelector<SVGPathElement>(
-      `[data-annotation-stroke-id="${CSS.escape(drag.strokeId)}"]`
-    )
+    const path =
+      annotationLayerRef.current?.parentElement?.querySelector<SVGPathElement>(
+        `[data-annotation-stroke-id="${CSS.escape(drag.strokeId)}"]`
+      )
     if (path) path.setAttribute("d", annotationPath(drag.points))
   }
 
@@ -1530,6 +1531,7 @@ function MainScreenshotRowItem({
     <>
       <div
         ref={rowRef}
+        data-box-hover-target
         className={cn(
           "group/main-row pointer-events-auto",
           activeTool === "pointer" && "cursor-grab",

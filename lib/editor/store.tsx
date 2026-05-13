@@ -84,7 +84,7 @@ const DEFAULT_CANVAS_BASE: Omit<CanvasState, "id" | "position"> = {
     type: "image",
     value: DEFAULT_IMAGE_BACKGROUND,
   },
-  padding: 16,
+  padding: 40,
   borderRadius: 7,
   canvasBorderRadius: 16,
   border: { color: null, width: 1, style: "solid", padding: 0 },
@@ -225,12 +225,19 @@ type EditorActions = {
   setEnhance: (e: EnhancePreset, canvasId?: string) => void
   setAnnotation: (patch: Partial<Annotation>) => void
   addAnnotationStroke: (
-    stroke: Omit<AnnotationStroke, "id">,
+    stroke: Omit<AnnotationStroke, "id" | "zIndex">,
     canvasId?: string
   ) => string
   updateAnnotationStroke: (
     id: string,
     points: AnnotationPoint[],
+    canvasId?: string
+  ) => void
+  updateAnnotationStrokeLayer: (
+    id: string,
+    patch: Partial<
+      Pick<AnnotationStroke, "zIndex" | "opacity" | "blendMode" | "hidden">
+    >,
     canvasId?: string
   ) => void
   addAnnotationShape: (
@@ -340,6 +347,7 @@ const getLayerItems = (c: CanvasState) => [
   ...c.screenshotSlots,
   ...c.assets,
   ...c.texts,
+  ...c.annotations.filter((stroke) => stroke.mode !== "eraser"),
   ...c.annotationShapes,
 ]
 
@@ -359,6 +367,18 @@ const getLayerRefs = (c: CanvasState) => [
     key: `text:${text.id}`,
     zIndex: text.zIndex,
   })),
+  ...c.annotations.reduce<{ key: string; zIndex: number }[]>(
+    (refs, stroke, index) => {
+      if (stroke.mode !== "eraser") {
+        refs.push({
+          key: `annotation-stroke:${stroke.id}`,
+          zIndex: stroke.zIndex ?? index + 1,
+        })
+      }
+      return refs
+    },
+    []
+  ),
   ...c.annotationShapes.map((shape) => ({
     key: `annotation:${shape.id}`,
     zIndex: shape.zIndex,
@@ -388,6 +408,13 @@ function applyLayerOrder(
     texts: c.texts.map((text) => ({
       ...text,
       zIndex: zByKey.get(`text:${text.id}`) ?? text.zIndex,
+    })),
+    annotations: c.annotations.map((stroke) => ({
+      ...stroke,
+      zIndex:
+        stroke.mode !== "eraser"
+          ? (zByKey.get(`annotation-stroke:${stroke.id}`) ?? stroke.zIndex)
+          : stroke.zIndex,
     })),
     annotationShapes: c.annotationShapes.map((shape) => ({
       ...shape,
@@ -707,7 +734,10 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       commitCanvas(
         canvasId,
         (canvas) => ({
-          annotations: [...canvas.annotations, { ...stroke, id }],
+          annotations: [
+            ...canvas.annotations,
+            { ...stroke, id, zIndex: computeNextLayerZ(canvas) },
+          ],
         }),
         `annotation-stroke-${id}`
       )
@@ -719,6 +749,16 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         (canvas) => ({
           annotations: canvas.annotations.map((stroke) =>
             stroke.id === id ? { ...stroke, points } : stroke
+          ),
+        }),
+        `annotation-stroke-${id}`
+      ),
+    updateAnnotationStrokeLayer: (id, patch, canvasId) =>
+      commitCanvas(
+        canvasId,
+        (canvas) => ({
+          annotations: canvas.annotations.map((stroke) =>
+            stroke.id === id ? { ...stroke, ...patch } : stroke
           ),
         }),
         `annotation-stroke-${id}`
@@ -982,8 +1022,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       }
       set({ bulkEditMode: b, bulkCanvasDragging: false, bulkViewportZoom: 1 })
     },
-    setBulkCanvasDragging: (dragging) =>
-      set({ bulkCanvasDragging: dragging }),
+    setBulkCanvasDragging: (dragging) => set({ bulkCanvasDragging: dragging }),
     setBulkViewportZoom: (zoom) =>
       set({ bulkViewportZoom: Math.max(0.05, Math.min(2, zoom)) }),
     setBulkScale: (n) => set({ bulkScale: Math.max(20, Math.min(100, n)) }),
@@ -1466,6 +1505,8 @@ export function useEditor(): EditorContext {
       store.addAnnotationStroke(stroke, canvasId ?? targetId),
     updateAnnotationStroke: (id, points, canvasId) =>
       store.updateAnnotationStroke(id, points, canvasId ?? targetId),
+    updateAnnotationStrokeLayer: (id, patch, canvasId) =>
+      store.updateAnnotationStrokeLayer(id, patch, canvasId ?? targetId),
     addAnnotationShape: (shape, canvasId) =>
       store.addAnnotationShape(shape, canvasId ?? targetId),
     updateAnnotationShape: (id, patch, canvasId) =>

@@ -32,54 +32,60 @@ export function AnnotationLayer({
   onClick,
   onDoubleClick,
 }: AnnotationLayerProps) {
+  const eraserStrokes = React.useMemo(() => {
+    const strokes: AnnotationStroke[] = []
+    for (const stroke of annotations) {
+      if (stroke.mode === "eraser") strokes.push(stroke)
+    }
+    return strokes
+  }, [annotations])
+  const visibleStrokes = React.useMemo(() => {
+    const strokes: AnnotationStroke[] = []
+    for (const stroke of annotations) {
+      if (stroke.mode !== "eraser" && !stroke.hidden) strokes.push(stroke)
+    }
+    return strokes
+  }, [annotations])
+
   return (
-    <svg
-      ref={layerRef}
-      aria-label="Annotation layer"
-      className={cn(
-        "absolute inset-0 z-[80] h-full w-full touch-none",
-        isAnnotating
-          ? `pointer-events-auto ${cursorClass}`
-          : "pointer-events-none"
-      )}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
-      onClick={onClick}
-      onDoubleClick={onDoubleClick}
-    >
-      <defs>
-        <mask
-          id={annotationMaskId}
-          x="0"
-          y="0"
-          width="100%"
-          height="100%"
-          maskUnits="userSpaceOnUse"
-          maskContentUnits="userSpaceOnUse"
+    <>
+      {visibleStrokes.map((stroke) => (
+        <svg
+          key={stroke.id}
+          aria-hidden
+          className="pointer-events-none absolute inset-0 h-full w-full touch-none"
+          style={{
+            zIndex: 60 + (stroke.zIndex ?? 0),
+            mixBlendMode:
+              stroke.blendMode ??
+              (stroke.mode === "highlight" ? "multiply" : "normal"),
+          }}
         >
-          <rect x="0" y="0" width="100%" height="100%" fill="white" />
-          {annotations
-            .filter((stroke) => stroke.mode === "eraser")
-            .map((stroke) => (
-              <path
-                key={stroke.id}
-                data-annotation-stroke-id={stroke.id}
-                d={annotationPath(stroke.points)}
-                fill="none"
-                stroke="black"
-                strokeWidth={stroke.strokeWidth}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            ))}
-        </mask>
-      </defs>
-      <g mask={`url(#${annotationMaskId})`}>
-        {annotations
-          .filter((stroke) => stroke.mode !== "eraser")
-          .map((stroke) => (
+          <defs>
+            <mask
+              id={`${annotationMaskId}-${stroke.id}`}
+              x="0"
+              y="0"
+              width="100%"
+              height="100%"
+              maskUnits="userSpaceOnUse"
+              maskContentUnits="userSpaceOnUse"
+            >
+              <rect x="0" y="0" width="100%" height="100%" fill="white" />
+              {eraserStrokes.map((eraser) => (
+                <path
+                  key={eraser.id}
+                  d={annotationPath(eraser.points)}
+                  fill="none"
+                  stroke="black"
+                  strokeWidth={eraser.strokeWidth}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              ))}
+            </mask>
+          </defs>
+          <g mask={`url(#${annotationMaskId}-${stroke.id})`}>
             <path
               key={stroke.id}
               data-annotation-stroke-id={stroke.id}
@@ -89,14 +95,31 @@ export function AnnotationLayer({
               strokeWidth={stroke.strokeWidth}
               strokeLinecap="round"
               strokeLinejoin="round"
-              opacity={stroke.mode === "highlight" ? 0.42 : 1}
-              style={{
-                mixBlendMode:
-                  stroke.mode === "highlight" ? "multiply" : "normal",
-              }}
+              opacity={
+                ((stroke.opacity ?? 100) / 100) *
+                (stroke.mode === "highlight" ? 0.42 : 1)
+              }
             />
-          ))}
-      </g>
-    </svg>
+          </g>
+        </svg>
+      ))}
+
+      <svg
+        ref={layerRef}
+        aria-label="Annotation layer"
+        className={cn(
+          "absolute inset-0 z-[1000] h-full w-full touch-none",
+          isAnnotating
+            ? `pointer-events-auto ${cursorClass}`
+            : "pointer-events-none"
+        )}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onClick={onClick}
+        onDoubleClick={onDoubleClick}
+      />
+    </>
   )
 }

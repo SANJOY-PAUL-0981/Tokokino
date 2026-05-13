@@ -345,6 +345,7 @@ export function ScreenshotSlotView({
 
       <div
         ref={elRef}
+        data-box-hover-target
         data-screenshot-slot-id={slot.id}
         onPointerDown={startDrag}
         onPointerMove={moveDrag}

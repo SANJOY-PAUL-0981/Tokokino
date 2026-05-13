@@ -1,8 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { RiCropLine, RiDeleteBinLine, RiRefreshLine } from "@remixicon/react"
 
+import { BoxHoverActions } from "@/components/editor/canvas/box-hover-actions"
 import { DeviceFrameEmptyContent } from "@/components/editor/canvas/device-frame-empty-content"
 import { Arc } from "@/components/ui/arc"
 import { Chrome } from "@/components/ui/chrome"
@@ -91,7 +91,6 @@ export function ScreenshotBrowserFrame({
   onReplaceFile,
   onDelete,
 }: ScreenshotBrowserFrameProps) {
-  const replaceInputRef = React.useRef<HTMLInputElement>(null)
   const frame = getBrowserFrame(frameId)
   const frameFitStyle = browserFrameFitStyle(
     frame?.aspectRatio ?? BROWSER_FRAME_ASPECT_RATIO
@@ -101,6 +100,7 @@ export function ScreenshotBrowserFrame({
 
   return (
     <div
+      data-box-hover-target
       className="group/browser-frame pointer-events-none relative h-full w-full"
       style={{ containerType: "size" }}
     >
@@ -178,40 +178,15 @@ export function ScreenshotBrowserFrame({
         )}
 
         {activeTool === "pointer" && !screenshotLayer.hidden ? (
-          <div
-            className={cn(
-              "pointer-events-none absolute top-1/2 left-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-2 opacity-0 transition-opacity duration-200 group-hover/browser-frame:opacity-100",
+          <BoxHoverActions
+            hoverGroupClass={cn(
+              "group-hover/browser-frame:opacity-100",
               isScreenshotDragging && "!opacity-0"
             )}
-          >
-            <input
-              ref={replaceInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) onReplaceFile(file)
-                e.target.value = ""
-              }}
-            />
-            <FrameActionButton label="Crop image" onClick={onCropClick}>
-              <RiCropLine className="size-4" />
-            </FrameActionButton>
-            <FrameActionButton
-              label="Replace image"
-              onClick={() => replaceInputRef.current?.click()}
-            >
-              <RiRefreshLine className="size-4" />
-            </FrameActionButton>
-            <FrameActionButton
-              label="Delete image"
-              destructive
-              onClick={onDelete}
-            >
-              <RiDeleteBinLine className="size-4" />
-            </FrameActionButton>
-          </div>
+            onCrop={onCropClick}
+            onReplaceFile={onReplaceFile}
+            onDelete={onDelete}
+          />
         ) : null}
       </div>
     </div>
@@ -312,38 +287,6 @@ export function BrowserFrameEmptyState({
         )}
       </div>
     </div>
-  )
-}
-
-function FrameActionButton({
-  label,
-  destructive,
-  onClick,
-  children,
-}: {
-  label: string
-  destructive?: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      onPointerDown={(e) => e.stopPropagation()}
-      onPointerUp={(e) => e.stopPropagation()}
-      onClick={(e) => {
-        e.stopPropagation()
-        onClick()
-      }}
-      className={cn(
-        "pointer-events-auto flex size-9 items-center justify-center rounded-full bg-black/70 text-white shadow-lg ring-1 ring-white/10 backdrop-blur-md transition-all hover:scale-105 hover:bg-black/85",
-        destructive && "hover:bg-red-500/90"
-      )}
-    >
-      {children}
-    </button>
   )
 }
 

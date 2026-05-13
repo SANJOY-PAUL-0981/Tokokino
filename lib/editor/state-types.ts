@@ -263,6 +263,10 @@ export type AnnotationStroke = {
   color: string
   strokeWidth: number
   points: AnnotationPoint[]
+  zIndex: number
+  opacity?: number
+  blendMode?: AssetBlendMode
+  hidden?: boolean
 }
 
 export type AnnotationShapeKind = Extract<
