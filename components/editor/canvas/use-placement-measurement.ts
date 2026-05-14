@@ -13,10 +13,12 @@ export function usePlacementMeasurement({
   enabled,
   stageRef,
   imageRef,
+  layoutKey,
 }: {
   enabled: boolean
   stageRef: React.RefObject<HTMLDivElement | null>
   imageRef: React.RefObject<HTMLImageElement | null>
+  layoutKey?: string | number
 }) {
   const [placementDims, setPlacementDims] =
     React.useState<PlacementDims | null>(null)
@@ -48,19 +50,24 @@ export function usePlacementMeasurement({
     })
   }, [imageRef, stageRef])
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!enabled) return
-    measurePlacement()
 
     const stage = stageRef.current
     const image = imageRef.current
     if (!stage || !image) return
 
+    measurePlacement()
+    const raf = window.requestAnimationFrame(measurePlacement)
+
     const observer = new ResizeObserver(measurePlacement)
     observer.observe(stage)
     observer.observe(image)
-    return () => observer.disconnect()
-  }, [enabled, imageRef, measurePlacement, stageRef])
+    return () => {
+      window.cancelAnimationFrame(raf)
+      observer.disconnect()
+    }
+  }, [enabled, imageRef, layoutKey, measurePlacement, stageRef])
 
   return { placementDims, measurePlacement }
 }

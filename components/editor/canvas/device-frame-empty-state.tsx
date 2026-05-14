@@ -79,7 +79,7 @@ export function DeviceFrameEmptyState({
           activeTool === "pointer" && !isScreenshotDragging && "cursor-grab"
         )}
         style={{
-          ...frameFitStyle(mockupSpec.aspectRatio),
+          ...frameFitStyle(mockupSpec.aspectRatio, mockupRotation),
           left: "50%",
           top: "50%",
           transform: framePositionTransform({

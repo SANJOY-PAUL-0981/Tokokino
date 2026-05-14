@@ -30,11 +30,11 @@ import { AnnotationLayer } from "./canvas/annotation-layer"
 import { CanvasBackdrop } from "./canvas/canvas-backdrop"
 import { CanvasEmptyState } from "./canvas/canvas-empty-state"
 import { CenterGuides, useCenterGuides } from "./canvas/center-guides"
+import { BASE_CANVAS_WIDTH } from "./canvas/constants"
 import {
-  BASE_CANVAS_WIDTH,
-  SCREENSHOT_ROW_GAP,
-  screenshotRowItemWidth,
-} from "./canvas/constants"
+  computeRowLayout,
+  slotBoxAspectRatio,
+} from "@/lib/editor/screenshot-layout"
 import { DeviceFrameEmptyState } from "./canvas/device-frame-empty-state"
 import { deviceMockupSpec, screenshotPlacementStyle } from "./canvas/helpers"
 import { MainScreenshotRowItem } from "./canvas/main-screenshot-row-item"
@@ -87,6 +87,7 @@ function CanvasViewInner({
     shadow,
     overlay,
     frame,
+    setFrame,
     frameAddress,
     setFrameAddress,
     portrait,
@@ -155,10 +156,12 @@ function CanvasViewInner({
   const imageRef = React.useRef<HTMLImageElement>(null)
   const annotationLayerRef = React.useRef<SVGSVGElement>(null)
   const suppressTransition = useSuppressTransitionOnChange(padding)
+  const inRowMode = screenshotSlots.length > 0
   const { placementDims, measurePlacement } = usePlacementMeasurement({
     enabled: Boolean(screenshot),
     stageRef,
     imageRef,
+    layoutKey: `${inRowMode ? "row" : "single"}:${frame.id}:${frame.orientation}:${screenshotSlots.length}:${widthPx}:${heightPx}:${padding}`,
   })
   const handleImageFile = React.useCallback(
     (src: string) => {
@@ -175,34 +178,39 @@ function CanvasViewInner({
   const aw = autoDims ? autoDims.w : aspect.w || 16
   const ah = autoDims ? autoDims.h : aspect.h || 10
   const aspectRatio = `${aw} / ${ah}`
-  const rowItemCount = screenshotSlots.length + 1
-  const inRowMode = screenshotSlots.length > 0
-  const rowFallbackAspect = aw / ah < 0.85 ? "10 / 14" : "16 / 10"
-  const screenshotBoxAspect = inRowMode
-    ? rowFallbackAspect
-    : frame.id === "none" && naturalDims
-      ? `${naturalDims.w} / ${naturalDims.h}`
-      : rowFallbackAspect
-  const rowItemWidth = screenshotRowItemWidth(rowItemCount)
-  const rowTotalWidth =
-    rowItemWidth * rowItemCount + SCREENSHOT_ROW_GAP * (rowItemCount - 1)
-  const rowStartX = 50 - rowTotalWidth / 2
+  const canvasAspectRatio = aw / ah
+  const screenshotBoxAspect = slotBoxAspectRatio(
+    frame,
+    canvasAspectRatio,
+    !inRowMode && frame.id === "none" ? naturalDims : null
+  )
+  const mainRowLayout = inRowMode
+    ? computeRowLayout(
+        [
+          { id: "__main__", frame },
+          ...screenshotSlots.map((slot) => ({
+            id: slot.id,
+            frame: slot.frame,
+          })),
+        ],
+        canvasAspectRatio
+      )[0]
+    : null
   const hoverActionsScale = bulkEditMode
     ? Math.max(0.45, Math.min(1, bulkViewportZoom))
     : 1
-  const hoverActionsLayoutKey = `${effectiveScale}:${bulkViewportZoom}:${hoverActionsScale}:${widthPx}:${heightPx}`
-  const mainScreenshotRowStyle: React.CSSProperties | null =
-    screenshotSlots.length > 0
-      ? {
-          position: "absolute",
-          left: `${rowStartX + rowItemWidth / 2}%`,
-          top: "50%",
-          width: `${rowItemWidth}%`,
-          aspectRatio: screenshotBoxAspect,
-          transform: "translate(-50%, -50%)",
-          zIndex: 60 + screenshotLayer.zIndex,
-        }
-      : null
+  const hoverActionsLayoutKey = `${inRowMode ? "row" : "single"}:${screenshotSlots.length}:${effectiveScale}:${bulkViewportZoom}:${hoverActionsScale}:${widthPx}:${heightPx}`
+  const mainScreenshotRowStyle: React.CSSProperties | null = mainRowLayout
+    ? {
+        position: "absolute",
+        left: `${mainRowLayout.xPct}%`,
+        top: "50%",
+        width: `${mainRowLayout.widthPct}%`,
+        aspectRatio: screenshotBoxAspect,
+        transform: "translate(-50%, -50%)",
+        zIndex: 60 + screenshotLayer.zIndex,
+      }
+    : null
 
   const transform = [
     `perspective(1400px)`,
@@ -412,6 +420,7 @@ function CanvasViewInner({
               frame={frame}
               addressValue={frameAddress}
               onAddressChange={setFrameAddress}
+              padding={padding}
               transform={transform}
               isDragOver={isDragOver}
               imgStyle={imgStyle}
@@ -447,6 +456,10 @@ function CanvasViewInner({
               }}
               onBringToFront={() => bringScreenshotToFront()}
               onSendToBack={() => sendScreenshotToBack()}
+              onFrameChange={setFrame}
+              stageRef={stageRef}
+              imageRef={imageRef}
+              onImageLoad={handleImageLoad}
               onPointerDown={(e) => {
                 if (document.activeElement instanceof HTMLElement) {
                   document.activeElement.blur()
@@ -458,45 +471,144 @@ function CanvasViewInner({
             />
           ) : null}
 
-          <div
-            className={cn(
-              "pointer-events-none flex items-center justify-center",
-              mainScreenshotRowStyle ? "hidden" : "relative h-full w-full"
-            )}
-            style={
-              mainScreenshotRowStyle
-                ? undefined
-                : {
-                    padding: `${(padding / 1200) * 100}%`,
-                    zIndex: 60 + screenshotLayer.zIndex,
-                  }
-            }
-          >
-            {screenshot ? (
-              browserFrame ? (
-                <ScreenshotBrowserFrame
-                  screenshot={screenshot}
+          {!mainScreenshotRowStyle ? (
+            <div
+              className="pointer-events-none relative flex h-full w-full items-center justify-center"
+              style={{
+                padding: `${(padding / 1200) * 100}%`,
+                zIndex: 60 + screenshotLayer.zIndex,
+              }}
+            >
+              {screenshot ? (
+                browserFrame ? (
+                  <ScreenshotBrowserFrame
+                    screenshot={screenshot}
+                    frameId={frame.id}
+                    color={browserFrameColor}
+                    screenshotLayer={screenshotLayer}
+                    transform={transform}
+                    shadowFilter={computedShadowFilter}
+                    screenshotOffset={effectiveOffset}
+                    screenshotAnchor={screenshotAnchor}
+                    enhanceFilter={enhanceFilter}
+                    isScreenshotDragging={isScreenshotDragging}
+                    hoverActionsDisabled={
+                      bulkCanvasDragging || isScreenshotDragging
+                    }
+                    hoverActionsInline={bulkEditMode}
+                    hoverActionsLayoutKey={hoverActionsLayoutKey}
+                    hoverActionsScale={hoverActionsScale}
+                    activeTool={activeTool}
+                    stageRef={stageRef}
+                    imageRef={imageRef}
+                    addressValue={frameAddress}
+                    onAddressChange={setFrameAddress}
+                    onSelect={handleScreenshotClickSelect}
+                    onPointerDown={(e) => {
+                      if (document.activeElement instanceof HTMLElement) {
+                        document.activeElement.blur()
+                      }
+                      startMockupDrag(e)
+                    }}
+                    onPointerMove={moveMockup}
+                    onPointerUp={stopMockupDrag}
+                    onImageLoad={handleImageLoad}
+                    onCropClick={() => setIsCropModalOpen(true)}
+                    onReplaceFile={readFile}
+                    onDelete={() => {
+                      setIsScreenshotSelected(false)
+                      setScreenshot(null)
+                    }}
+                  />
+                ) : mockupAsset && mockupSpec ? (
+                  <ScreenshotMockup
+                    screenshot={screenshot}
+                    mockupAsset={mockupAsset}
+                    mockupSpec={mockupSpec}
+                    screenshotLayer={screenshotLayer}
+                    transform={transform}
+                    mockupRotation={mockupRotation}
+                    shadowFilter={computedShadowFilter}
+                    screenshotOffset={effectiveOffset}
+                    screenshotAnchor={screenshotAnchor}
+                    enhanceFilter={enhanceFilter}
+                    isScreenshotDragging={isScreenshotDragging}
+                    activeTool={activeTool}
+                    placementDims={placementDims}
+                    stageRef={stageRef}
+                    imageRef={imageRef}
+                    onSelect={handleScreenshotClickSelect}
+                    onPointerDown={(e) => {
+                      if (document.activeElement instanceof HTMLElement) {
+                        document.activeElement.blur()
+                      }
+                      startMockupDrag(e)
+                    }}
+                    onPointerMove={moveMockup}
+                    onPointerUp={stopMockupDrag}
+                    onImageLoad={handleImageLoad}
+                    onCropClick={() => setIsCropModalOpen(true)}
+                    onReplaceFile={readFile}
+                    onDelete={() => {
+                      setIsScreenshotSelected(false)
+                      setScreenshot(null)
+                    }}
+                  />
+                ) : (
+                  <ScreenshotBare
+                    screenshot={screenshot}
+                    imgStyle={imgStyle}
+                    positionedStyle={positionedStyle}
+                    transform={transform}
+                    screenshotLeft={screenshotLeft}
+                    screenshotTop={screenshotTop}
+                    placementDims={placementDims}
+                    screenshotLayer={screenshotLayer}
+                    isScreenshotSelected={isScreenshotSelected}
+                    isScreenshotDragging={isScreenshotDragging}
+                    suppressTransition={suppressTransition}
+                    activeTool={activeTool}
+                    selectedTextId={selectedTextId}
+                    stageRef={stageRef}
+                    imageRef={imageRef}
+                    onContainerPointerDown={(e) => {
+                      if (e.target === e.currentTarget) {
+                        setIsScreenshotSelected(false)
+                      }
+                    }}
+                    onSelect={handleScreenshotClickSelect}
+                    onPointerDown={(e) => {
+                      if (document.activeElement instanceof HTMLElement) {
+                        document.activeElement.blur()
+                      }
+                      setSelectedTextId(null)
+                      setSelectedAnnotationShapeId(null)
+                      startScreenshotDrag(e)
+                    }}
+                    onPointerMove={moveScreenshot}
+                    onPointerUp={stopScreenshotDrag}
+                    onImageLoad={handleImageLoad}
+                    onCropClick={() => setIsCropModalOpen(true)}
+                    onReplaceFile={readFile}
+                    onDelete={() => {
+                      setIsScreenshotSelected(false)
+                      setScreenshot(null)
+                    }}
+                  />
+                )
+              ) : browserFrame ? (
+                <BrowserFrameEmptyState
                   frameId={frame.id}
                   color={browserFrameColor}
-                  screenshotLayer={screenshotLayer}
+                  isDragOver={isDragOver}
+                  onBrowse={() => fileInputRef.current?.click()}
                   transform={transform}
-                  shadowFilter={computedShadowFilter}
                   screenshotOffset={effectiveOffset}
                   screenshotAnchor={screenshotAnchor}
-                  enhanceFilter={enhanceFilter}
                   isScreenshotDragging={isScreenshotDragging}
-                  hoverActionsDisabled={
-                    bulkCanvasDragging || isScreenshotDragging
-                  }
-                  hoverActionsInline={bulkEditMode}
-                  hoverActionsLayoutKey={hoverActionsLayoutKey}
-                  hoverActionsScale={hoverActionsScale}
                   activeTool={activeTool}
-                  stageRef={stageRef}
-                  imageRef={imageRef}
                   addressValue={frameAddress}
                   onAddressChange={setFrameAddress}
-                  onSelect={handleScreenshotClickSelect}
                   onPointerDown={(e) => {
                     if (document.activeElement instanceof HTMLElement) {
                       document.activeElement.blur()
@@ -505,32 +617,19 @@ function CanvasViewInner({
                   }}
                   onPointerMove={moveMockup}
                   onPointerUp={stopMockupDrag}
-                  onImageLoad={handleImageLoad}
-                  onCropClick={() => setIsCropModalOpen(true)}
-                  onReplaceFile={readFile}
-                  onDelete={() => {
-                    setIsScreenshotSelected(false)
-                    setScreenshot(null)
-                  }}
                 />
               ) : mockupAsset && mockupSpec ? (
-                <ScreenshotMockup
-                  screenshot={screenshot}
+                <DeviceFrameEmptyState
                   mockupAsset={mockupAsset}
                   mockupSpec={mockupSpec}
-                  screenshotLayer={screenshotLayer}
+                  isDragOver={isDragOver}
+                  onBrowse={() => fileInputRef.current?.click()}
                   transform={transform}
                   mockupRotation={mockupRotation}
-                  shadowFilter={computedShadowFilter}
                   screenshotOffset={effectiveOffset}
                   screenshotAnchor={screenshotAnchor}
-                  enhanceFilter={enhanceFilter}
                   isScreenshotDragging={isScreenshotDragging}
                   activeTool={activeTool}
-                  placementDims={placementDims}
-                  stageRef={stageRef}
-                  imageRef={imageRef}
-                  onSelect={handleScreenshotClickSelect}
                   onPointerDown={(e) => {
                     if (document.activeElement instanceof HTMLElement) {
                       document.activeElement.blur()
@@ -539,107 +638,16 @@ function CanvasViewInner({
                   }}
                   onPointerMove={moveMockup}
                   onPointerUp={stopMockupDrag}
-                  onImageLoad={handleImageLoad}
-                  onCropClick={() => setIsCropModalOpen(true)}
-                  onReplaceFile={readFile}
-                  onDelete={() => {
-                    setIsScreenshotSelected(false)
-                    setScreenshot(null)
-                  }}
                 />
               ) : (
-                <ScreenshotBare
-                  screenshot={screenshot}
-                  imgStyle={imgStyle}
-                  positionedStyle={positionedStyle}
-                  transform={transform}
-                  screenshotLeft={screenshotLeft}
-                  screenshotTop={screenshotTop}
-                  placementDims={placementDims}
-                  screenshotLayer={screenshotLayer}
-                  isScreenshotSelected={isScreenshotSelected}
-                  isScreenshotDragging={isScreenshotDragging}
-                  suppressTransition={suppressTransition}
-                  activeTool={activeTool}
-                  selectedTextId={selectedTextId}
-                  stageRef={stageRef}
-                  imageRef={imageRef}
-                  onContainerPointerDown={(e) => {
-                    if (e.target === e.currentTarget) {
-                      setIsScreenshotSelected(false)
-                    }
-                  }}
-                  onSelect={handleScreenshotClickSelect}
-                  onPointerDown={(e) => {
-                    if (document.activeElement instanceof HTMLElement) {
-                      document.activeElement.blur()
-                    }
-                    setSelectedTextId(null)
-                    setSelectedAnnotationShapeId(null)
-                    startScreenshotDrag(e)
-                  }}
-                  onPointerMove={moveScreenshot}
-                  onPointerUp={stopScreenshotDrag}
-                  onImageLoad={handleImageLoad}
-                  onCropClick={() => setIsCropModalOpen(true)}
-                  onReplaceFile={readFile}
-                  onDelete={() => {
-                    setIsScreenshotSelected(false)
-                    setScreenshot(null)
-                  }}
+                <CanvasEmptyState
+                  isDragOver={isDragOver}
+                  onBrowse={() => fileInputRef.current?.click()}
+                  previewStyle={imgStyle}
                 />
-              )
-            ) : browserFrame ? (
-              <BrowserFrameEmptyState
-                frameId={frame.id}
-                color={browserFrameColor}
-                isDragOver={isDragOver}
-                onBrowse={() => fileInputRef.current?.click()}
-                transform={transform}
-                screenshotOffset={effectiveOffset}
-                screenshotAnchor={screenshotAnchor}
-                isScreenshotDragging={isScreenshotDragging}
-                activeTool={activeTool}
-                addressValue={frameAddress}
-                onAddressChange={setFrameAddress}
-                onPointerDown={(e) => {
-                  if (document.activeElement instanceof HTMLElement) {
-                    document.activeElement.blur()
-                  }
-                  startMockupDrag(e)
-                }}
-                onPointerMove={moveMockup}
-                onPointerUp={stopMockupDrag}
-              />
-            ) : mockupAsset && mockupSpec ? (
-              <DeviceFrameEmptyState
-                mockupAsset={mockupAsset}
-                mockupSpec={mockupSpec}
-                isDragOver={isDragOver}
-                onBrowse={() => fileInputRef.current?.click()}
-                transform={transform}
-                mockupRotation={mockupRotation}
-                screenshotOffset={effectiveOffset}
-                screenshotAnchor={screenshotAnchor}
-                isScreenshotDragging={isScreenshotDragging}
-                activeTool={activeTool}
-                onPointerDown={(e) => {
-                  if (document.activeElement instanceof HTMLElement) {
-                    document.activeElement.blur()
-                  }
-                  startMockupDrag(e)
-                }}
-                onPointerMove={moveMockup}
-                onPointerUp={stopMockupDrag}
-              />
-            ) : (
-              <CanvasEmptyState
-                isDragOver={isDragOver}
-                onBrowse={() => fileInputRef.current?.click()}
-                previewStyle={imgStyle}
-              />
-            )}
-          </div>
+              )}
+            </div>
+          ) : null}
 
           {overlay.id !== null && overlay.position === "overlay" ? (
             <div

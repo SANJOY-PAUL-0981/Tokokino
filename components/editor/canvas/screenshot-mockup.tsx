@@ -48,6 +48,7 @@ type ScreenshotMockupProps = {
   onReplaceFile: (file: File) => void
   onDelete: () => void
   onCaptureWebsite?: (url: string) => void
+  showHoverActions?: boolean
 }
 
 export function ScreenshotMockup({
@@ -75,16 +76,40 @@ export function ScreenshotMockup({
   onReplaceFile,
   onDelete,
   onCaptureWebsite,
+  showHoverActions = true,
 }: ScreenshotMockupProps) {
   const [editOpen, setEditOpen] = React.useState(false)
+  const [measuredStageWidth, setMeasuredStageWidth] = React.useState<
+    number | undefined
+  >()
   // For device frames the shadow must follow the alpha silhouette of the
   // frame PNG (rounded corners, notch, etc). drop-shadow filters do that;
   // box-shadow would cast a rectangular shadow off the bounding box.
   const combinedFilter =
     [shadowFilter, enhanceFilter].filter(Boolean).join(" ") || undefined
+  const stageWidth = placementDims?.stageW ?? measuredStageWidth
   const horizontalScreenStyle = mockupRotation
     ? rotatedScreenContentStyle(mockupSpec.screen.aspectRatio, -mockupRotation)
     : undefined
+
+  React.useLayoutEffect(() => {
+    const node = stageRef.current
+    if (!node || typeof ResizeObserver === "undefined") return
+
+    const updateStageWidth = () => {
+      const width =
+        parseFloat(getComputedStyle(node).width) ||
+        node.getBoundingClientRect().width ||
+        node.clientWidth
+      if (!width) return
+      setMeasuredStageWidth((prev) => (prev === width ? prev : width))
+    }
+
+    updateStageWidth()
+    const observer = new ResizeObserver(updateStageWidth)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [mockupAsset.src, stageRef])
 
   return (
     <div
@@ -101,7 +126,7 @@ export function ScreenshotMockup({
           activeTool === "pointer" && "cursor-grab"
         )}
         style={{
-          ...frameFitStyle(mockupSpec.aspectRatio),
+          ...frameFitStyle(mockupSpec.aspectRatio, mockupRotation),
           left: "50%",
           top: "50%",
           transform: framePositionTransform({
@@ -130,10 +155,7 @@ export function ScreenshotMockup({
             className="pointer-events-none w-full overflow-clip bg-black"
             style={{
               aspectRatio: mockupSpec.screen.aspectRatio,
-              ...mockupScreenClipStyle(
-                mockupSpec.screen,
-                placementDims?.stageW
-              ),
+              ...mockupScreenClipStyle(mockupSpec.screen, stageWidth),
               transform: mockupScreenTransform(mockupSpec.screen),
             }}
           >
@@ -158,7 +180,9 @@ export function ScreenshotMockup({
           className="pointer-events-none absolute inset-0 z-10 h-full w-full object-contain select-none"
         />
 
-        {activeTool === "pointer" && !screenshotLayer.hidden ? (
+        {showHoverActions &&
+        activeTool === "pointer" &&
+        !screenshotLayer.hidden ? (
           <div
             className={cn(
               "pointer-events-none absolute top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-200",

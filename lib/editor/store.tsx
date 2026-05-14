@@ -5,6 +5,7 @@ import { create } from "zustand"
 
 import { FONT_FAMILIES } from "./fonts"
 import { DEFAULT_IMAGE_BACKGROUND } from "./presets"
+import { computeRowLayout } from "./screenshot-layout"
 import type {
   Annotation,
   AnnotationPoint,
@@ -437,35 +438,48 @@ function moveLayerInStack(
   return applyLayerOrder(c, refs)
 }
 
-const SLOT_ROW_MARGIN = 1
-const SLOT_ROW_GAP = 2
 const SLOT_DEFAULT_HEIGHT_PCT = 28
+const SLOT_DEFAULT_FALLBACK_WIDTH = 60
 
-const slotWidthForCount = (count: number) => {
-  if (count <= 1) return 66
-  const usableW = Math.max(
-    20,
-    100 - 2 * SLOT_ROW_MARGIN - (count - 1) * SLOT_ROW_GAP
-  )
-  return usableW / count
-}
-
-const layoutSlotsInRow = (slots: ScreenshotSlot[]): ScreenshotSlot[] => {
+const layoutSlotsInRow = (
+  slots: ScreenshotSlot[],
+  canvasFrame: DeviceFrame,
+  canvasAspect: number
+): ScreenshotSlot[] => {
   const n = slots.length
   if (n === 0) return slots
-  const totalItems = n + 1
-  const widthPct = slotWidthForCount(totalItems)
-  const totalW = widthPct * totalItems + SLOT_ROW_GAP * (totalItems - 1)
-  const startX = 50 - totalW / 2
-  return slots.map((slot, i) => ({
-    ...slot,
-    xPct: startX + widthPct / 2 + (i + 1) * (widthPct + SLOT_ROW_GAP),
-    yPct: 50,
-    widthPct,
-    heightPct: SLOT_DEFAULT_HEIGHT_PCT,
-    rotation: 0,
-  }))
+  const layout = computeRowLayout(
+    [
+      { id: "__main__", frame: canvasFrame },
+      ...slots.map((slot) => ({ id: slot.id, frame: slot.frame })),
+    ],
+    canvasAspect
+  )
+  const slotLayoutById = new Map(
+    layout.slice(1).map((entry) => [entry.id, entry])
+  )
+  return slots.map((slot) => {
+    const entry = slotLayoutById.get(slot.id)
+    if (!entry) return slot
+    return {
+      ...slot,
+      xPct: entry.xPct,
+      yPct: 50,
+      widthPct: entry.widthPct,
+      heightPct: SLOT_DEFAULT_HEIGHT_PCT,
+      rotation: 0,
+    }
+  })
 }
+
+const aspectRatioFromState = (aspect: AspectState): number => {
+  const w = aspect.w || 16
+  const h = aspect.h || 10
+  return w / h
+}
+
+const stateCanvasAspect = (state: EditorState): number =>
+  aspectRatioFromState(state.aspect)
 
 const createScreenshotSlot = (
   base: Partial<ScreenshotSlot>,
@@ -475,7 +489,7 @@ const createScreenshotSlot = (
   src: null,
   xPct: 50,
   yPct: 50,
-  widthPct: slotWidthForCount(1),
+  widthPct: SLOT_DEFAULT_FALLBACK_WIDTH,
   heightPct: SLOT_DEFAULT_HEIGHT_PCT,
   rotation: 0,
   padding: 16,
@@ -654,7 +668,21 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         { screenshot: s, lastCropRegion: region },
         "applyCroppedScreenshot"
       ),
-    setAspect: (a) => commit({ aspect: a }, "aspect"),
+    setAspect: (a) =>
+      commit(
+        (state) => ({
+          aspect: a,
+          canvases: state.canvases.map((canvas) => ({
+            ...canvas,
+            screenshotSlots: layoutSlotsInRow(
+              canvas.screenshotSlots,
+              canvas.frame,
+              aspectRatioFromState(a)
+            ),
+          })),
+        }),
+        "aspect"
+      ),
     setBackground: (b, canvasId) =>
       commitCanvas(canvasId, { background: b }, "background"),
     setPadding: (n, canvasId) =>
@@ -704,7 +732,19 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     setShadow: (s, canvasId) => commitCanvas(canvasId, { shadow: s }, "shadow"),
     setOverlay: (o, canvasId) =>
       commitCanvas(canvasId, { overlay: o }, "overlay"),
-    setFrame: (f, canvasId) => commitCanvas(canvasId, { frame: f }, "frame"),
+    setFrame: (f, canvasId) =>
+      commitCanvas(
+        canvasId,
+        (canvas, state) => ({
+          frame: f,
+          screenshotSlots: layoutSlotsInRow(
+            canvas.screenshotSlots,
+            f,
+            stateCanvasAspect(state)
+          ),
+        }),
+        "frame"
+      ),
     setFrameAddress: (address, canvasId) =>
       commitCanvas(canvasId, { frameAddress: address }, "frame-address"),
     bringScreenshotToFront: (canvasId) =>
@@ -1178,21 +1218,30 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       const id = makeId()
       commitCanvas(
         targetId,
-        (canvas) => {
+        (canvas, state) => {
           const next = createScreenshotSlot(
             {
               id,
               frame: { ...canvas.frame },
               frameAddress: canvas.frameAddress,
-              padding: 0,
+              padding: canvas.padding,
+              tilt: { ...canvas.tilt },
+              scale: canvas.scale,
+              borderRadius: canvas.borderRadius,
+              shadow: { ...canvas.shadow },
+              border: { ...canvas.border },
+              enhance: canvas.enhance,
+              opacity: canvas.screenshotLayer.opacity,
+              blendMode: canvas.screenshotLayer.blendMode,
             },
             computeNextLayerZ(canvas)
           )
           return {
-            screenshotSlots: layoutSlotsInRow([
-              ...canvas.screenshotSlots,
-              next,
-            ]),
+            screenshotSlots: layoutSlotsInRow(
+              [...canvas.screenshotSlots, next],
+              canvas.frame,
+              stateCanvasAspect(state)
+            ),
           }
         },
         null
@@ -1202,11 +1251,21 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     updateScreenshotSlot: (id, patch, canvasId) =>
       commitCanvas(
         canvasId,
-        (canvas) => ({
-          screenshotSlots: canvas.screenshotSlots.map((slot) =>
+        (canvas, state) => {
+          const updated = canvas.screenshotSlots.map((slot) =>
             slot.id === id ? { ...slot, ...patch } : slot
-          ),
-        }),
+          )
+          if (patch.frame) {
+            return {
+              screenshotSlots: layoutSlotsInRow(
+                updated,
+                canvas.frame,
+                stateCanvasAspect(state)
+              ),
+            }
+          }
+          return { screenshotSlots: updated }
+        },
         `screenshot-slot-${id}`
       ),
     setScreenshotSlotImage: (id, src, canvasId) =>
@@ -1222,9 +1281,11 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     deleteScreenshotSlot: (id, canvasId) =>
       commitCanvas(
         canvasId,
-        (canvas) => ({
+        (canvas, state) => ({
           screenshotSlots: layoutSlotsInRow(
-            canvas.screenshotSlots.filter((slot) => slot.id !== id)
+            canvas.screenshotSlots.filter((slot) => slot.id !== id),
+            canvas.frame,
+            stateCanvasAspect(state)
           ),
         }),
         null
@@ -1241,7 +1302,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       let didCopy = false
       commitCanvas(
         targetId,
-        (canvas) => {
+        (canvas, state) => {
           const src = canvas.screenshotSlots.find((slot) => slot.id === id)
           if (!src) return { screenshotSlots: canvas.screenshotSlots }
           didCopy = true
@@ -1251,10 +1312,11 @@ export const useEditorStore = create<EditorStore>((set, get) => {
             zIndex: computeNextLayerZ(canvas),
           }
           return {
-            screenshotSlots: layoutSlotsInRow([
-              ...canvas.screenshotSlots,
-              copy,
-            ]),
+            screenshotSlots: layoutSlotsInRow(
+              [...canvas.screenshotSlots, copy],
+              canvas.frame,
+              stateCanvasAspect(state)
+            ),
           }
         },
         null
@@ -1276,8 +1338,12 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     arrangeScreenshotSlotsInRow: (canvasId) =>
       commitCanvas(
         canvasId,
-        (canvas) => ({
-          screenshotSlots: layoutSlotsInRow(canvas.screenshotSlots),
+        (canvas, state) => ({
+          screenshotSlots: layoutSlotsInRow(
+            canvas.screenshotSlots,
+            canvas.frame,
+            stateCanvasAspect(state)
+          ),
         }),
         null
       ),

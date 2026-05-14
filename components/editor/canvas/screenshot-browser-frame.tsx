@@ -51,6 +51,7 @@ type ScreenshotBrowserFrameProps = {
   onCropClick: () => void
   onReplaceFile: (file: File) => void
   onDelete: () => void
+  showHoverActions?: boolean
 }
 
 type BrowserFrameEmptyStateProps = {
@@ -98,6 +99,7 @@ export function ScreenshotBrowserFrame({
   onCropClick,
   onReplaceFile,
   onDelete,
+  showHoverActions = true,
 }: ScreenshotBrowserFrameProps) {
   const frameRef = React.useRef<HTMLDivElement>(null)
   const frame = getBrowserFrame(frameId)
@@ -187,7 +189,9 @@ export function ScreenshotBrowserFrame({
           />
         )}
 
-        {activeTool === "pointer" && !screenshotLayer.hidden ? (
+        {showHoverActions &&
+        activeTool === "pointer" &&
+        !screenshotLayer.hidden ? (
           <BoxHoverActions
             hoverGroupClass={cn(
               "group-hover/browser-frame:opacity-100",

@@ -2,31 +2,35 @@
 
 import * as React from "react"
 import { createPortal } from "react-dom"
+import { RiSmartphoneLine } from "@remixicon/react"
 import { toast } from "sonner"
 
 import { BoxHoverActions } from "@/components/editor/canvas/box-hover-actions"
-import { FramedScreenshotVisual } from "@/components/editor/canvas/framed-screenshot-visual"
 import {
   frameSelectionRadius,
   snapBoxToTarget,
 } from "@/components/editor/canvas/helpers"
+import { ScreenshotFrameSettings } from "@/components/editor/canvas/screenshot-edit-menu"
+import { ScreenshotFrameContent } from "@/components/editor/canvas/screenshot-frame-content"
 import {
   bulkToolbarScale,
   floatingToolbarTransform,
+  ToolbarButton,
   ToolbarDeleteButton,
   ToolbarDivider,
   ToolbarDragHandle,
   ToolbarDuplicateButton,
   ToolbarLayerOrderMenu,
+  ToolbarPopover,
   ToolbarSurface,
 } from "@/components/editor/toolbar/primitives"
-import {
-  isBrowserFrame,
-} from "@/lib/browser-frame"
+import { isBrowserFrame } from "@/lib/browser-frame"
+import { slotBoxAspectRatio } from "@/lib/editor/screenshot-layout"
 import {
   assetFilterCss,
   enhanceFilterCss,
   MAX_SCREENSHOT_SLOTS,
+  shadowCss,
   type ScreenshotSlot,
   shadowDropFilterCss,
   useEditor,
@@ -71,6 +75,7 @@ export function ScreenshotSlotView({
   onCenterGuideChange?: (guides: { x: boolean; y: boolean }) => void
 }) {
   const {
+    activeTool,
     selectedScreenshotSlotId,
     setSelectedScreenshotSlotId,
     setSelectedAssetId,
@@ -93,6 +98,8 @@ export function ScreenshotSlotView({
     : 1
 
   const elRef = React.useRef<HTMLDivElement>(null)
+  const stageRef = React.useRef<HTMLDivElement>(null)
+  const imageRef = React.useRef<HTMLImageElement>(null)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const dragRef = React.useRef<DragState | null>(null)
   const [isDragOver, setIsDragOver] = React.useState(false)
@@ -131,7 +138,7 @@ export function ScreenshotSlotView({
     canvasAspectRatio,
   ])
 
-  const select = (e: React.MouseEvent | React.PointerEvent) => {
+  const select = (e: { stopPropagation: () => void }) => {
     e.stopPropagation()
     setSelectedScreenshotSlotId(slot.id)
     setSelectedAssetId(null)
@@ -259,7 +266,7 @@ export function ScreenshotSlotView({
     `rotateZ(var(--slot-ts-rz, ${slot.tilt.rz}deg))`,
     `scale(var(--slot-ts-scale, ${slot.scale / 100}))`,
   ].join(" ")
-  const boxAspectRatio = canvasAspectRatio < 0.85 ? "10 / 14" : "16 / 10"
+  const boxAspectRatio = slotBoxAspectRatio(slot.frame, canvasAspectRatio)
 
   const containerStyle: React.CSSProperties = {
     left: `${slot.xPct}%`,
@@ -286,6 +293,15 @@ export function ScreenshotSlotView({
     transformStyle: "preserve-3d",
     opacity: slot.opacity / 100,
     borderRadius: selectionRadius,
+  }
+  const bareImgStyle: React.CSSProperties = {
+    borderRadius: bareBorderRadius,
+    boxShadow: shadowCss(slot.shadow),
+    filter: filterChain || undefined,
+  }
+  if (imageBoxOutline?.color && imageBoxOutline.width > 0) {
+    bareImgStyle.outline = `${imageBoxOutline.width}px ${imageBoxOutline.style || "solid"} ${imageBoxOutline.color}`
+    bareImgStyle.outlineOffset = `${imageBoxOutline.padding || 0}px`
   }
 
   const onBrowse = () => {
@@ -347,19 +363,32 @@ export function ScreenshotSlotView({
             )}
             style={transformedStyle}
           >
-            <FramedScreenshotVisual
+            <ScreenshotFrameContent
               src={slot.src}
               frame={slot.frame}
-              onBrowse={onBrowse}
               isDragOver={isDragOver}
+              onBrowse={onBrowse}
               imageFilter={filterChain || undefined}
               shadowFilter={computedShadowFilter}
-              borderRadius={bareBorderRadius}
-              outline={imageBoxOutline}
+              bareStyle={bareImgStyle}
+              activeTool={activeTool}
+              isDragging={false}
+              stageRef={stageRef}
+              imageRef={imageRef}
               addressValue={slot.frameAddress}
               onAddressChange={(value) =>
                 updateScreenshotSlot(slot.id, { frameAddress: value })
               }
+              onSelect={select}
+              onPointerDown={startDrag}
+              onPointerMove={moveDrag}
+              onPointerUp={endDrag}
+              onCrop={() => onCropRequest(slot.id)}
+              onReplaceFile={(file) => void handleFiles([file])}
+              onDelete={() => {
+                deleteScreenshotSlot(slot.id)
+                setSelectedScreenshotSlotId(null)
+              }}
             />
 
             {slot.src ? (
@@ -409,9 +438,7 @@ export function ScreenshotSlotView({
                     top,
                     left,
                     transform: floatingToolbarTransform(flipBelow, scale),
-                    transformOrigin: flipBelow
-                      ? "top center"
-                      : "bottom center",
+                    transformOrigin: flipBelow ? "top center" : "bottom center",
                   }}
                 >
                   <div className="pointer-events-auto">
@@ -434,6 +461,22 @@ export function ScreenshotSlotView({
                             )
                         }}
                       />
+                      <ToolbarPopover
+                        tooltip="Frame"
+                        contentClassName="w-64 p-2"
+                        trigger={({ open }) => (
+                          <ToolbarButton aria-label="Frame" active={open}>
+                            <RiSmartphoneLine className="size-4" />
+                          </ToolbarButton>
+                        )}
+                      >
+                        <ScreenshotFrameSettings
+                          frame={slot.frame}
+                          onFrameChange={(frame) =>
+                            updateScreenshotSlot(slot.id, { frame })
+                          }
+                        />
+                      </ToolbarPopover>
                       <ToolbarDeleteButton
                         ariaLabel="Delete screenshot box"
                         onDelete={() => {

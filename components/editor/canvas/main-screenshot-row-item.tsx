@@ -2,13 +2,17 @@
 
 import * as React from "react"
 import { createPortal } from "react-dom"
+import { RiSmartphoneLine } from "@remixicon/react"
 
+import { ScreenshotFrameSettings } from "@/components/editor/canvas/screenshot-edit-menu"
 import {
   floatingToolbarTransform,
+  ToolbarButton,
   ToolbarDivider,
   ToolbarDragHandle,
   ToolbarDuplicateButton,
   ToolbarLayerOrderMenu,
+  ToolbarPopover,
   ToolbarSurface,
 } from "@/components/editor/toolbar/primitives"
 import { isBrowserFrame } from "@/lib/browser-frame"
@@ -16,8 +20,8 @@ import type { DeviceFrame, EditorTool } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
 
 import { BoxHoverActions } from "./box-hover-actions"
-import { FramedScreenshotVisual } from "./framed-screenshot-visual"
 import { frameSelectionRadius } from "./helpers"
+import { ScreenshotFrameContent } from "./screenshot-frame-content"
 
 type MainScreenshotRowItemProps = {
   style: React.CSSProperties
@@ -26,6 +30,7 @@ type MainScreenshotRowItemProps = {
   frame: DeviceFrame
   addressValue: string
   onAddressChange: (value: string) => void
+  padding: number
   transform: string
   isDragOver: boolean
   imgStyle: React.CSSProperties
@@ -39,7 +44,7 @@ type MainScreenshotRowItemProps = {
   toolbarScale: number
   activeTool: EditorTool
   isScreenshotDragging: boolean
-  onSelect: (e: React.MouseEvent | React.PointerEvent) => void
+  onSelect: (e: { stopPropagation: () => void }) => void
   onBrowse: () => void
   onCropClick: () => void
   onReplaceFile: (file: File) => void
@@ -47,6 +52,10 @@ type MainScreenshotRowItemProps = {
   onDuplicate: () => void
   onBringToFront: () => void
   onSendToBack: () => void
+  onFrameChange: (frame: DeviceFrame) => void
+  stageRef: React.RefObject<HTMLDivElement | null>
+  imageRef: React.RefObject<HTMLImageElement | null>
+  onImageLoad: (e: React.SyntheticEvent<HTMLImageElement>) => void
   onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void
   onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void
   onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void
@@ -59,6 +68,7 @@ export function MainScreenshotRowItem({
   frame,
   addressValue,
   onAddressChange,
+  padding,
   transform,
   isDragOver,
   imgStyle,
@@ -80,6 +90,10 @@ export function MainScreenshotRowItem({
   onDuplicate,
   onBringToFront,
   onSendToBack,
+  onFrameChange,
+  stageRef,
+  imageRef,
+  onImageLoad,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -142,7 +156,9 @@ export function MainScreenshotRowItem({
     frame.id,
     imgStyle.borderRadius as number
   )
-
+  const contentStyle: React.CSSProperties = {
+    padding: `${Math.max(0, Math.min(240, padding)) / 12}%`,
+  }
   return (
     <>
       <div
@@ -164,56 +180,70 @@ export function MainScreenshotRowItem({
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
-        <div
-          className={cn(
-            "relative h-full w-full",
-            isSelected &&
-              activeTool === "pointer" &&
-              "outline-2 outline-offset-2 outline-[#9BCD64]/95 outline-dashed"
-          )}
-          style={{
-            transform,
-            transformStyle: "preserve-3d",
-            opacity: imgStyle.opacity as number | undefined,
-            mixBlendMode:
-              imgStyle.mixBlendMode as React.CSSProperties["mixBlendMode"],
-            borderRadius: selectionRadius,
-            boxShadow:
-              frame.id === "none"
-                ? (imgStyle.boxShadow as string | undefined)
-                : undefined,
-          }}
-        >
-          <FramedScreenshotVisual
-            src={screenshot}
-            frame={frame}
-            onBrowse={onBrowse}
-            isDragOver={isDragOver}
-            imageFilter={filterChain}
-            shadowFilter={frame.id === "none" ? undefined : shadowFilter}
-            borderRadius={imgStyle.borderRadius as number | undefined}
-            addressValue={addressValue}
-            onAddressChange={onAddressChange}
-          />
-
-          {screenshot && activeTool === "pointer" ? (
-            <BoxHoverActions
-              hoverGroupClass="group-hover/main-row:opacity-100"
-              disabled={bulkCanvasDragging || isScreenshotDragging}
-              inline
-              mode={
-                frame.id !== "none" && !isBrowserFrame(frame.id)
-                  ? "menu"
-                  : "buttons"
-              }
-              layoutKey={hoverActionsLayoutKey}
-              controlScale={hoverActionsInline ? 1 : hoverActionsScale}
-              measureRef={rowRef}
+        <div className="absolute inset-0" style={contentStyle}>
+          <div
+            className={cn(
+              "relative h-full w-full",
+              isSelected &&
+                activeTool === "pointer" &&
+                "outline-2 outline-offset-2 outline-[#9BCD64]/95 outline-dashed"
+            )}
+            style={{
+              transform,
+              transformStyle: "preserve-3d",
+              opacity: imgStyle.opacity as number | undefined,
+              mixBlendMode:
+                imgStyle.mixBlendMode as React.CSSProperties["mixBlendMode"],
+              borderRadius: selectionRadius,
+              boxShadow:
+                frame.id === "none"
+                  ? (imgStyle.boxShadow as string | undefined)
+                  : undefined,
+            }}
+          >
+            <ScreenshotFrameContent
+              src={screenshot}
+              frame={frame}
+              isDragOver={isDragOver}
+              onBrowse={onBrowse}
+              imageFilter={filterChain}
+              shadowFilter={shadowFilter}
+              bareStyle={imgStyle}
+              activeTool={activeTool}
+              isDragging={isScreenshotDragging}
+              stageRef={stageRef}
+              imageRef={imageRef}
+              addressValue={addressValue}
+              onAddressChange={onAddressChange}
+              onSelect={onSelect}
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onImageLoad={onImageLoad}
               onCrop={onCropClick}
               onReplaceFile={onReplaceFile}
               onDelete={onDelete}
             />
-          ) : null}
+
+            {screenshot && activeTool === "pointer" ? (
+              <BoxHoverActions
+                hoverGroupClass="group-hover/main-row:opacity-100"
+                disabled={bulkCanvasDragging || isScreenshotDragging}
+                inline
+                mode={
+                  frame.id !== "none" && !isBrowserFrame(frame.id)
+                    ? "menu"
+                    : "buttons"
+                }
+                layoutKey={hoverActionsLayoutKey}
+                controlScale={hoverActionsInline ? 1 : hoverActionsScale}
+                measureRef={rowRef}
+                onCrop={onCropClick}
+                onReplaceFile={onReplaceFile}
+                onDelete={onDelete}
+              />
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -269,6 +299,20 @@ export function MainScreenshotRowItem({
                         ariaLabel="Duplicate screenshot"
                         onDuplicate={onDuplicate}
                       />
+                      <ToolbarPopover
+                        tooltip="Frame"
+                        contentClassName="w-64 p-2"
+                        trigger={({ open }) => (
+                          <ToolbarButton aria-label="Frame" active={open}>
+                            <RiSmartphoneLine className="size-4" />
+                          </ToolbarButton>
+                        )}
+                      >
+                        <ScreenshotFrameSettings
+                          frame={frame}
+                          onFrameChange={onFrameChange}
+                        />
+                      </ToolbarPopover>
                       <ToolbarLayerOrderMenu
                         onBringToFront={onBringToFront}
                         onSendToBack={onSendToBack}
