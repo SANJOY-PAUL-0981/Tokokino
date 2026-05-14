@@ -44,6 +44,7 @@ import {
   annotationPath,
   clamp,
   deviceMockupSpec,
+  frameSelectionRadius,
   positionFloatingToolbar,
   screenshotPlacementStyle,
   snapCenterToTarget,
@@ -1547,6 +1548,10 @@ function MainScreenshotRowItem({
     transform:
       `${baseTransform} translate(${offset.x}px, ${offset.y}px)`.trim(),
   }
+  const selectionRadius = frameSelectionRadius(
+    frame.id,
+    imgStyle.borderRadius as number
+  )
   return (
     <>
       <div
@@ -1581,7 +1586,7 @@ function MainScreenshotRowItem({
             opacity: imgStyle.opacity as number | undefined,
             mixBlendMode:
               imgStyle.mixBlendMode as React.CSSProperties["mixBlendMode"],
-            borderRadius: imgStyle.borderRadius as number | undefined,
+            borderRadius: selectionRadius,
             boxShadow:
               frame.id === "none"
                 ? (imgStyle.boxShadow as string | undefined)
@@ -1605,6 +1610,11 @@ function MainScreenshotRowItem({
               hoverGroupClass="group-hover/main-row:opacity-100"
               disabled={bulkCanvasDragging || isScreenshotDragging}
               inline
+              mode={
+                frame.id !== "none" && !isBrowserFrame(frame.id)
+                  ? "menu"
+                  : "buttons"
+              }
               layoutKey={hoverActionsLayoutKey}
               controlScale={hoverActionsInline ? 1 : hoverActionsScale}
               measureRef={rowRef}

@@ -1,5 +1,11 @@
 import type * as React from "react"
 
+import {
+  ARC_BROWSER_FRAME_ID,
+  CHROME_BROWSER_FRAME_ID,
+  isBrowserFrame,
+  SAFARI_BROWSER_FRAME_ID,
+} from "@/lib/browser-frame"
 import { DEVICE_MOCKUP_SPECS } from "@/lib/mockups"
 import type { PortraitMode } from "@/lib/editor/store"
 
@@ -80,6 +86,15 @@ export function annotationPath(points: { x: number; y: number }[]) {
 
 export function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n))
+}
+
+export function frameSelectionRadius(frameId: string, fallback: number) {
+  if (frameId === "none") return fallback
+  if (frameId === CHROME_BROWSER_FRAME_ID) return 8
+  if (frameId === SAFARI_BROWSER_FRAME_ID) return 14
+  if (frameId === ARC_BROWSER_FRAME_ID) return 18
+  if (isBrowserFrame(frameId)) return 12
+  return fallback
 }
 
 export function snapCenterToTarget({
@@ -169,7 +184,8 @@ export function positionFloatingToolbar(
   const placement = flipBelow ? "translate(-50%, 0)" : "translate(-50%, -100%)"
   toolbar.style.top = `${flipBelow ? rect.bottom + 12 : rect.top - 12}px`
   toolbar.style.left = `${rect.left + rect.width / 2}px`
-  toolbar.style.transform = scale === 1 ? placement : `${placement} scale(${scale})`
+  toolbar.style.transform =
+    scale === 1 ? placement : `${placement} scale(${scale})`
   toolbar.style.transformOrigin = flipBelow ? "top center" : "bottom center"
 }
 

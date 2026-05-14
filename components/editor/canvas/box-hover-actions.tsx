@@ -5,11 +5,13 @@ import { createPortal } from "react-dom"
 import { RiCropLine, RiDeleteBinLine, RiRefreshLine } from "@remixicon/react"
 
 import { cn } from "@/lib/utils"
+import { ScreenshotEditMenu } from "./screenshot-edit-menu"
 
 type BoxHoverActionsProps = {
   hoverGroupClass: string
   disabled?: boolean
   inline?: boolean
+  mode?: "buttons" | "menu"
   layoutKey?: string | number
   controlScale?: number
   measureRef?: React.RefObject<HTMLElement | null>
@@ -22,6 +24,7 @@ export function BoxHoverActions({
   hoverGroupClass,
   disabled = false,
   inline = false,
+  mode = "buttons",
   layoutKey,
   controlScale = 1,
   measureRef,
@@ -40,6 +43,7 @@ export function BoxHoverActions({
     string | number | undefined
   >(undefined)
   const [rect, setRect] = React.useState<DOMRect | null>(null)
+  const [menuOpen, setMenuOpen] = React.useState(false)
 
   const clearHideTimer = React.useCallback(() => {
     if (hideTimerRef.current === null) return
@@ -109,24 +113,49 @@ export function BoxHoverActions({
     }
   }, [clearHideTimer, disabled, layoutKey, measureRef, scheduleHide])
 
+  const isMenuOpen = menuOpen && !disabled
   const controlsVisible =
-    visible && !disabled && visibleLayoutKey === layoutKey
-  const controls = (
-    <>
-      <BoxActionButton label="Crop image" onClick={onCrop}>
-        <RiCropLine className="size-4" />
-      </BoxActionButton>
-      <BoxActionButton
-        label="Replace image"
-        onClick={() => replaceInputRef.current?.click()}
-      >
-        <RiRefreshLine className="size-4" />
-      </BoxActionButton>
-      <BoxActionButton label="Delete image" destructive onClick={onDelete}>
-        <RiDeleteBinLine className="size-4" />
-      </BoxActionButton>
-    </>
-  )
+    (visible || isMenuOpen) && !disabled && visibleLayoutKey === layoutKey
+  const controls =
+    mode === "menu" ? (
+      <ScreenshotEditMenu
+        open={isMenuOpen}
+        onOpenChange={(open) => {
+          if (disabled) {
+            setMenuOpen(false)
+            return
+          }
+          setMenuOpen(open)
+          if (open) {
+            controlsActiveRef.current = true
+            clearHideTimer()
+            setVisible(true)
+            setVisibleLayoutKey(layoutKey)
+          } else {
+            controlsActiveRef.current = false
+            scheduleHide()
+          }
+        }}
+        onCrop={onCrop}
+        onReplaceFile={onReplaceFile}
+        onDelete={onDelete}
+      />
+    ) : (
+      <>
+        <BoxActionButton label="Crop image" onClick={onCrop}>
+          <RiCropLine className="size-4" />
+        </BoxActionButton>
+        <BoxActionButton
+          label="Replace image"
+          onClick={() => replaceInputRef.current?.click()}
+        >
+          <RiRefreshLine className="size-4" />
+        </BoxActionButton>
+        <BoxActionButton label="Delete image" destructive onClick={onDelete}>
+          <RiDeleteBinLine className="size-4" />
+        </BoxActionButton>
+      </>
+    )
 
   return (
     <>
@@ -138,22 +167,25 @@ export function BoxHoverActions({
           hoverGroupClass
         )}
       />
-      <input
-        ref={replaceInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) onReplaceFile(file)
-          e.target.value = ""
-        }}
-      />
+      {mode === "buttons" ? (
+        <input
+          ref={replaceInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) onReplaceFile(file)
+            e.target.value = ""
+          }}
+        />
+      ) : null}
       {inline ? (
         <div
           className={cn(
             "pointer-events-none absolute top-1/2 left-0 z-[1100] flex w-full -translate-y-1/2 items-center justify-center gap-2 opacity-0 transition-opacity duration-200",
-            !disabled && hoverGroupClass
+            !disabled && hoverGroupClass,
+            isMenuOpen && "opacity-100"
           )}
         >
           <div

@@ -6,7 +6,10 @@ import { toast } from "sonner"
 
 import { BoxHoverActions } from "@/components/editor/canvas/box-hover-actions"
 import { FramedScreenshotVisual } from "@/components/editor/canvas/framed-screenshot-visual"
-import { snapBoxToTarget } from "@/components/editor/canvas/helpers"
+import {
+  frameSelectionRadius,
+  snapBoxToTarget,
+} from "@/components/editor/canvas/helpers"
 import {
   bulkToolbarScale,
   floatingToolbarTransform,
@@ -18,10 +21,7 @@ import {
   ToolbarSurface,
 } from "@/components/editor/toolbar/primitives"
 import {
-  ARC_BROWSER_FRAME_ID,
-  CHROME_BROWSER_FRAME_ID,
   isBrowserFrame,
-  SAFARI_BROWSER_FRAME_ID,
 } from "@/lib/browser-frame"
 import {
   assetFilterCss,
@@ -32,15 +32,6 @@ import {
   useEditor,
 } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
-
-const frameSelectionRadius = (frameId: string, fallback: number) => {
-  if (frameId === "none") return fallback
-  if (frameId === CHROME_BROWSER_FRAME_ID) return 8
-  if (frameId === SAFARI_BROWSER_FRAME_ID) return 14
-  if (frameId === ARC_BROWSER_FRAME_ID) return 18
-  if (isBrowserFrame(frameId)) return 12
-  return 32
-}
 
 type DragState = {
   pointerId: number
@@ -376,6 +367,11 @@ export function ScreenshotSlotView({
                 hoverGroupClass="group-hover/slot:opacity-100"
                 disabled={bulkCanvasDragging}
                 inline
+                mode={
+                  slot.frame.id !== "none" && !isBrowserFrame(slot.frame.id)
+                    ? "menu"
+                    : "buttons"
+                }
                 layoutKey={`${bulkViewportZoom}:${hoverActionsScale}`}
                 controlScale={bulkEditMode ? 1 : hoverActionsScale}
                 measureRef={elRef}
