@@ -20,6 +20,7 @@ import {
   shadowCss,
   shadowDropFilterCss,
   screenshotPositionAnchor,
+  useCanvasScopeId,
   useEditor,
   useEditorStore,
 } from "@/lib/editor/store"
@@ -119,6 +120,7 @@ function CanvasViewInner({
     isScreenshotSelected,
     setIsScreenshotSelected,
   } = useEditor()
+  const scopeId = useCanvasScopeId()
   const bulkEditMode = useEditorStore((s) => s.bulkEditMode)
   const bulkCanvasDragging = useEditorStore((s) => s.bulkCanvasDragging)
   const bulkViewportZoom = useEditorStore((s) => s.bulkViewportZoom)
@@ -204,10 +206,10 @@ function CanvasViewInner({
 
   const transform = [
     `perspective(1400px)`,
-    `rotateX(${tilt.rx}deg)`,
-    `rotateY(${tilt.ry}deg)`,
-    `rotateZ(${tilt.rz}deg)`,
-    `scale(${scale / 100})`,
+    `rotateX(var(--canvas-ts-rx, ${tilt.rx}deg))`,
+    `rotateY(var(--canvas-ts-ry, ${tilt.ry}deg))`,
+    `rotateZ(var(--canvas-ts-rz, ${tilt.rz}deg))`,
+    `scale(var(--canvas-ts-scale, ${scale / 100}))`,
   ].join(" ")
   const screenshotAnchor = screenshotPositionAnchor(screenshotPosition)
 
@@ -357,6 +359,7 @@ function CanvasViewInner({
       >
         <motion.div
           ref={canvasRef}
+          data-canvas-id={scopeId ?? undefined}
           initial={{ opacity: 0, scale: 0.985, y: 6 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}

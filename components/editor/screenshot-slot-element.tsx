@@ -254,10 +254,10 @@ export function ScreenshotSlotView({
     .trim()
   const contentTransform = [
     "perspective(1400px)",
-    `rotateX(${slot.tilt.rx}deg)`,
-    `rotateY(${slot.tilt.ry}deg)`,
-    `rotateZ(${slot.tilt.rz}deg)`,
-    `scale(${slot.scale / 100})`,
+    `rotateX(var(--slot-ts-rx, ${slot.tilt.rx}deg))`,
+    `rotateY(var(--slot-ts-ry, ${slot.tilt.ry}deg))`,
+    `rotateZ(var(--slot-ts-rz, ${slot.tilt.rz}deg))`,
+    `scale(var(--slot-ts-scale, ${slot.scale / 100}))`,
   ].join(" ")
   const boxAspectRatio = canvasAspectRatio < 0.85 ? "10 / 14" : "16 / 10"
 
