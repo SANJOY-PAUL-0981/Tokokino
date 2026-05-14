@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { createPortal } from "react-dom"
 import { motion } from "motion/react"
 import { toast } from "sonner"
 
@@ -10,15 +9,7 @@ import { CropModal } from "@/components/editor/crop-modal"
 import { AnnotationShapeElement } from "@/components/editor/annotation-shape-element"
 import { AssetElementView } from "@/components/editor/asset-element"
 import { TextElementView } from "@/components/editor/text-element"
-import {
-  bulkToolbarScale,
-  floatingToolbarTransform,
-  ToolbarDivider,
-  ToolbarDragHandle,
-  ToolbarDuplicateButton,
-  ToolbarLayerOrderMenu,
-  ToolbarSurface,
-} from "@/components/editor/toolbar/primitives"
+import { bulkToolbarScale } from "@/components/editor/toolbar/primitives"
 import { cn } from "@/lib/utils"
 import { isBrowserFrame, resolveBrowserFrameColor } from "@/lib/browser-frame"
 import {
@@ -36,19 +27,16 @@ import { getDeviceMockup, getDeviceMockupAsset } from "@/lib/mockups"
 
 import { AnnotationLayer } from "./canvas/annotation-layer"
 import { CanvasBackdrop } from "./canvas/canvas-backdrop"
-import { BoxHoverActions } from "./canvas/box-hover-actions"
 import { CanvasEmptyState } from "./canvas/canvas-empty-state"
-import { DeviceFrameEmptyState } from "./canvas/device-frame-empty-state"
-import { FramedScreenshotVisual } from "./canvas/framed-screenshot-visual"
+import { CenterGuides, useCenterGuides } from "./canvas/center-guides"
 import {
-  annotationPath,
-  clamp,
-  deviceMockupSpec,
-  frameSelectionRadius,
-  positionFloatingToolbar,
-  screenshotPlacementStyle,
-  snapCenterToTarget,
-} from "./canvas/helpers"
+  BASE_CANVAS_WIDTH,
+  SCREENSHOT_ROW_GAP,
+  screenshotRowItemWidth,
+} from "./canvas/constants"
+import { DeviceFrameEmptyState } from "./canvas/device-frame-empty-state"
+import { deviceMockupSpec, screenshotPlacementStyle } from "./canvas/helpers"
+import { MainScreenshotRowItem } from "./canvas/main-screenshot-row-item"
 import { ScreenshotBare } from "./canvas/screenshot-bare"
 import {
   BrowserFrameEmptyState,
@@ -57,19 +45,11 @@ import {
 import { ScreenshotMockup } from "./canvas/screenshot-mockup"
 import { BulkCanvasFlow } from "./bulk-canvas-flow"
 import { ScreenshotSlotView } from "./screenshot-slot-element"
-
-const BASE_CANVAS_WIDTH = 1100
-const SCREENSHOT_ROW_MARGIN = 1
-const SCREENSHOT_ROW_GAP = 2
-
-const screenshotRowItemWidth = (count: number) => {
-  if (count <= 1) return 66
-  const usableW = Math.max(
-    20,
-    100 - 2 * SCREENSHOT_ROW_MARGIN - (count - 1) * SCREENSHOT_ROW_GAP
-  )
-  return usableW / count
-}
+import { useAnnotationInteractions } from "./canvas/use-annotation-interactions"
+import { useImageFileIntake } from "./canvas/use-image-file-intake"
+import { usePlacementMeasurement } from "./canvas/use-placement-measurement"
+import { useScreenshotDrag } from "./canvas/use-screenshot-drag"
+import { useSuppressTransitionOnChange } from "./canvas/use-suppress-transition-on-change"
 
 type CanvasViewProps = {
   canvasId: string
@@ -159,202 +139,34 @@ function CanvasViewInner({
     return () => window.removeEventListener("keydown", onKey)
   }, [selectedTextId, setSelectedTextId])
 
-  const [isDragOver, setIsDragOver] = React.useState(false)
   const [naturalDims, setNaturalDims] = React.useState<{
     w: number
     h: number
-  } | null>(null)
-  const [placementDims, setPlacementDims] = React.useState<{
-    stageW: number
-    stageH: number
-    imgW: number
-    imgH: number
-  } | null>(null)
-  const [isScreenshotDragging, setIsScreenshotDragging] = React.useState(false)
-  const [liveOffset, setLiveOffset] = React.useState<{
-    x: number
-    y: number
   } | null>(null)
   const [isCropModalOpen, setIsCropModalOpen] = React.useState(false)
   const [croppingSlotId, setCroppingSlotId] = React.useState<string | null>(
     null
   )
-  const [centerGuides, setCenterGuides] = React.useState({ x: false, y: false })
-  const [textCenterGuides, setTextCenterGuides] = React.useState({
-    x: false,
-    y: false,
-  })
-  const updateCenterGuides = React.useCallback(
-    (next: { x: boolean; y: boolean }) => {
-      setCenterGuides((prev) =>
-        prev.x === next.x && prev.y === next.y ? prev : next
-      )
-    },
-    []
-  )
-  const updateTextCenterGuides = React.useCallback(
-    (next: { x: boolean; y: boolean }) => {
-      setTextCenterGuides((prev) =>
-        prev.x === next.x && prev.y === next.y ? prev : next
-      )
-    },
-    []
-  )
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const [centerGuides, updateCenterGuides] = useCenterGuides()
+  const [textCenterGuides, updateTextCenterGuides] = useCenterGuides()
   const stageRef = React.useRef<HTMLDivElement>(null)
   const imageRef = React.useRef<HTMLImageElement>(null)
   const annotationLayerRef = React.useRef<SVGSVGElement>(null)
-  const [suppressTransition, setSuppressTransition] = React.useState(false)
-  const prevPaddingRef = React.useRef(padding)
-  React.useEffect(() => {
-    if (prevPaddingRef.current === padding) return
-
-    prevPaddingRef.current = padding
-    setSuppressTransition(true)
-    let secondFrame = 0
-    const firstFrame = requestAnimationFrame(() => {
-      secondFrame = requestAnimationFrame(() => {
-        setSuppressTransition(false)
-      })
-    })
-
-    return () => {
-      cancelAnimationFrame(firstFrame)
-      if (secondFrame) cancelAnimationFrame(secondFrame)
-    }
-  }, [padding])
-  const dragRef = React.useRef<{
-    pointerId: number
-    startClientX: number
-    startClientY: number
-    startOffsetX: number
-    startOffsetY: number
-    baseLeft: number
-    baseTop: number
-    stageW: number
-    stageH: number
-    imgW: number
-    imgH: number
-  } | null>(null)
-  const mockupDragRef = React.useRef<{
-    pointerId: number
-    startClientX: number
-    startClientY: number
-    startOffsetX: number
-    startOffsetY: number
-  } | null>(null)
-  const annotationDragRef = React.useRef<{
-    pointerId: number
-    strokeId: string
-    points: { x: number; y: number }[]
-    mode: "pen" | "highlight" | "eraser"
-  } | null>(null)
-  const annotationShapeDragRef = React.useRef<{
-    pointerId: number
-    shapeId: string
-    kind: "arrow" | "rect" | "ellipse" | "blur"
-    strokeWidth: number
-    startXPct: number
-    startYPct: number
-    nextXPct: number
-    nextYPct: number
-    nextWidthPct: number
-    nextHeightPct: number
-    nextRotation: number
-    moved: boolean
-  } | null>(null)
-  const annotationElementMoveRef = React.useRef<{
-    pointerId: number
-    type: "asset" | "text" | "annotation-shape"
-    id: string
-    startClientX: number
-    startClientY: number
-    startXPct: number
-    startYPct: number
-    canvasW: number
-    canvasH: number
-    nextXPct: number
-    nextYPct: number
-    moved: boolean
-  } | null>(null)
-
-  const measurePlacement = React.useCallback(() => {
-    const stage = stageRef.current
-    const image = imageRef.current
-    if (!stage || !image) return
-
-    const next = {
-      stageW: parseFloat(getComputedStyle(stage).width) || stage.clientWidth,
-      stageH: parseFloat(getComputedStyle(stage).height) || stage.clientHeight,
-      imgW: image.offsetWidth,
-      imgH: image.offsetHeight,
-    }
-
-    if (!next.stageW || !next.stageH || !next.imgW || !next.imgH) return
-
-    setPlacementDims((prev) => {
-      if (
-        prev?.stageW === next.stageW &&
-        prev.stageH === next.stageH &&
-        prev.imgW === next.imgW &&
-        prev.imgH === next.imgH
-      ) {
-        return prev
-      }
-      return next
-    })
-  }, [])
-
-  React.useEffect(() => {
-    if (!screenshot) return
-    measurePlacement()
-
-    const stage = stageRef.current
-    const image = imageRef.current
-    if (!stage || !image) return
-
-    const observer = new ResizeObserver(measurePlacement)
-    observer.observe(stage)
-    observer.observe(image)
-    return () => observer.disconnect()
-  }, [measurePlacement, screenshot])
-
-  const readFile = React.useCallback(
-    (file: File) => {
-      if (!file.type.startsWith("image/")) {
-        toast.error("Please drop an image")
-        return
-      }
-      const reader = new FileReader()
-      reader.onload = () => {
-        if (typeof reader.result === "string") {
-          setScreenshot(reader.result)
-          setNaturalDims(null)
-        }
-      }
-      reader.readAsDataURL(file)
+  const suppressTransition = useSuppressTransitionOnChange(padding)
+  const { placementDims, measurePlacement } = usePlacementMeasurement({
+    enabled: Boolean(screenshot),
+    stageRef,
+    imageRef,
+  })
+  const handleImageFile = React.useCallback(
+    (src: string) => {
+      setScreenshot(src)
+      setNaturalDims(null)
     },
     [setScreenshot]
   )
-
-  React.useEffect(() => {
-    const onPaste = (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items
-      if (!items) return
-      for (const item of items) {
-        if (item.type.startsWith("image/")) {
-          const file = item.getAsFile()
-          if (file) {
-            readFile(file)
-            e.preventDefault()
-            break
-          }
-        }
-      }
-    }
-    window.addEventListener("paste", onPaste)
-    return () => window.removeEventListener("paste", onPaste)
-  }, [readFile])
+  const { fileInputRef, fileInputProps, isDragOver, readFile, dropHandlers } =
+    useImageFileIntake(handleImageFile)
 
   const isAuto = aspect.id === "auto" || aspect.w === 0 || aspect.h === 0
   const autoDims = isAuto && naturalDims ? naturalDims : null
@@ -407,15 +219,6 @@ function CanvasViewInner({
   const positionedStyle: React.CSSProperties | null = placementDims
     ? screenshotPlacementStyle(placementDims, scaleFactor, positionX, positionY)
     : null
-  const effectiveOffset = liveOffset ?? screenshotOffset
-  const screenshotLeft =
-    typeof positionedStyle?.left === "number"
-      ? positionedStyle.left + effectiveOffset.x
-      : undefined
-  const screenshotTop =
-    typeof positionedStyle?.top === "number"
-      ? positionedStyle.top + effectiveOffset.y
-      : undefined
   const enhanceFilter = enhanceFilterCss(enhance)
   const imgStyle: React.CSSProperties = {
     borderRadius,
@@ -454,520 +257,79 @@ function CanvasViewInner({
       : getDeviceMockupAsset(frame.id, frame.color, mockupOrientation)
   const mockupSpec = mockupAsset ? deviceMockupSpec(frame.id) : null
 
-  const startScreenshotDrag = (e: React.PointerEvent<HTMLImageElement>) => {
-    if (!canDragScreenshot || !placementDims) return
-
-    e.preventDefault()
-    e.stopPropagation()
-    e.currentTarget.setPointerCapture(e.pointerId)
-    setIsScreenshotSelected(true)
-    setIsScreenshotDragging(true)
+  const clearElementSelection = React.useCallback(() => {
     setSelectedTextId(null)
     setSelectedAssetId(null)
     setSelectedAnnotationShapeId(null)
     setSelectedScreenshotSlotId(null)
-    dragRef.current = {
-      pointerId: e.pointerId,
-      startClientX: e.clientX,
-      startClientY: e.clientY,
-      startOffsetX: screenshotOffset.x,
-      startOffsetY: screenshotOffset.y,
-      baseLeft: positionedStyle.left as number,
-      baseTop: positionedStyle.top as number,
-      stageW: placementDims.stageW,
-      stageH: placementDims.stageH,
-      imgW: placementDims.imgW,
-      imgH: placementDims.imgH,
-    }
-  }
+  }, [
+    setSelectedAssetId,
+    setSelectedAnnotationShapeId,
+    setSelectedScreenshotSlotId,
+    setSelectedTextId,
+  ])
 
-  const moveScreenshot = (e: React.PointerEvent<HTMLImageElement>) => {
-    const drag = dragRef.current
-    if (!drag || drag.pointerId !== e.pointerId) return
+  const {
+    isScreenshotDragging,
+    liveOffset,
+    startScreenshotDrag,
+    moveScreenshot,
+    stopScreenshotDrag,
+    startMockupDrag,
+    moveMockup,
+    stopMockupDrag,
+  } = useScreenshotDrag({
+    activeTool,
+    canDragScreenshot: Boolean(canDragScreenshot),
+    effectiveScale,
+    placementDims,
+    positionedStyle,
+    screenshotOffset,
+    setScreenshotOffset,
+    setIsScreenshotSelected,
+    clearSelection: clearElementSelection,
+    updateCenterGuides,
+  })
+  const effectiveOffset = liveOffset ?? screenshotOffset
+  const screenshotLeft =
+    typeof positionedStyle?.left === "number"
+      ? positionedStyle.left + effectiveOffset.x
+      : undefined
+  const screenshotTop =
+    typeof positionedStyle?.top === "number"
+      ? positionedStyle.top + effectiveOffset.y
+      : undefined
 
-    e.preventDefault()
-
-    const pointerScale = effectiveScale
-    let nextX =
-      drag.startOffsetX + (e.clientX - drag.startClientX) / pointerScale
-    let nextY =
-      drag.startOffsetY + (e.clientY - drag.startClientY) / pointerScale
-    const centerX = drag.baseLeft + nextX + drag.imgW / 2
-    const centerY = drag.baseTop + nextY + drag.imgH / 2
-    const targetX = drag.stageW / 2
-    const targetY = drag.stageH / 2
-    const snap = snapCenterToTarget({ centerX, centerY, targetX, targetY })
-
-    nextX += snap.deltaX
-    nextY += snap.deltaY
-
-    updateCenterGuides(snap.guides)
-    setLiveOffset({ x: nextX, y: nextY })
-  }
-
-  const stopScreenshotDrag = (e: React.PointerEvent<HTMLImageElement>) => {
-    const drag = dragRef.current
-    if (!drag || drag.pointerId !== e.pointerId) return
-
-    dragRef.current = null
-    setIsScreenshotDragging(false)
-    updateCenterGuides({ x: false, y: false })
-    if (liveOffset) {
-      setScreenshotOffset(liveOffset)
-      setLiveOffset(null)
-    }
-  }
-
-  const startMockupDrag = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (activeTool !== "pointer") return
-
-    e.preventDefault()
-    e.stopPropagation()
-    e.currentTarget.setPointerCapture(e.pointerId)
-    setIsScreenshotSelected(true)
-    setIsScreenshotDragging(true)
-    setSelectedTextId(null)
-    setSelectedAssetId(null)
-    setSelectedAnnotationShapeId(null)
-    setSelectedScreenshotSlotId(null)
-    mockupDragRef.current = {
-      pointerId: e.pointerId,
-      startClientX: e.clientX,
-      startClientY: e.clientY,
-      startOffsetX: screenshotOffset.x,
-      startOffsetY: screenshotOffset.y,
-    }
-  }
-
-  const moveMockup = (e: React.PointerEvent<HTMLDivElement>) => {
-    const drag = mockupDragRef.current
-    if (!drag || drag.pointerId !== e.pointerId) return
-
-    e.preventDefault()
-    const pointerScale = effectiveScale
-    let nextX =
-      drag.startOffsetX + (e.clientX - drag.startClientX) / pointerScale
-    let nextY =
-      drag.startOffsetY + (e.clientY - drag.startClientY) / pointerScale
-    const snap = snapCenterToTarget({
-      centerX: nextX,
-      centerY: nextY,
-      targetX: 0,
-      targetY: 0,
-    })
-
-    nextX += snap.deltaX
-    nextY += snap.deltaY
-
-    updateCenterGuides(snap.guides)
-    setLiveOffset({ x: nextX, y: nextY })
-  }
-
-  const stopMockupDrag = (e: React.PointerEvent<HTMLDivElement>) => {
-    const drag = mockupDragRef.current
-    if (!drag || drag.pointerId !== e.pointerId) return
-
-    mockupDragRef.current = null
-    setIsScreenshotDragging(false)
-    updateCenterGuides({ x: false, y: false })
-    if (liveOffset) {
-      setScreenshotOffset(liveOffset)
-      setLiveOffset(null)
-    }
-  }
-
-  const getAnnotationPoint = (e: React.PointerEvent<SVGSVGElement>) => {
-    const layer = annotationLayerRef.current
-    if (!layer) return null
-    const rect = layer.getBoundingClientRect()
-    const width = layer.clientWidth
-    const height = layer.clientHeight
-    if (!rect.width || !rect.height || !width || !height) return null
-    return {
-      x: ((e.clientX - rect.left) / rect.width) * width,
-      y: ((e.clientY - rect.top) / rect.height) * height,
-    }
-  }
-
-  const getEditorElementAtPoint = React.useCallback(
-    (clientX: number, clientY: number) => {
-      const canvas = canvasRef.current
-      const layer = annotationLayerRef.current
-      if (!canvas || !layer || typeof document === "undefined") return null
-
-      for (const element of document.elementsFromPoint(clientX, clientY)) {
-        if (element === layer) continue
-        if (!canvas.contains(element)) continue
-
-        const shapeElement = element.closest<HTMLElement>(
-          "[data-annotation-shape-id]"
-        )
-        if (shapeElement && canvas.contains(shapeElement)) {
-          return {
-            type: "annotation-shape" as const,
-            id: shapeElement.dataset.annotationShapeId ?? null,
-          }
-        }
-
-        const textElement = element.closest<HTMLElement>(
-          "[data-editor-text-id]"
-        )
-        if (textElement && canvas.contains(textElement)) {
-          return {
-            type: "text" as const,
-            id: textElement.dataset.editorTextId ?? null,
-          }
-        }
-
-        const assetElement = element.closest<HTMLElement>(
-          "[data-editor-asset-id]"
-        )
-        if (assetElement && canvas.contains(assetElement)) {
-          return {
-            type: "asset" as const,
-            id: assetElement.dataset.editorAssetId ?? null,
-          }
-        }
-      }
-
-      return null
-    },
-    []
-  )
-
-  const startAnnotation = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (activeTool !== "arrow") return
-    const editorElementAtPoint = getEditorElementAtPoint(e.clientX, e.clientY)
-    if (editorElementAtPoint?.id) {
-      const canvas = canvasRef.current
-      const movable =
-        editorElementAtPoint.type === "annotation-shape"
-          ? annotationShapes.find(
-              (shape) => shape.id === editorElementAtPoint.id
-            )
-          : editorElementAtPoint.type === "text"
-            ? texts.find((text) => text.id === editorElementAtPoint.id)
-            : assets.find((asset) => asset.id === editorElementAtPoint.id)
-
-      if (!movable) return
-
-      e.preventDefault()
-      e.stopPropagation()
-      e.currentTarget.setPointerCapture(e.pointerId)
-
-      if (editorElementAtPoint.type === "annotation-shape") {
-        setSelectedAnnotationShapeId(editorElementAtPoint.id)
-        setSelectedTextId(null)
-        setSelectedAssetId(null)
-      } else if (editorElementAtPoint.type === "text") {
-        window.dispatchEvent(
-          new CustomEvent("beautiful-screenshots:select-text", {
-            detail: { id: editorElementAtPoint.id },
-          })
-        )
-        setSelectedTextId(editorElementAtPoint.id)
-        setSelectedAnnotationShapeId(null)
-        setSelectedAssetId(null)
-      } else {
-        setSelectedAssetId(editorElementAtPoint.id)
-        setSelectedTextId(null)
-        setSelectedAnnotationShapeId(null)
-      }
-
-      setIsScreenshotSelected(false)
-      if (canvas) {
-        const rect = canvas.getBoundingClientRect()
-        annotationElementMoveRef.current = {
-          pointerId: e.pointerId,
-          type: editorElementAtPoint.type,
-          id: editorElementAtPoint.id,
-          startClientX: e.clientX,
-          startClientY: e.clientY,
-          startXPct: movable.xPct,
-          startYPct: movable.yPct,
-          canvasW: rect.width,
-          canvasH: rect.height,
-          nextXPct: movable.xPct,
-          nextYPct: movable.yPct,
-          moved: false,
-        }
-      }
-      return
-    }
-
-    const point = getAnnotationPoint(e)
-    if (!point) return
-    const layer = annotationLayerRef.current
-    if (!layer) return
-
-    e.preventDefault()
-    e.stopPropagation()
-    e.currentTarget.setPointerCapture(e.pointerId)
-    setSelectedTextId(null)
-    setSelectedAssetId(null)
-    setIsScreenshotSelected(false)
-
-    if (
-      annotation.mode === "arrow" ||
-      annotation.mode === "rect" ||
-      annotation.mode === "ellipse" ||
-      annotation.mode === "blur"
-    ) {
-      const startXPct = (point.x / layer.clientWidth) * 100
-      const startYPct = (point.y / layer.clientHeight) * 100
-      const shapeId = addAnnotationShape({
-        kind: annotation.mode,
-        xPct: startXPct,
-        yPct: startYPct,
-        widthPct: 1,
-        heightPct: 1,
-        rotation: 0,
-        color: annotation.mode === "blur" ? "#0a0a0a" : annotation.color,
-        strokeWidth: annotation.strokeWidth,
-        lineStyle: annotation.lineStyle,
-        ...(annotation.mode === "blur"
-          ? {
-              blurEffect: annotation.blurEffect,
-              blurAmount: annotation.blurAmount,
-            }
-          : {}),
-      })
-      setSelectedAnnotationShapeId(shapeId)
-      annotationShapeDragRef.current = {
-        pointerId: e.pointerId,
-        shapeId,
-        kind: annotation.mode,
-        strokeWidth: annotation.strokeWidth,
-        startXPct,
-        startYPct,
-        nextXPct: startXPct,
-        nextYPct: startYPct,
-        nextWidthPct: 1,
-        nextHeightPct: 1,
-        nextRotation: 0,
-        moved: false,
-      }
-      return
-    }
-
-    if (
-      annotation.mode === "pen" ||
-      annotation.mode === "highlight" ||
-      annotation.mode === "eraser"
-    ) {
-      const strokeId = addAnnotationStroke({
-        mode: annotation.mode,
-        color: annotation.color,
-        strokeWidth: annotation.strokeWidth,
-        points: [point],
-      })
-      annotationDragRef.current = {
-        pointerId: e.pointerId,
-        strokeId,
-        points: [point],
-        mode: annotation.mode,
-      }
-    }
-  }
-
-  const moveAnnotation = (e: React.PointerEvent<SVGSVGElement>) => {
-    const elementMove = annotationElementMoveRef.current
-    if (elementMove && elementMove.pointerId === e.pointerId) {
-      e.preventDefault()
-      e.stopPropagation()
-      const rawDx = e.clientX - elementMove.startClientX
-      const rawDy = e.clientY - elementMove.startClientY
-      if (!elementMove.moved && Math.hypot(rawDx, rawDy) < 4) return
-      elementMove.moved = true
-      let nextX = elementMove.startXPct + (rawDx / elementMove.canvasW) * 100
-      let nextY = elementMove.startYPct + (rawDy / elementMove.canvasH) * 100
-      const snapX = Math.abs(nextX - 50) <= (8 / elementMove.canvasW) * 100
-      const snapY = Math.abs(nextY - 50) <= (8 / elementMove.canvasH) * 100
-      if (snapX) nextX = 50
-      if (snapY) nextY = 50
-      const min = elementMove.type === "asset" ? 0 : -20
-      const max = elementMove.type === "asset" ? 100 : 120
-      elementMove.nextXPct = clamp(nextX, min, max)
-      elementMove.nextYPct = clamp(nextY, min, max)
-
-      const selector =
-        elementMove.type === "annotation-shape"
-          ? `[data-annotation-shape-id="${CSS.escape(elementMove.id)}"]`
-          : elementMove.type === "text"
-            ? `[data-editor-text-id="${CSS.escape(elementMove.id)}"]`
-            : `[data-editor-asset-id="${CSS.escape(elementMove.id)}"]`
-      const element = canvasRef.current?.querySelector<HTMLElement>(selector)
-      if (element) {
-        element.style.left = `${elementMove.nextXPct}%`
-        element.style.top = `${elementMove.nextYPct}%`
-        positionFloatingToolbar(
-          `${elementMove.type}:${elementMove.id}`,
-          element.getBoundingClientRect(),
-          bulkEditMode ? bulkToolbarScale(bulkViewportZoom) : 1
-        )
-      }
-
-      if (elementMove.type === "annotation-shape") {
-        const selectionChrome = canvasRef.current?.querySelector<HTMLElement>(
-          `[data-annotation-selection-chrome-id="${CSS.escape(elementMove.id)}"]`
-        )
-        if (selectionChrome) {
-          selectionChrome.style.left = `${elementMove.nextXPct}%`
-          selectionChrome.style.top = `${elementMove.nextYPct}%`
-        }
-      }
-      updateTextCenterGuides({ x: snapX, y: snapY })
-      return
-    }
-
-    const shapeDrag = annotationShapeDragRef.current
-    if (shapeDrag && shapeDrag.pointerId === e.pointerId) {
-      const point = getAnnotationPoint(e)
-      const layer = annotationLayerRef.current
-      if (!point || !layer) return
-      e.preventDefault()
-      e.stopPropagation()
-      const endXPct = (point.x / layer.clientWidth) * 100
-      const endYPct = (point.y / layer.clientHeight) * 100
-      const xPct = (shapeDrag.startXPct + endXPct) / 2
-      const yPct = (shapeDrag.startYPct + endYPct) / 2
-      const snapX = Math.abs(xPct - 50) <= (8 / layer.clientWidth) * 100
-      const snapY = Math.abs(yPct - 50) <= (8 / layer.clientHeight) * 100
-
-      const isArrow = shapeDrag.kind === "arrow"
-      let widthPct: number
-      let heightPct: number
-      let rotation = 0
-
-      if (isArrow) {
-        const dxPx = ((endXPct - shapeDrag.startXPct) / 100) * layer.clientWidth
-        const dyPx =
-          ((endYPct - shapeDrag.startYPct) / 100) * layer.clientHeight
-        const distancePx = Math.hypot(dxPx, dyPx)
-        const minArrowWidthPx = Math.max(56, shapeDrag.strokeWidth * 12)
-        widthPct =
-          (Math.max(minArrowWidthPx, distancePx) / layer.clientWidth) * 100
-        const arrowHeightPx = Math.max(56, shapeDrag.strokeWidth * 14)
-        heightPct = (arrowHeightPx / layer.clientHeight) * 100
-        rotation =
-          distancePx > 0.5 ? (Math.atan2(dyPx, dxPx) * 180) / Math.PI : 0
-      } else {
-        widthPct = Math.max(1, Math.abs(endXPct - shapeDrag.startXPct))
-        heightPct = Math.max(1, Math.abs(endYPct - shapeDrag.startYPct))
-      }
-
-      shapeDrag.nextXPct = snapX ? 50 : xPct
-      shapeDrag.nextYPct = snapY ? 50 : yPct
-      shapeDrag.nextWidthPct = widthPct
-      shapeDrag.nextHeightPct = heightPct
-      shapeDrag.nextRotation = rotation
-
-      const selector = `[data-annotation-shape-id="${CSS.escape(shapeDrag.shapeId)}"]`
-      const element = canvasRef.current?.querySelector<HTMLElement>(selector)
-      const shapeStyle = {
-        left: `${shapeDrag.nextXPct}%`,
-        top: `${shapeDrag.nextYPct}%`,
-        width: `${widthPct}%`,
-        height: `${heightPct}%`,
-        transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
-      }
-      if (element) {
-        Object.assign(element.style, shapeStyle)
-        positionFloatingToolbar(
-          `annotation-shape:${shapeDrag.shapeId}`,
-          element.getBoundingClientRect(),
-          bulkEditMode ? bulkToolbarScale(bulkViewportZoom) : 1
-        )
-      }
-
-      const selectionChrome = canvasRef.current?.querySelector<HTMLElement>(
-        `[data-annotation-selection-chrome-id="${CSS.escape(shapeDrag.shapeId)}"]`
-      )
-      if (selectionChrome) {
-        Object.assign(selectionChrome.style, shapeStyle)
-      }
-
-      updateTextCenterGuides({ x: snapX, y: snapY })
-      shapeDrag.moved = true
-      return
-    }
-
-    const drag = annotationDragRef.current
-    if (!drag || drag.pointerId !== e.pointerId) return
-    const point = getAnnotationPoint(e)
-    if (!point) return
-
-    e.preventDefault()
-    e.stopPropagation()
-
-    const last = drag.points[drag.points.length - 1]
-    const dx = point.x - last.x
-    const dy = point.y - last.y
-    if (dx * dx + dy * dy < 1) return
-
-    drag.points = [...drag.points, point]
-    const path =
-      annotationLayerRef.current?.parentElement?.querySelector<SVGPathElement>(
-        `[data-annotation-stroke-id="${CSS.escape(drag.strokeId)}"]`
-      )
-    if (path) path.setAttribute("d", annotationPath(drag.points))
-  }
-
-  const stopAnnotation = (e: React.PointerEvent<SVGSVGElement>) => {
-    const elementMove = annotationElementMoveRef.current
-    if (elementMove && elementMove.pointerId === e.pointerId) {
-      annotationElementMoveRef.current = null
-      if (elementMove.moved) {
-        const patch = {
-          xPct: elementMove.nextXPct,
-          yPct: elementMove.nextYPct,
-        }
-        if (elementMove.type === "annotation-shape") {
-          updateAnnotationShape(elementMove.id, patch)
-        } else if (elementMove.type === "text") {
-          updateText(elementMove.id, patch)
-        } else {
-          updateAsset(elementMove.id, patch)
-        }
-      }
-      updateTextCenterGuides({ x: false, y: false })
-      return
-    }
-
-    const shapeDrag = annotationShapeDragRef.current
-    if (shapeDrag && shapeDrag.pointerId === e.pointerId) {
-      annotationShapeDragRef.current = null
-      if (!shapeDrag.moved) {
-        deleteAnnotationShape(shapeDrag.shapeId)
-        setSelectedAnnotationShapeId(null)
-      } else {
-        updateAnnotationShape(shapeDrag.shapeId, {
-          xPct: shapeDrag.nextXPct,
-          yPct: shapeDrag.nextYPct,
-          widthPct: shapeDrag.nextWidthPct,
-          heightPct: shapeDrag.nextHeightPct,
-          rotation: shapeDrag.nextRotation,
-        })
-      }
-      updateTextCenterGuides({ x: false, y: false })
-      return
-    }
-
-    const drag = annotationDragRef.current
-    if (!drag || drag.pointerId !== e.pointerId) return
-    annotationDragRef.current = null
-    updateAnnotationStroke(drag.strokeId, drag.points)
-  }
-
-  const isAnnotating = activeTool === "arrow"
-  const annotationCursor =
-    annotation.mode === "eraser"
-      ? "cursor-cell"
-      : annotation.mode === "pen" ||
-          annotation.mode === "highlight" ||
-          annotation.mode === "blur"
-        ? "cursor-crosshair"
-        : "cursor-default"
+  const {
+    isAnnotating,
+    annotationCursor,
+    getEditorElementAtPoint,
+    startAnnotation,
+    moveAnnotation,
+    stopAnnotation,
+  } = useAnnotationInteractions({
+    activeTool,
+    canvasRef,
+    annotationLayerRef,
+    annotation,
+    annotationShapes,
+    texts,
+    assets,
+    bulkEditMode,
+    bulkViewportZoom,
+    addAnnotationStroke,
+    updateAnnotationStroke,
+    addAnnotationShape,
+    updateAnnotationShape,
+    deleteAnnotationShape,
+    updateText,
+    updateAsset,
+    setSelectedTextId,
+    setSelectedAssetId,
+    setSelectedAnnotationShapeId,
+    setIsScreenshotSelected,
+    updateTextCenterGuides,
+  })
 
   const handleScreenshotClickSelect = (e: { stopPropagation: () => void }) => {
     if (activeTool !== "pointer") return
@@ -987,17 +349,7 @@ function CanvasViewInner({
 
   return (
     <>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0]
-          if (f) readFile(f)
-          e.target.value = ""
-        }}
-      />
+      <input {...fileInputProps} />
 
       <div
         className="flex items-center justify-center"
@@ -1034,42 +386,10 @@ function CanvasViewInner({
           onPointerDownCapture={() => {
             if (!isActive) onActivate()
           }}
-          onDragOver={(e) => {
-            e.preventDefault()
-            setIsDragOver(true)
-          }}
-          onDragLeave={() => setIsDragOver(false)}
-          onDrop={(e) => {
-            e.preventDefault()
-            setIsDragOver(false)
-            const file = e.dataTransfer.files?.[0]
-            if (file) readFile(file)
-          }}
+          {...dropHandlers}
         >
-          {centerGuides.x ? (
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-y-0 left-1/2 z-[900] -translate-x-1/2 border-l border-dashed border-[#9BCD64]/95"
-            />
-          ) : null}
-          {centerGuides.y ? (
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 top-1/2 z-[900] -translate-y-1/2 border-t border-dashed border-[#9BCD64]/95"
-            />
-          ) : null}
-          {textCenterGuides.x ? (
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-y-0 left-1/2 z-[900] -translate-x-1/2 border-l border-dashed border-[#9BCD64]/95"
-            />
-          ) : null}
-          {textCenterGuides.y ? (
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 top-1/2 z-[900] -translate-y-1/2 border-t border-dashed border-[#9BCD64]/95"
-            />
-          ) : null}
+          <CenterGuides guides={centerGuides} />
+          <CenterGuides guides={textCenterGuides} />
 
           <CanvasBackdrop
             background={background}
@@ -1426,272 +746,6 @@ function CanvasViewInner({
           }
         }}
       />
-    </>
-  )
-}
-
-type MainScreenshotRowItemProps = {
-  style: React.CSSProperties
-  offset: { x: number; y: number }
-  screenshot: string | null
-  frame: import("@/lib/editor/state-types").DeviceFrame
-  addressValue: string
-  onAddressChange: (value: string) => void
-  transform: string
-  isDragOver: boolean
-  imgStyle: React.CSSProperties
-  shadowFilter: string | undefined
-  filterChain: string | undefined
-  isSelected: boolean
-  bulkCanvasDragging: boolean
-  hoverActionsInline: boolean
-  hoverActionsLayoutKey: string
-  hoverActionsScale: number
-  toolbarScale: number
-  activeTool: import("@/lib/editor/store").EditorTool
-  isScreenshotDragging: boolean
-  onSelect: (e: React.MouseEvent | React.PointerEvent) => void
-  onBrowse: () => void
-  onCropClick: () => void
-  onReplaceFile: (file: File) => void
-  onDelete: () => void
-  onDuplicate: () => void
-  onBringToFront: () => void
-  onSendToBack: () => void
-  onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void
-  onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void
-  onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void
-}
-
-function MainScreenshotRowItem({
-  style,
-  offset,
-  screenshot,
-  frame,
-  addressValue,
-  onAddressChange,
-  transform,
-  isDragOver,
-  imgStyle,
-  shadowFilter,
-  filterChain,
-  isSelected,
-  bulkCanvasDragging,
-  hoverActionsInline,
-  hoverActionsLayoutKey,
-  hoverActionsScale,
-  toolbarScale,
-  activeTool,
-  isScreenshotDragging,
-  onSelect,
-  onBrowse,
-  onCropClick,
-  onReplaceFile,
-  onDelete,
-  onDuplicate,
-  onBringToFront,
-  onSendToBack,
-  onPointerDown,
-  onPointerMove,
-  onPointerUp,
-}: MainScreenshotRowItemProps) {
-  const rowRef = React.useRef<HTMLDivElement | null>(null)
-  const [toolbarRect, setToolbarRect] = React.useState<DOMRect | null>(null)
-
-  React.useEffect(() => {
-    if (
-      bulkCanvasDragging ||
-      !isSelected ||
-      activeTool !== "pointer" ||
-      !rowRef.current
-    ) {
-      setToolbarRect(null)
-      return
-    }
-    const el = rowRef.current
-    const update = () => setToolbarRect(el.getBoundingClientRect())
-    update()
-    const ro = new ResizeObserver(update)
-    ro.observe(el)
-    window.addEventListener("scroll", update, true)
-    window.addEventListener("resize", update)
-    return () => {
-      ro.disconnect()
-      window.removeEventListener("scroll", update, true)
-      window.removeEventListener("resize", update)
-    }
-  }, [bulkCanvasDragging, isSelected, activeTool])
-
-  React.useEffect(() => {
-    if (
-      bulkCanvasDragging ||
-      !isSelected ||
-      activeTool !== "pointer" ||
-      !rowRef.current
-    ) {
-      return
-    }
-    setToolbarRect(rowRef.current.getBoundingClientRect())
-  }, [
-    bulkCanvasDragging,
-    isSelected,
-    activeTool,
-    offset.x,
-    offset.y,
-    style.left,
-    style.top,
-  ])
-
-  const baseTransform = (style.transform as string | undefined) ?? ""
-  const mergedStyle: React.CSSProperties = {
-    ...style,
-    transform:
-      `${baseTransform} translate(${offset.x}px, ${offset.y}px)`.trim(),
-  }
-  const selectionRadius = frameSelectionRadius(
-    frame.id,
-    imgStyle.borderRadius as number
-  )
-  return (
-    <>
-      <div
-        ref={rowRef}
-        data-box-hover-target
-        className={cn(
-          "group/main-row pointer-events-auto",
-          activeTool === "pointer" && "cursor-grab",
-          isScreenshotDragging && "cursor-grabbing"
-        )}
-        style={mergedStyle}
-        onClick={onSelect}
-        onPointerDown={(e) => {
-          if (activeTool !== "pointer") return
-          e.stopPropagation()
-          onPointerDown(e)
-        }}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-      >
-        <div
-          className={cn(
-            "relative h-full w-full",
-            isSelected &&
-              activeTool === "pointer" &&
-              "outline-2 outline-offset-2 outline-[#9BCD64]/95 outline-dashed"
-          )}
-          style={{
-            transform,
-            transformStyle: "preserve-3d",
-            opacity: imgStyle.opacity as number | undefined,
-            mixBlendMode:
-              imgStyle.mixBlendMode as React.CSSProperties["mixBlendMode"],
-            borderRadius: selectionRadius,
-            boxShadow:
-              frame.id === "none"
-                ? (imgStyle.boxShadow as string | undefined)
-                : undefined,
-          }}
-        >
-          <FramedScreenshotVisual
-            src={screenshot}
-            frame={frame}
-            onBrowse={onBrowse}
-            isDragOver={isDragOver}
-            imageFilter={filterChain}
-            shadowFilter={frame.id === "none" ? undefined : shadowFilter}
-            borderRadius={imgStyle.borderRadius as number | undefined}
-            addressValue={addressValue}
-            onAddressChange={onAddressChange}
-          />
-
-          {screenshot && activeTool === "pointer" ? (
-            <BoxHoverActions
-              hoverGroupClass="group-hover/main-row:opacity-100"
-              disabled={bulkCanvasDragging || isScreenshotDragging}
-              inline
-              mode={
-                frame.id !== "none" && !isBrowserFrame(frame.id)
-                  ? "menu"
-                  : "buttons"
-              }
-              layoutKey={hoverActionsLayoutKey}
-              controlScale={hoverActionsInline ? 1 : hoverActionsScale}
-              measureRef={rowRef}
-              onCrop={onCropClick}
-              onReplaceFile={onReplaceFile}
-              onDelete={onDelete}
-            />
-          ) : null}
-        </div>
-      </div>
-
-      {isSelected &&
-      !bulkCanvasDragging &&
-      activeTool === "pointer" &&
-      toolbarRect &&
-      typeof document !== "undefined"
-        ? createPortal(
-            (() => {
-              const flipBelow = toolbarRect.top < 80
-              const top = flipBelow
-                ? toolbarRect.bottom + 12
-                : toolbarRect.top - 12
-              const left = toolbarRect.left + toolbarRect.width / 2
-              return (
-                <div
-                  data-editor-floating-toolbar-target="main-screenshot"
-                  className="pointer-events-none fixed z-100"
-                  style={{
-                    top,
-                    left,
-                    transform: floatingToolbarTransform(
-                      flipBelow,
-                      toolbarScale
-                    ),
-                    transformOrigin: flipBelow
-                      ? "top center"
-                      : "bottom center",
-                  }}
-                >
-                  <div className="pointer-events-auto">
-                    <ToolbarSurface>
-                      <ToolbarDragHandle
-                        ariaLabel="Drag screenshot"
-                        onPointerDown={(e) => {
-                          e.stopPropagation()
-                          onPointerDown(
-                            e as unknown as React.PointerEvent<HTMLDivElement>
-                          )
-                        }}
-                        onPointerMove={(e) =>
-                          onPointerMove(
-                            e as unknown as React.PointerEvent<HTMLDivElement>
-                          )
-                        }
-                        onPointerUp={(e) =>
-                          onPointerUp(
-                            e as unknown as React.PointerEvent<HTMLDivElement>
-                          )
-                        }
-                      />
-                      <ToolbarDivider />
-                      <ToolbarDuplicateButton
-                        ariaLabel="Duplicate screenshot"
-                        onDuplicate={onDuplicate}
-                      />
-                      <ToolbarLayerOrderMenu
-                        onBringToFront={onBringToFront}
-                        onSendToBack={onSendToBack}
-                      />
-                    </ToolbarSurface>
-                  </div>
-                </div>
-              )
-            })(),
-            document.body
-          )
-        : null}
     </>
   )
 }
