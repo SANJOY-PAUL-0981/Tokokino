@@ -1,0 +1,636 @@
+"use client"
+
+import * as React from "react"
+import { RiCheckLine } from "@remixicon/react"
+import { animate } from "motion/react"
+
+import { CanvasBackdrop } from "@/components/editor/canvas/canvas-backdrop"
+import { BASE_CANVAS_WIDTH } from "@/components/editor/canvas/constants"
+import { frameSelectionRadius } from "@/components/editor/canvas/helpers"
+import { ScreenshotFrameContent } from "@/components/editor/canvas/screenshot-frame-content"
+import {
+  PRESENT_PRESETS,
+  resolvePresentPresetScale,
+  type PresentPreset,
+} from "@/lib/editor/present-presets"
+import {
+  computeRowLayout,
+  slotBoxAspectRatio,
+} from "@/lib/editor/screenshot-layout"
+import {
+  assetFilterCss,
+  effectsFilterCss,
+  enhanceFilterCss,
+  overlayUrl,
+  shadowCss,
+  shadowDropFilterCss,
+  useActiveCanvasField,
+  useActiveCanvasId,
+  useEditorStore,
+  useSelectedScreenshotSlot,
+  type AspectState,
+  type CanvasState,
+  type ScreenshotSlot,
+  type Tilt,
+} from "@/lib/editor/store"
+import { cn } from "@/lib/utils"
+
+function isSameTilt(a: Tilt, b: Tilt) {
+  return a.rx === b.rx && a.ry === b.ry && a.rz === b.rz
+}
+
+function transformFromTiltAndScale(tilt: Tilt, scale: number) {
+  return [
+    "perspective(1400px)",
+    `rotateX(${tilt.rx}deg)`,
+    `rotateY(${tilt.ry}deg)`,
+    `rotateZ(${tilt.rz}deg)`,
+    `scale(${scale / 100})`,
+  ].join(" ")
+}
+
+type PresetMotionKind = "canvas" | "slot"
+
+const PRESET_MOTION_MS = 560
+
+function motionVarName(kind: PresetMotionKind, axis: "rx" | "ry" | "rz" | "scale") {
+  return `--${kind}-ts-${axis}`
+}
+
+function setMotionVars(
+  el: HTMLElement,
+  kind: PresetMotionKind,
+  tilt: Tilt,
+  scale: number
+) {
+  el.style.setProperty(motionVarName(kind, "rx"), `${tilt.rx}deg`)
+  el.style.setProperty(motionVarName(kind, "ry"), `${tilt.ry}deg`)
+  el.style.setProperty(motionVarName(kind, "rz"), `${tilt.rz}deg`)
+  el.style.setProperty(motionVarName(kind, "scale"), String(scale / 100))
+}
+
+function clearMotionVars(el: HTMLElement, kind: PresetMotionKind) {
+  el.style.removeProperty(motionVarName(kind, "rx"))
+  el.style.removeProperty(motionVarName(kind, "ry"))
+  el.style.removeProperty(motionVarName(kind, "rz"))
+  el.style.removeProperty(motionVarName(kind, "scale"))
+}
+
+function mixNumber(from: number, to: number, progress: number) {
+  return from + (to - from) * progress
+}
+
+function overshootNumber(from: number, to: number, amount: number) {
+  const delta = to - from
+  if (Math.abs(delta) < 0.001) return to
+  return to + delta * amount
+}
+
+function startPresetMotion({
+  target,
+  kind,
+  fromTilt,
+  fromScale,
+  toTilt,
+  toScale,
+}: {
+  target: HTMLElement | null
+  kind: PresetMotionKind
+  fromTilt: Tilt
+  fromScale: number
+  toTilt: Tilt
+  toScale: number
+}) {
+  if (!target) return () => undefined
+
+  const media = window.matchMedia("(prefers-reduced-motion: reduce)")
+  if (media.matches) return () => undefined
+
+  const peakTilt: Tilt = {
+    rx: overshootNumber(fromTilt.rx, toTilt.rx, 0.16),
+    ry: overshootNumber(fromTilt.ry, toTilt.ry, 0.16),
+    rz: overshootNumber(fromTilt.rz, toTilt.rz, 0.16),
+  }
+  const peakScale = overshootNumber(fromScale, toScale, 0.12)
+  setMotionVars(target, kind, fromTilt, fromScale)
+
+  const controls = animate(0, 1, {
+    duration: PRESET_MOTION_MS / 1000,
+    ease: [0.16, 1, 0.3, 1],
+    onUpdate: (value) => {
+      const firstLeg = value < 0.68
+      const legProgress = firstLeg ? value / 0.68 : (value - 0.68) / 0.32
+      const startTilt = firstLeg ? fromTilt : peakTilt
+      const endTilt = firstLeg ? peakTilt : toTilt
+      const startScale = firstLeg ? fromScale : peakScale
+      const endScale = firstLeg ? peakScale : toScale
+
+      setMotionVars(
+        target,
+        kind,
+        {
+          rx: mixNumber(startTilt.rx, endTilt.rx, legProgress),
+          ry: mixNumber(startTilt.ry, endTilt.ry, legProgress),
+          rz: mixNumber(startTilt.rz, endTilt.rz, legProgress),
+        },
+        mixNumber(startScale, endScale, legProgress)
+      )
+    },
+  })
+
+  const cleanupTimer = window.setTimeout(() => {
+    clearMotionVars(target, kind)
+  }, PRESET_MOTION_MS + 80)
+
+  return () => {
+    controls.stop()
+    window.clearTimeout(cleanupTimer)
+    clearMotionVars(target, kind)
+  }
+}
+
+function useContainScale(
+  ref: React.RefObject<HTMLElement | null>,
+  width: number,
+  height: number
+) {
+  const [scale, setScale] = React.useState(0.1)
+
+  React.useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    const measure = () => {
+      const rect = el.getBoundingClientRect()
+      if (!rect.width || !rect.height) return
+      setScale(Math.min(rect.width / width, rect.height / height))
+    }
+
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [height, ref, width])
+
+  return scale
+}
+
+export function PresentPresetsSection() {
+  const canvas = useActiveCanvasField((c) => c)
+  const activeCanvasId = useActiveCanvasId()
+  const aspect = useEditorStore((s) => s.present.aspect)
+  const selectedSlot = useSelectedScreenshotSlot()
+  const setTiltAndScale = useEditorStore((s) => s.setTiltAndScale)
+  const updateScreenshotSlot = useEditorStore((s) => s.updateScreenshotSlot)
+  const activeTilt = selectedSlot?.tilt ?? canvas.tilt
+  const activeScale = selectedSlot?.scale ?? canvas.scale
+  const activeFrame = selectedSlot?.frame ?? canvas.frame
+  const presetMotionCleanupRef = React.useRef<(() => void) | null>(null)
+
+  const applyPreset = React.useCallback(
+    (preset: PresentPreset) => {
+      const scale = resolvePresentPresetScale(preset, activeFrame)
+      presetMotionCleanupRef.current?.()
+      const target =
+        typeof document === "undefined"
+          ? null
+          : selectedSlot
+            ? document.querySelector<HTMLElement>(
+                `[data-screenshot-slot-id="${selectedSlot.id}"]`
+              )
+            : activeCanvasId
+              ? document.querySelector<HTMLElement>(
+                  `[data-canvas-id="${activeCanvasId}"]`
+                )
+              : null
+      presetMotionCleanupRef.current = startPresetMotion({
+        target,
+        kind: selectedSlot ? "slot" : "canvas",
+        fromTilt: activeTilt,
+        fromScale: activeScale,
+        toTilt: preset.tilt,
+        toScale: scale,
+      })
+      if (selectedSlot) {
+        updateScreenshotSlot(selectedSlot.id, {
+          tilt: preset.tilt,
+          scale,
+        })
+        return
+      }
+      setTiltAndScale(preset.tilt, scale)
+    },
+    [
+      activeCanvasId,
+      activeFrame,
+      activeScale,
+      activeTilt,
+      selectedSlot,
+      setTiltAndScale,
+      updateScreenshotSlot,
+    ]
+  )
+
+  React.useEffect(() => {
+    return () => presetMotionCleanupRef.current?.()
+  }, [])
+
+  return (
+    <div className="space-y-2">
+      {PRESENT_PRESETS.map((preset) => {
+        const scale = resolvePresentPresetScale(preset, activeFrame)
+        const active =
+          activeScale === scale && isSameTilt(activeTilt, preset.tilt)
+
+        return (
+          <div
+            key={preset.id}
+            role="button"
+            tabIndex={0}
+            aria-pressed={active}
+            aria-label={preset.name}
+            onClick={() => applyPreset(preset)}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" && e.key !== " ") return
+              e.preventDefault()
+              applyPreset(preset)
+            }}
+            className={cn(
+              "group w-full cursor-pointer overflow-hidden rounded-[8px] border bg-secondary/30 p-2 text-left transition-colors",
+              active
+                ? "border-primary/50 ring-1 ring-primary/30"
+                : "border-border/55 hover:border-border"
+            )}
+          >
+            <div
+              aria-hidden
+              inert
+              className="relative h-[176px] overflow-hidden rounded-[6px] bg-black/35 [&_*]:pointer-events-none"
+            >
+              <PresentPresetPreview
+                aspect={aspect}
+                canvas={canvas}
+                preset={preset}
+                selectedSlot={selectedSlot}
+              />
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate text-[12px] leading-tight font-medium">
+                  {preset.name}
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "grid size-5 shrink-0 place-items-center rounded-full border text-primary transition-opacity",
+                  active
+                    ? "border-primary/40 bg-primary/10 opacity-100"
+                    : "border-border/60 opacity-0 group-hover:opacity-45"
+                )}
+                aria-hidden
+              >
+                <RiCheckLine className="size-3" />
+              </span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function PresentPresetPreview({
+  aspect,
+  canvas,
+  preset,
+  selectedSlot,
+}: {
+  aspect: AspectState
+  canvas: CanvasState
+  preset: PresentPreset
+  selectedSlot: ScreenshotSlot | null
+}) {
+  const previewRef = React.useRef<HTMLDivElement>(null)
+  const stageRef = React.useRef<HTMLDivElement>(null)
+  const imageRef = React.useRef<HTMLImageElement>(null)
+  const effectsFilter = effectsFilterCss(canvas.backdrop.effects)
+  const noiseEnabled = canvas.backdrop.effects.noise > 0
+  const noiseOpacity = noiseEnabled ? canvas.backdrop.effects.noise / 100 : 0
+  const aw = aspect.w || 16
+  const ah = aspect.h || 10
+  const canvasAspectRatio = aw / ah
+  const stageWidth = BASE_CANVAS_WIDTH
+  const stageHeight = (BASE_CANVAS_WIDTH * ah) / aw
+  const previewScale = useContainScale(previewRef, stageWidth, stageHeight)
+  const inRowMode = canvas.screenshotSlots.length > 0
+  const rowLayoutItems = React.useMemo(
+    () =>
+      inRowMode
+        ? computeRowLayout(
+            [
+              { id: "__main__", frame: canvas.frame },
+              ...canvas.screenshotSlots.map((slot) => ({
+                id: slot.id,
+                frame: slot.frame,
+              })),
+            ],
+            canvasAspectRatio
+          )
+        : null,
+    [canvas.frame, canvas.screenshotSlots, canvasAspectRatio, inRowMode]
+  )
+  const mainRowLayout = rowLayoutItems ? rowLayoutItems[0] : null
+  const slotRowLayoutById = React.useMemo(() => {
+    if (!rowLayoutItems) return null
+    const map = new Map<string, { widthPct: number; xPct: number }>()
+    for (const item of rowLayoutItems.slice(1)) {
+      map.set(item.id, { widthPct: item.widthPct, xPct: item.xPct })
+    }
+    return map
+  }, [rowLayoutItems])
+  const canvasTransform = selectedSlot
+    ? transformFromTiltAndScale(canvas.tilt, canvas.scale)
+    : transformFromTiltAndScale(
+        preset.tilt,
+        resolvePresentPresetScale(preset, canvas.frame)
+      )
+
+  return (
+    <div ref={previewRef} className="pointer-events-none absolute inset-0">
+      <div
+        className="absolute top-1/2 left-1/2 overflow-hidden ring-1 ring-white/10"
+        style={{
+          width: stageWidth,
+          height: stageHeight,
+          borderRadius: canvas.canvasBorderRadius,
+          transform: `translate(-50%, -50%) scale(${previewScale})`,
+          transformOrigin: "center",
+        }}
+      >
+        <CanvasBackdrop
+          background={canvas.background}
+          backdrop={canvas.backdrop}
+          effectsFilter={effectsFilter}
+          noiseEnabled={noiseEnabled}
+          noiseOpacity={noiseOpacity}
+          portrait={canvas.portrait}
+          overlay={canvas.overlay}
+        />
+        {mainRowLayout ? (
+          <PresentMainScreenshot
+            canvas={canvas}
+            transform={canvasTransform}
+            stageRef={stageRef}
+            imageRef={imageRef}
+            canvasAspectRatio={canvasAspectRatio}
+            rowLayout={mainRowLayout}
+          />
+        ) : (
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{ padding: `${(canvas.padding / 1200) * 100}%` }}
+          >
+            <div
+              className="relative flex h-full w-full items-center justify-center"
+              style={{
+                transform: canvasTransform,
+                transformStyle: "preserve-3d",
+              }}
+            >
+              <CanvasFrameContent
+                canvas={canvas}
+                stageRef={stageRef}
+                imageRef={imageRef}
+              />
+            </div>
+          </div>
+        )}
+        {canvas.screenshotSlots.map((slot) => (
+          <PresentSlot
+            key={slot.id}
+            slot={slot}
+            canvasAspectRatio={canvasAspectRatio}
+            rowLayout={slotRowLayoutById?.get(slot.id) ?? null}
+            previewTilt={
+              selectedSlot?.id === slot.id ? preset.tilt : undefined
+            }
+            previewScale={
+              selectedSlot?.id === slot.id
+                ? resolvePresentPresetScale(preset, slot.frame)
+                : undefined
+            }
+          />
+        ))}
+        {canvas.overlay.id !== null && canvas.overlay.position === "overlay" ? (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage: `url("${overlayUrl(canvas.overlay.id)}")`,
+              opacity: canvas.overlay.opacity / 100,
+            }}
+          />
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function PresentMainScreenshot({
+  canvas,
+  transform,
+  stageRef,
+  imageRef,
+  canvasAspectRatio,
+  rowLayout,
+}: {
+  canvas: CanvasState
+  transform: string
+  stageRef: React.RefObject<HTMLDivElement | null>
+  imageRef: React.RefObject<HTMLImageElement | null>
+  canvasAspectRatio: number
+  rowLayout: { widthPct: number; xPct: number }
+}) {
+  return (
+    <div
+      className="absolute"
+      style={{
+        left: `${rowLayout.xPct}%`,
+        top: "50%",
+        width: `${rowLayout.widthPct}%`,
+        aspectRatio: slotBoxAspectRatio(canvas.frame, canvasAspectRatio),
+        transform: "translate(-50%, -50%)",
+        zIndex: 60 + canvas.screenshotLayer.zIndex,
+      }}
+    >
+      <div
+        className="absolute inset-0"
+        style={{ padding: `${Math.max(0, Math.min(240, canvas.padding)) / 12}%` }}
+      >
+        <div
+          className="relative h-full w-full"
+          style={{
+            transform,
+            transformStyle: "preserve-3d",
+            opacity: canvas.screenshotLayer.hidden
+              ? 0
+              : canvas.screenshotLayer.opacity / 100,
+            mixBlendMode:
+              canvas.screenshotLayer.blendMode !== "normal"
+                ? canvas.screenshotLayer.blendMode
+                : undefined,
+            borderRadius: frameSelectionRadius(
+              canvas.frame.id,
+              canvas.borderRadius
+            ),
+            boxShadow:
+              canvas.frame.id === "none" ? shadowCss(canvas.shadow) : undefined,
+          }}
+        >
+          <CanvasFrameContent
+            canvas={canvas}
+            stageRef={stageRef}
+            imageRef={imageRef}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CanvasFrameContent({
+  canvas,
+  stageRef,
+  imageRef,
+}: {
+  canvas: CanvasState
+  stageRef: React.RefObject<HTMLDivElement | null>
+  imageRef: React.RefObject<HTMLImageElement | null>
+}) {
+  const enhanceFilter = enhanceFilterCss(canvas.enhance)
+  const bareStyle: React.CSSProperties = {
+    borderRadius: canvas.borderRadius,
+    boxShadow: shadowCss(canvas.shadow),
+    filter: enhanceFilter,
+  }
+  if (canvas.border.color && canvas.border.width > 0) {
+    bareStyle.outline = `${canvas.border.width}px ${canvas.border.style || "solid"} ${canvas.border.color}`
+    bareStyle.outlineOffset = `${canvas.border.padding || 0}px`
+  }
+
+  return (
+    <ScreenshotFrameContent
+      src={canvas.screenshot}
+      frame={canvas.frame}
+      isDragOver={false}
+      onBrowse={() => undefined}
+      imageFilter={enhanceFilter}
+      shadowFilter={shadowDropFilterCss(canvas.shadow)}
+      bareStyle={bareStyle}
+      activeTool="pointer"
+      isDragging={false}
+      stageRef={stageRef}
+      imageRef={imageRef}
+      addressValue={canvas.frameAddress}
+      onAddressChange={() => undefined}
+      onSelect={(e) => e.stopPropagation()}
+      onPointerDown={() => undefined}
+      onPointerMove={() => undefined}
+      onPointerUp={() => undefined}
+      onImageLoad={() => undefined}
+      onCrop={() => undefined}
+      onReplaceFile={() => undefined}
+      onDelete={() => undefined}
+    />
+  )
+}
+
+function PresentSlot({
+  slot,
+  canvasAspectRatio,
+  rowLayout,
+  previewTilt,
+  previewScale,
+}: {
+  slot: ScreenshotSlot
+  canvasAspectRatio: number
+  rowLayout: { widthPct: number; xPct: number } | null
+  previewTilt?: Tilt
+  previewScale?: number
+}) {
+  const stageRef = React.useRef<HTMLDivElement>(null)
+  const imageRef = React.useRef<HTMLImageElement>(null)
+  const effectiveWidthPct = rowLayout?.widthPct ?? slot.widthPct
+  const filterChain = [enhanceFilterCss(slot.enhance), assetFilterCss(slot.filter)]
+    .filter(Boolean)
+    .join(" ")
+    .trim()
+  const bareStyle: React.CSSProperties = {
+    borderRadius: slot.borderRadius,
+    boxShadow: shadowCss(slot.shadow),
+    filter: filterChain || undefined,
+  }
+  if (slot.border.color && slot.border.width > 0) {
+    bareStyle.outline = `${slot.border.width}px ${slot.border.style || "solid"} ${slot.border.color}`
+    bareStyle.outlineOffset = `${slot.border.padding || 0}px`
+  }
+
+  return (
+    <div
+      className="absolute"
+      style={{
+        left: `${slot.xPct}%`,
+        top: `${slot.yPct}%`,
+        width: `${effectiveWidthPct}%`,
+        aspectRatio: slotBoxAspectRatio(slot.frame, canvasAspectRatio),
+        transform: `translate(-50%, -50%) rotate(${slot.rotation}deg)`,
+        zIndex: 60 + slot.zIndex,
+        display: slot.hidden ? "none" : undefined,
+        mixBlendMode:
+          slot.blendMode !== "normal" ? slot.blendMode : undefined,
+      }}
+    >
+      <div
+        className="absolute inset-0"
+        style={{ padding: `${Math.max(0, Math.min(240, slot.padding)) / 12}%` }}
+      >
+        <div
+          className="relative h-full w-full"
+          style={{
+            transform: transformFromTiltAndScale(
+              previewTilt ?? slot.tilt,
+              previewScale ?? slot.scale
+            ),
+            transformStyle: "preserve-3d",
+            opacity: slot.opacity / 100,
+            borderRadius: frameSelectionRadius(slot.frame.id, slot.borderRadius),
+          }}
+        >
+          <ScreenshotFrameContent
+            src={slot.src}
+            frame={slot.frame}
+            isDragOver={false}
+            onBrowse={() => undefined}
+            imageFilter={filterChain || undefined}
+            shadowFilter={shadowDropFilterCss(slot.shadow)}
+            bareStyle={bareStyle}
+            activeTool="pointer"
+            isDragging={false}
+            stageRef={stageRef}
+            imageRef={imageRef}
+            addressValue={slot.frameAddress}
+            onAddressChange={() => undefined}
+            onSelect={(e) => e.stopPropagation()}
+            onPointerDown={() => undefined}
+            onPointerMove={() => undefined}
+            onPointerUp={() => undefined}
+            onImageLoad={() => undefined}
+            onCrop={() => undefined}
+            onReplaceFile={() => undefined}
+            onDelete={() => undefined}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}

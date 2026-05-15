@@ -209,6 +209,7 @@ type EditorActions = {
   setBackdropFilter: (f: AssetFilter, canvasId?: string) => void
   setTilt: (t: Tilt, canvasId?: string) => void
   setScale: (n: number, canvasId?: string) => void
+  setTiltAndScale: (t: Tilt, scale: number, canvasId?: string) => void
   setCanvasZoom: (n: number) => void
   setScreenshotPosition: (p: ScreenshotPosition, canvasId?: string) => void
   setScreenshotOffset: (o: { x: number; y: number }, canvasId?: string) => void
@@ -720,6 +721,8 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       ),
     setTilt: (t, canvasId) => commitCanvas(canvasId, { tilt: t }, "tilt"),
     setScale: (n, canvasId) => commitCanvas(canvasId, { scale: n }, "scale"),
+    setTiltAndScale: (t, scale, canvasId) =>
+      commitCanvas(canvasId, { tilt: t, scale }, "tilt-scale"),
     setCanvasZoom: (n) => commit({ canvasZoom: n }, "canvasZoom"),
     setScreenshotPosition: (p, canvasId) =>
       commitCanvas(
@@ -1559,6 +1562,8 @@ export function useEditor(): EditorContext {
       store.setBackdropFilter(f, canvasId ?? targetId),
     setTilt: (t, canvasId) => store.setTilt(t, canvasId ?? targetId),
     setScale: (n, canvasId) => store.setScale(n, canvasId ?? targetId),
+    setTiltAndScale: (t, scale, canvasId) =>
+      store.setTiltAndScale(t, scale, canvasId ?? targetId),
     setCanvasZoom: store.setCanvasZoom,
     setScreenshotPosition: (p, canvasId) =>
       store.setScreenshotPosition(p, canvasId ?? targetId),

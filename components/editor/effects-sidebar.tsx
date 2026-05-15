@@ -8,6 +8,8 @@ import {
   findAspectOption,
 } from "@/components/editor/aspect-popover"
 import { FramePopover } from "@/components/editor/frame-popover"
+import { PresentPresetsSection } from "@/components/editor/present-presets-section"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { getFrameAspectCompatibilityWarning } from "@/lib/editor/frame-aspect-compatibility"
 import { cn } from "@/lib/utils"
 import { useEditor, useSelectedScreenshotSlot } from "@/lib/editor/store"
@@ -51,7 +53,7 @@ export function EffectsSidebar({
   return (
     <aside
       className={cn(
-        "flex h-full min-h-0 w-[268px] shrink-0 flex-col border-r border-dashed border-border/70 bg-sidebar",
+        "flex h-full min-h-0 w-[268px] shrink-0 flex-col overflow-hidden border-r border-dashed border-border/70 bg-sidebar",
         className
       )}
     >
@@ -109,6 +111,14 @@ export function EffectsSidebar({
             />
           </div>
         </div>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col px-4 pb-4">
+        <SectionLabel>Presents</SectionLabel>
+        <ScrollArea className="min-h-0 flex-1 pr-2">
+          <div className="pb-4">
+            <PresentPresetsSection />
+          </div>
+        </ScrollArea>
       </div>
     </aside>
   )
