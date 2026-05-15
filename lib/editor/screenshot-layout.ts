@@ -8,6 +8,7 @@ export const SLOT_ROW_GAP = 2
 
 const TARGET_HEIGHT_PCT = 60
 const SOLO_HEIGHT_PCT = 70
+const MAX_ITEM_WIDTH_PCT = 50
 const BROWSER_FRAME_ASPECT = 16 / 10
 const NONE_LANDSCAPE_ASPECT = 16 / 10
 const NONE_PORTRAIT_ASPECT = 10 / 14
@@ -62,9 +63,10 @@ export function computeRowLayout(
   if (items.length === 0) return []
 
   const target = items.length === 1 ? SOLO_HEIGHT_PCT : TARGET_HEIGHT_PCT
-  const widths = items.map((item) =>
-    widthPctFromHeightBudget(item.frame, canvasAspect, target)
-  )
+  const widths = items.map((item) => {
+    const raw = widthPctFromHeightBudget(item.frame, canvasAspect, target)
+    return items.length > 1 ? Math.min(raw, MAX_ITEM_WIDTH_PCT) : raw
+  })
 
   const totalGaps = SLOT_ROW_GAP * (items.length - 1)
   const usableW = 100 - 2 * SLOT_ROW_MARGIN

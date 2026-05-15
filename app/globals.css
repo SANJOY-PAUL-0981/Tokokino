@@ -121,6 +121,10 @@
   body {
     @apply bg-background text-foreground;
     }
+  body:has([data-slot="dialog-content"]) [data-editor-floating-toolbar-target],
+  body:has([data-slot="alert-dialog-content"]) [data-editor-floating-toolbar-target] {
+    display: none;
+  }
   html {
     @apply font-sans;
     }

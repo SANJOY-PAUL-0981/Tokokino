@@ -444,7 +444,8 @@ const SLOT_DEFAULT_FALLBACK_WIDTH = 60
 const layoutSlotsInRow = (
   slots: ScreenshotSlot[],
   canvasFrame: DeviceFrame,
-  canvasAspect: number
+  canvasAspect: number,
+  options: { preservePositions?: boolean } = {}
 ): ScreenshotSlot[] => {
   const n = slots.length
   if (n === 0) return slots
@@ -461,6 +462,13 @@ const layoutSlotsInRow = (
   return slots.map((slot) => {
     const entry = slotLayoutById.get(slot.id)
     if (!entry) return slot
+    if (options.preservePositions) {
+      return {
+        ...slot,
+        widthPct: entry.widthPct,
+        heightPct: SLOT_DEFAULT_HEIGHT_PCT,
+      }
+    }
     return {
       ...slot,
       xPct: entry.xPct,
@@ -740,7 +748,8 @@ export const useEditorStore = create<EditorStore>((set, get) => {
           screenshotSlots: layoutSlotsInRow(
             canvas.screenshotSlots,
             f,
-            stateCanvasAspect(state)
+            stateCanvasAspect(state),
+            { preservePositions: true }
           ),
         }),
         "frame"
@@ -1260,7 +1269,8 @@ export const useEditorStore = create<EditorStore>((set, get) => {
               screenshotSlots: layoutSlotsInRow(
                 updated,
                 canvas.frame,
-                stateCanvasAspect(state)
+                stateCanvasAspect(state),
+                { preservePositions: true }
               ),
             }
           }
