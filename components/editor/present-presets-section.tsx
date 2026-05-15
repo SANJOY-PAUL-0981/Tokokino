@@ -198,38 +198,31 @@ export function PresentPresetsSection() {
       const target =
         typeof document === "undefined"
           ? null
-          : selectedSlot
+          : activeCanvasId
             ? document.querySelector<HTMLElement>(
-                `[data-screenshot-slot-id="${selectedSlot.id}"]`
+                `[data-canvas-id="${activeCanvasId}"]`
               )
-            : activeCanvasId
-              ? document.querySelector<HTMLElement>(
-                  `[data-canvas-id="${activeCanvasId}"]`
-                )
-              : null
+            : null
       presetMotionCleanupRef.current = startPresetMotion({
         target,
-        kind: selectedSlot ? "slot" : "canvas",
+        kind: "canvas",
         fromTilt: activeTilt,
         fromScale: activeScale,
         toTilt: preset.tilt,
         toScale: scale,
       })
-      if (selectedSlot) {
-        updateScreenshotSlot(selectedSlot.id, {
-          tilt: preset.tilt,
-          scale,
-        })
-        return
-      }
       setTiltAndScale(preset.tilt, scale)
+      for (const slot of canvas.screenshotSlots) {
+        const slotScale = resolvePresentPresetScale(preset, slot.frame)
+        updateScreenshotSlot(slot.id, { tilt: preset.tilt, scale: slotScale })
+      }
     },
     [
       activeCanvasId,
       activeFrame,
       activeScale,
       activeTilt,
-      selectedSlot,
+      canvas.screenshotSlots,
       setTiltAndScale,
       updateScreenshotSlot,
     ]
@@ -353,12 +346,10 @@ function PresentPresetPreview({
     }
     return map
   }, [rowLayoutItems])
-  const canvasTransform = selectedSlot
-    ? transformFromTiltAndScale(canvas.tilt, canvas.scale)
-    : transformFromTiltAndScale(
-        preset.tilt,
-        resolvePresentPresetScale(preset, canvas.frame)
-      )
+  const canvasTransform = transformFromTiltAndScale(
+    preset.tilt,
+    resolvePresentPresetScale(preset, canvas.frame)
+  )
 
   return (
     <div ref={previewRef} className="pointer-events-none absolute inset-0">
@@ -419,12 +410,8 @@ function PresentPresetPreview({
             slot={slot}
             canvasAspectRatio={canvasAspectRatio}
             rowLayout={slotRowLayoutById?.get(slot.id) ?? null}
-            previewTilt={selectedSlot?.id === slot.id ? preset.tilt : undefined}
-            previewScale={
-              selectedSlot?.id === slot.id
-                ? resolvePresentPresetScale(preset, slot.frame)
-                : undefined
-            }
+            previewTilt={preset.tilt}
+            previewScale={resolvePresentPresetScale(preset, slot.frame)}
           />
         ))}
         {canvas.overlay.id !== null && canvas.overlay.position === "overlay" ? (
