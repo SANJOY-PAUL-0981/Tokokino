@@ -262,8 +262,8 @@ export function PresentPresetsSection() {
             className={cn(
               "group w-full cursor-pointer overflow-hidden rounded-[8px] border bg-white/[0.045] p-2 text-left transition-colors",
               active
-                ? "border-white/80 ring-1 ring-white/25"
-                : "border-white/12 hover:border-white/35"
+                ? "border-primary ring-1 ring-primary/40"
+                : "border-white/12 hover:border-primary/55"
             )}
           >
             <div
@@ -288,8 +288,8 @@ export function PresentPresetsSection() {
                 className={cn(
                   "grid size-5 shrink-0 place-items-center rounded-full border text-white transition-opacity",
                   active
-                    ? "border-white/45 bg-white/12 opacity-100"
-                    : "border-white/25 opacity-0 group-hover:opacity-55"
+                    ? "border-primary/70 bg-primary/20 text-black dark:text-primary-foreground opacity-100"
+                    : "border-white/25 opacity-0 group-hover:opacity-70"
                 )}
                 aria-hidden
               >
