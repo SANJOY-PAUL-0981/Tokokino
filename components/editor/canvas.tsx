@@ -184,18 +184,31 @@ function CanvasViewInner({
     canvasAspectRatio,
     !inRowMode && frame.id === "none" ? naturalDims : null
   )
-  const mainRowLayout = inRowMode
-    ? computeRowLayout(
-        [
-          { id: "__main__", frame },
-          ...screenshotSlots.map((slot) => ({
-            id: slot.id,
-            frame: slot.frame,
-          })),
-        ],
-        canvasAspectRatio
-      )[0]
-    : null
+  const rowLayoutItems = React.useMemo(
+    () =>
+      inRowMode
+        ? computeRowLayout(
+            [
+              { id: "__main__", frame },
+              ...screenshotSlots.map((slot) => ({
+                id: slot.id,
+                frame: slot.frame,
+              })),
+            ],
+            canvasAspectRatio
+          )
+        : null,
+    [inRowMode, frame, screenshotSlots, canvasAspectRatio]
+  )
+  const mainRowLayout = rowLayoutItems ? rowLayoutItems[0] : null
+  const slotRowLayoutById = React.useMemo(() => {
+    if (!rowLayoutItems) return null
+    const map = new Map<string, { widthPct: number; xPct: number }>()
+    for (const item of rowLayoutItems.slice(1)) {
+      map.set(item.id, { widthPct: item.widthPct, xPct: item.xPct })
+    }
+    return map
+  }, [rowLayoutItems])
   const hoverActionsScale = bulkEditMode
     ? Math.max(0.45, Math.min(1, bulkViewportZoom))
     : 1
@@ -373,7 +386,7 @@ function CanvasViewInner({
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           style={{
             aspectRatio,
-            borderRadius: canvasBorderRadius,
+            borderRadius: `var(--canvas-bd-radius, ${canvasBorderRadius}px)`,
             width: widthPx,
             height: heightPx,
           }}
@@ -655,7 +668,7 @@ function CanvasViewInner({
               className="pointer-events-none absolute inset-0 bg-cover bg-center"
               style={{
                 backgroundImage: `url("${overlayUrl(overlay.id)}")`,
-                opacity: overlay.opacity / 100,
+                opacity: `var(--bd-overlay-opacity, ${overlay.opacity / 100})`,
                 zIndex: 30,
               }}
             />
@@ -671,6 +684,7 @@ function CanvasViewInner({
               slot={slot}
               canvasRef={canvasRef}
               canvasAspectRatio={aw / ah}
+              rowLayout={slotRowLayoutById?.get(slot.id) ?? null}
               onCropRequest={(id) => setCroppingSlotId(id)}
               onCenterGuideChange={updateCenterGuides}
             />

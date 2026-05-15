@@ -42,6 +42,15 @@ function CanvasBackdropImpl({
     portrait.distance
   )
 
+  // Wrap the live-edited effects filter in a CSS var so the inspector can
+  // override it during drag without dispatching to the store on every tick.
+  // `brightness(1)` is identity so the fallback is a no-op when nothing's set.
+  const effectsFallback = effectsFilter ?? "brightness(1)"
+  const assetFilter = assetFilterCss(backdrop.filter ?? "none")
+  const filterValue = assetFilter
+    ? `var(--bd-fx-preview, ${effectsFallback}) ${assetFilter}`
+    : `var(--bd-fx-preview, ${effectsFallback})`
+
   return (
     <>
       <div
@@ -52,10 +61,7 @@ function CanvasBackdropImpl({
         )}
         style={{
           ...backgroundCss(background),
-          filter:
-            [effectsFilter, assetFilterCss(backdrop.filter ?? "none")]
-              .filter(Boolean)
-              .join(" ") || undefined,
+          filter: filterValue,
         }}
       />
 
@@ -70,7 +76,7 @@ function CanvasBackdropImpl({
               backdrop.pattern.color,
               backdrop.pattern.thickness
             ),
-            opacity: backdrop.pattern.intensity / 100,
+            opacity: `var(--bd-pattern-intensity, ${backdrop.pattern.intensity / 100})`,
           }}
         />
       ))}
@@ -101,7 +107,7 @@ function CanvasBackdropImpl({
           className="pointer-events-none absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage: `url("${overlayUrl(overlay.id)}")`,
-            opacity: overlay.opacity / 100,
+            opacity: `var(--bd-overlay-opacity, ${overlay.opacity / 100})`,
           }}
         />
       ) : null}

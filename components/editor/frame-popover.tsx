@@ -35,7 +35,7 @@ import {
   type DeviceMockup,
 } from "@/lib/mockups"
 import type { DeviceFrame, FrameOrientation } from "@/lib/editor/store"
-import { useEditor } from "@/lib/editor/store"
+import { useActiveCanvasField } from "@/lib/editor/store"
 import {
   DEVICE_FRAME_EMPTY_VIRTUAL_WIDTH,
   DeviceFrameEmptyContent,
@@ -207,7 +207,7 @@ export function FramePopover({
 }) {
   const [open, setOpen] = React.useState(false)
   const [query, setQuery] = React.useState("")
-  const { screenshot } = useEditor()
+  const screenshot = useActiveCanvasField((c) => c.screenshot)
   const previewScreenshot =
     previewImage === undefined ? screenshot : previewImage
 
@@ -242,14 +242,17 @@ export function FramePopover({
     options: s.options.filter((o) => matches(o, s)),
   })).filter((s) => s.options.length > 0)
 
-  const selectFrame = (option: FrameOption) => {
-    const device = getDeviceMockup(option.id)
-    onChange({
-      id: option.id,
-      color: resolveFrameColor(option, device, value.color),
-      orientation: isBrowserFrame(option.id) ? "horizontal" : "vertical",
-    })
-  }
+  const selectFrame = React.useCallback(
+    (option: FrameOption) => {
+      const device = getDeviceMockup(option.id)
+      onChange({
+        id: option.id,
+        color: resolveFrameColor(option, device, value.color),
+        orientation: isBrowserFrame(option.id) ? "horizontal" : "vertical",
+      })
+    },
+    [onChange, value.color]
+  )
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -309,16 +312,7 @@ export function FramePopover({
           className="h-full overscroll-contain p-3"
         >
           {visibleSections.map((section, idx) => (
-            <motion.div
-              key={section.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.32,
-                ease: POP_EASE,
-                delay: 0.06 + idx * 0.04,
-              }}
-            >
+            <div key={section.id}>
               {idx !== 0 ? <div className="mt-4 h-px bg-border/50" /> : null}
               <div className="mt-3 mb-2.5 flex items-center gap-1.5 first:mt-0">
                 <section.icon className="size-3.5 text-foreground/80" />
@@ -331,33 +325,19 @@ export function FramePopover({
               </div>
 
               <div className={frameSectionGridClass(section.id)}>
-                {section.options.map((option, optIdx) => (
-                  <motion.div
+                {section.options.map((option) => (
+                  <DeviceTile
                     key={option.id}
-                    className="w-full"
-                    initial={{ opacity: 0, scale: 0.92, y: 6 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{
-                      duration: 0.3,
-                      ease: POP_EASE,
-                      delay:
-                        0.08 + idx * 0.04 + Math.min(optIdx, 8) * 0.025,
-                    }}
-                  >
-                    <DeviceTile
-                      option={option}
-                      selectedColor={currentColor}
-                      active={value.id === option.id}
-                      screenshot={previewScreenshot}
-                      compact={isCompactFrameSection(section.id)}
-                      onSelect={() => {
-                        selectFrame(option)
-                      }}
-                    />
-                  </motion.div>
+                    option={option}
+                    selectedColor={currentColor}
+                    active={value.id === option.id}
+                    screenshot={previewScreenshot}
+                    compact={isCompactFrameSection(section.id)}
+                    onSelect={selectFrame}
+                  />
                 ))}
               </div>
-            </motion.div>
+            </div>
           ))}
 
           {visibleSections.length === 0 ? (
@@ -455,7 +435,7 @@ export function FramePopover({
   )
 }
 
-function DeviceTile({
+const DeviceTile = React.memo(function DeviceTile({
   option,
   selectedColor,
   active,
@@ -468,7 +448,7 @@ function DeviceTile({
   active: boolean
   screenshot: string | null
   compact?: boolean
-  onSelect: () => void
+  onSelect: (option: FrameOption) => void
 }) {
   const device = option.isDevice ? getDeviceMockup(option.id) : undefined
   const tileColor = resolveFrameColor(option, device, selectedColor)
@@ -486,10 +466,10 @@ function DeviceTile({
 
   return (
     <button
-      onClick={onSelect}
+      onClick={() => onSelect(option)}
       aria-pressed={active}
       className={cn(
-        "group flex flex-col items-center rounded-lg transition-colors",
+        "group flex w-full flex-col items-center rounded-lg transition-colors",
         compact ? "min-h-[132px] gap-1 p-1.5" : "min-h-[150px] gap-1.5 p-2.5",
         active
           ? "bg-accent"
@@ -540,7 +520,7 @@ function DeviceTile({
       </span>
     </button>
   )
-}
+})
 
 function isCompactFrameSection(sectionId: string) {
   return sectionId === "iphone" || sectionId === "android" || sectionId === "watch"
@@ -555,7 +535,7 @@ function frameSectionGridClass(sectionId: string) {
   )
 }
 
-function DeviceTilePreview({
+const DeviceTilePreview = React.memo(function DeviceTilePreview({
   spec,
   preview,
   rotatePreview,
@@ -628,9 +608,9 @@ function DeviceTilePreview({
       />
     </div>
   )
-}
+})
 
-function BrowserTilePreview({
+const BrowserTilePreview = React.memo(function BrowserTilePreview({
   frameId,
   color,
   screenshot,
@@ -687,7 +667,7 @@ function BrowserTilePreview({
       </div>
     </div>
   )
-}
+})
 
 function ScaledEmptyContent({
   stageWidth,

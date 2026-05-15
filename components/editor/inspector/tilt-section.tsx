@@ -11,6 +11,7 @@ import {
   useEditorStore,
   useSelectedScreenshotSlot,
 } from "@/lib/editor/store"
+import { editorValueSchemas } from "@/lib/editor/value-schemas"
 
 type LivePreviewKind = "canvas" | "slot"
 
@@ -144,18 +145,24 @@ export function TiltSection() {
   }
 
   const commitTilt = (nextTilt: Tilt) => {
+    const safeTilt: Tilt = {
+      rx: editorValueSchemas.degree.catch(0).parse(nextTilt.rx),
+      ry: editorValueSchemas.degree.catch(0).parse(nextTilt.ry),
+      rz: editorValueSchemas.degree.catch(0).parse(nextTilt.rz),
+    }
     if (selectedSlot) {
-      updateScreenshotSlot(selectedSlot.id, { tilt: nextTilt })
+      updateScreenshotSlot(selectedSlot.id, { tilt: safeTilt })
     } else {
-      setTilt(nextTilt)
+      setTilt(safeTilt)
     }
     clearAfterPaint(["rx", "ry", "rz"])
   }
   const commitScale = (nextScale: number) => {
+    const safeScale = editorValueSchemas.scale.catch(100).parse(nextScale)
     if (selectedSlot) {
-      updateScreenshotSlot(selectedSlot.id, { scale: nextScale })
+      updateScreenshotSlot(selectedSlot.id, { scale: safeScale })
     } else {
-      setScale(nextScale)
+      setScale(safeScale)
     }
     clearAfterPaint(["scale"])
   }

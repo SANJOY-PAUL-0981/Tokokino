@@ -2,6 +2,7 @@
 
 import * as React from "react"
 
+import { parseEditorNumber } from "@/lib/editor/value-schemas"
 import { cn } from "@/lib/utils"
 
 type Props = {
@@ -39,10 +40,9 @@ export function EditableValue({
   }, [editing])
 
   const commit = () => {
-    const n = Number(text)
-    if (!Number.isNaN(n) && text.trim() !== "") {
-      const clamped = Math.min(max, Math.max(min, n))
-      onChange(clamped)
+    if (text.trim() !== "") {
+      const parsed = parseEditorNumber(text, min, max)
+      if (parsed !== null) onChange(parsed)
     }
     setEditing(false)
   }
@@ -62,11 +62,13 @@ export function EditableValue({
           } else if (e.key === "ArrowUp") {
             e.preventDefault()
             const n = Number(text) || 0
-            setText(String(Math.min(max, n + step)))
+            const next = parseEditorNumber(n + step, min, max)
+            if (next !== null) setText(String(next))
           } else if (e.key === "ArrowDown") {
             e.preventDefault()
             const n = Number(text) || 0
-            setText(String(Math.max(min, n - step)))
+            const next = parseEditorNumber(n - step, min, max)
+            if (next !== null) setText(String(next))
           }
         }}
         inputMode="numeric"

@@ -9,38 +9,53 @@ export function EffectSlider({
   label,
   value,
   onChange,
-  onValueCommit,
+  onPreview,
   min = 0,
   max = 100,
+  step,
   suffix,
 }: {
   label: string
   value: number
   onChange: (v: number) => void
-  onValueCommit?: (v: number) => void
+  onPreview?: (v: number) => void
   min?: number
   max?: number
+  step?: number
   suffix?: string
 }) {
+  const [draft, setDraft] = React.useState<number | null>(null)
+  const displayed = draft ?? value
   const resolvedSuffix = suffix ?? (max === 100 ? "%" : "")
   return (
     <div>
       <div className="mb-1 flex items-baseline justify-between">
         <span className="text-[11px] text-muted-foreground">{label}</span>
         <EditableValue
-          value={value}
-          onChange={onChange}
+          value={displayed}
+          onChange={(v) => {
+            setDraft(null)
+            onChange(v)
+          }}
           min={min}
           max={max}
+          step={step}
           suffix={resolvedSuffix}
         />
       </div>
       <Slider
-        value={[value]}
-        onValueChange={([v]) => onChange(v)}
-        onValueCommit={onValueCommit ? ([v]) => onValueCommit(v) : undefined}
+        value={[displayed]}
+        onValueChange={([v]) => {
+          setDraft(v)
+          onPreview?.(v)
+        }}
+        onValueCommit={([v]) => {
+          setDraft(null)
+          onChange(v)
+        }}
         min={min}
         max={max}
+        step={step}
         className="cursor-pointer"
       />
     </div>

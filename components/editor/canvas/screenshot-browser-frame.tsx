@@ -201,7 +201,7 @@ export function ScreenshotBrowserFrame({
             inline={hoverActionsInline}
             layoutKey={hoverActionsLayoutKey}
             controlScale={hoverActionsInline ? 1 : hoverActionsScale}
-            measureRef={frameRef}
+            measureRef={stageRef}
             onCrop={onCropClick}
             onReplaceFile={onReplaceFile}
             onDelete={onDelete}

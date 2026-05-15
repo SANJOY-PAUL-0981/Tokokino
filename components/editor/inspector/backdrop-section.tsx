@@ -11,7 +11,6 @@ import {
 } from "@remixicon/react"
 
 import { ColorPickerPopover } from "@/components/editor/color-picker-popover"
-import { EditableValue } from "@/components/editor/editable-value"
 import {
   ScrollFadeBody,
   ScrollFadeRootContext,
@@ -21,17 +20,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { Slider } from "@/components/ui/slider"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   BACKDROP_PATTERNS,
   OVERLAY_COUNT,
   assetFilterCss,
   dynamicPatternColors,
+  effectsFilterCss,
   overlayThumbUrl,
   patternCssFor,
   sampleImageColors,
   useActiveCanvasField,
+  useActiveCanvasId,
   useEditorStore,
   type AssetFilter,
   type PortraitMode,
@@ -431,6 +431,7 @@ export function BackdropSection() {
   const overlay = useActiveCanvasField((c) => c.overlay)
   const portrait = useActiveCanvasField((c) => c.portrait)
   const canvasBorderRadius = useActiveCanvasField((c) => c.canvasBorderRadius)
+  const activeCanvasId = useActiveCanvasId()
   const setBackdropEffects = useEditorStore((s) => s.setBackdropEffects)
   const setBackdropPattern = useEditorStore((s) => s.setBackdropPattern)
   const setBackdropFilter = useEditorStore((s) => s.setBackdropFilter)
@@ -438,6 +439,31 @@ export function BackdropSection() {
   const setPortrait = useEditorStore((s) => s.setPortrait)
   const setCanvasBorderRadius = useEditorStore((s) => s.setCanvasBorderRadius)
   const { effects, pattern, filter: backdropFilter = "none" } = backdrop
+
+  // Live-preview CSS vars on the active canvas: dragging sliders writes to
+  // these vars directly so the canvas updates without re-rendering the store
+  // until the user releases the slider. See tilt-section.tsx for the same
+  // pattern applied to tilt/scale.
+  const getCanvasEl = React.useCallback((): HTMLElement | null => {
+    if (typeof document === "undefined" || !activeCanvasId) return null
+    return document.querySelector(`[data-canvas-id="${activeCanvasId}"]`)
+  }, [activeCanvasId])
+  const setPreviewVar = React.useCallback(
+    (name: string, value: string | null) => {
+      const el = getCanvasEl()
+      if (!el) return
+      if (value === null) el.style.removeProperty(name)
+      else el.style.setProperty(name, value)
+    },
+    [getCanvasEl]
+  )
+  const clearPreviewVarAfterPaint = React.useCallback(
+    (name: string) => {
+      if (typeof requestAnimationFrame === "undefined") return
+      requestAnimationFrame(() => setPreviewVar(name, null))
+    },
+    [setPreviewVar]
+  )
   const [imageColors, setImageColors] = React.useState<string[] | null>(null)
 
   const isImageBackground = background.type === "image"
@@ -462,8 +488,17 @@ export function BackdropSection() {
     return dynamicPatternColors(background)
   }, [background, isImageBackground, imageColors])
 
-  const setEffects = (patch: Partial<typeof effects>) =>
+  const commitEffects = (patch: Partial<typeof effects>) => {
     setBackdropEffects({ ...effects, ...patch })
+    clearPreviewVarAfterPaint("--bd-fx-preview")
+  }
+  const previewEffects = (patch: Partial<typeof effects>) => {
+    const candidate = { ...effects, ...patch }
+    setPreviewVar(
+      "--bd-fx-preview",
+      effectsFilterCss(candidate) ?? "brightness(1)"
+    )
+  }
   const setPattern = (patch: Partial<typeof pattern>) =>
     setBackdropPattern({ ...pattern, ...patch })
   const setOverlayPatch = (patch: Partial<typeof overlay>) =>
@@ -502,8 +537,11 @@ export function BackdropSection() {
         <EffectSlider
           label="Canvas Radius"
           value={canvasBorderRadius}
-          onChange={setCanvasBorderRadius}
-          onValueCommit={setCanvasBorderRadius}
+          onChange={(v) => {
+            setCanvasBorderRadius(v)
+            clearPreviewVarAfterPaint("--canvas-bd-radius")
+          }}
+          onPreview={(v) => setPreviewVar("--canvas-bd-radius", `${v}px`)}
           max={80}
         />
       </div>
@@ -526,26 +564,17 @@ export function BackdropSection() {
           bodyClassName="pr-1"
           footer={
             <div className="space-y-3">
-              <div>
-                <div className="mb-2 flex items-baseline justify-between">
-                  <span className="text-[11px] text-muted-foreground">
-                    Opacity
-                  </span>
-                  <EditableValue
-                    value={overlay.opacity}
-                    onChange={(v) => setOverlayPatch({ opacity: v })}
-                    min={0}
-                    max={100}
-                    suffix="%"
-                  />
-                </div>
-                <Slider
-                  value={[overlay.opacity]}
-                  onValueChange={([v]) => setOverlayPatch({ opacity: v })}
-                  max={100}
-                  className="cursor-pointer"
-                />
-              </div>
+              <EffectSlider
+                label="Opacity"
+                value={overlay.opacity}
+                onChange={(v) => {
+                  setOverlayPatch({ opacity: v })
+                  clearPreviewVarAfterPaint("--bd-overlay-opacity")
+                }}
+                onPreview={(v) =>
+                  setPreviewVar("--bd-overlay-opacity", `${v / 100}`)
+                }
+              />
               <div className="space-y-2">
                 <span className="text-[11px] text-muted-foreground">
                   Position
@@ -610,59 +639,68 @@ export function BackdropSection() {
           <EffectSlider
             label="Brightness"
             value={effects.brightness}
-            onChange={(v) => setEffects({ brightness: v })}
+            onChange={(v) => commitEffects({ brightness: v })}
+            onPreview={(v) => previewEffects({ brightness: v })}
             max={200}
           />
           <EffectSlider
             label="Contrast"
             value={effects.contrast}
-            onChange={(v) => setEffects({ contrast: v })}
+            onChange={(v) => commitEffects({ contrast: v })}
+            onPreview={(v) => previewEffects({ contrast: v })}
             max={200}
           />
           <EffectSlider
             label="Saturation"
             value={effects.saturation}
-            onChange={(v) => setEffects({ saturation: v })}
+            onChange={(v) => commitEffects({ saturation: v })}
+            onPreview={(v) => previewEffects({ saturation: v })}
             max={200}
           />
           <EffectSlider
             label="Hue"
             value={effects.hue}
-            onChange={(v) => setEffects({ hue: v })}
+            onChange={(v) => commitEffects({ hue: v })}
+            onPreview={(v) => previewEffects({ hue: v })}
             max={360}
             suffix="°"
           />
           <EffectSlider
             label="Grayscale"
             value={effects.grayscale}
-            onChange={(v) => setEffects({ grayscale: v })}
+            onChange={(v) => commitEffects({ grayscale: v })}
+            onPreview={(v) => previewEffects({ grayscale: v })}
           />
           <EffectSlider
             label="Sepia"
             value={effects.sepia}
-            onChange={(v) => setEffects({ sepia: v })}
+            onChange={(v) => commitEffects({ sepia: v })}
+            onPreview={(v) => previewEffects({ sepia: v })}
           />
           <EffectSlider
             label="Invert"
             value={effects.invert}
-            onChange={(v) => setEffects({ invert: v })}
+            onChange={(v) => commitEffects({ invert: v })}
+            onPreview={(v) => previewEffects({ invert: v })}
           />
           <EffectSlider
             label="Blur"
             value={effects.blur}
-            onChange={(v) => setEffects({ blur: v })}
+            onChange={(v) => commitEffects({ blur: v })}
+            onPreview={(v) => previewEffects({ blur: v })}
             max={20}
             suffix="px"
           />
           <EffectSlider
             label="Noise"
             value={effects.noise}
-            onChange={(v) => setEffects({ noise: v })}
+            onChange={(v) => commitEffects({ noise: v })}
           />
           <EffectSlider
             label="Opacity"
             value={effects.opacity}
-            onChange={(v) => setEffects({ opacity: v })}
+            onChange={(v) => commitEffects({ opacity: v })}
+            onPreview={(v) => previewEffects({ opacity: v })}
           />
         </BackdropControlPopover>
 
@@ -685,50 +723,27 @@ export function BackdropSection() {
           bodyClassName="pr-1"
           footer={
             <div className="space-y-3">
-              <div>
-                <div className="mb-2 flex items-baseline justify-between">
-                  <span className="text-[11px] text-muted-foreground">
-                    Intensity
-                  </span>
-                  <EditableValue
-                    value={pattern.intensity}
-                    onChange={(v) => setPattern({ intensity: v })}
-                    min={0}
-                    max={100}
-                    suffix="%"
-                  />
-                </div>
-                <Slider
-                  value={[pattern.intensity]}
-                  onValueChange={([v]) => setPattern({ intensity: v })}
-                  max={100}
-                  className="cursor-pointer"
-                />
-              </div>
+              <EffectSlider
+                label="Intensity"
+                value={pattern.intensity}
+                onChange={(v) => {
+                  setPattern({ intensity: v })
+                  clearPreviewVarAfterPaint("--bd-pattern-intensity")
+                }}
+                onPreview={(v) =>
+                  setPreviewVar("--bd-pattern-intensity", `${v / 100}`)
+                }
+              />
 
-              <div>
-                <div className="mb-2 flex items-baseline justify-between">
-                  <span className="text-[11px] text-muted-foreground">
-                    Thickness
-                  </span>
-                  <EditableValue
-                    value={pattern.thickness}
-                    onChange={(v) => setPattern({ thickness: v })}
-                    min={1}
-                    max={10}
-                    step={0.5}
-                    suffix="px"
-                  />
-                </div>
-                <Slider
-                  value={[pattern.thickness]}
-                  onValueChange={([v]) => setPattern({ thickness: v })}
-                  min={1}
-                  max={10}
-                  step={0.5}
-                  className="cursor-pointer"
-                />
-              </div>
+              <EffectSlider
+                label="Thickness"
+                value={pattern.thickness}
+                onChange={(v) => setPattern({ thickness: v })}
+                min={1}
+                max={10}
+                step={0.5}
+                suffix="px"
+              />
 
               <div>
                 <span className="mb-2 block text-[11px] text-muted-foreground">
@@ -845,77 +860,23 @@ export function BackdropSection() {
           footer={
             portrait.mode !== "off" ? (
               <div className="space-y-3">
-                <div>
-                  <div className="mb-2 flex items-baseline justify-between">
-                    <span className="text-[11px] text-muted-foreground">
-                      Intensity
-                    </span>
-                    <EditableValue
-                      value={portrait.intensity}
-                      onChange={(v) =>
-                        setPortrait({ ...portrait, intensity: v })
-                      }
-                      min={0}
-                      max={100}
-                      suffix="%"
-                    />
-                  </div>
-                  <Slider
-                    value={[portrait.intensity]}
-                    onValueChange={([v]) =>
-                      setPortrait({ ...portrait, intensity: v })
-                    }
-                    max={100}
-                    className="cursor-pointer"
-                  />
-                </div>
-                <div>
-                  <div className="mb-2 flex items-baseline justify-between">
-                    <span className="text-[11px] text-muted-foreground">
-                      Position
-                    </span>
-                    <EditableValue
-                      value={portrait.position}
-                      onChange={(v) =>
-                        setPortrait({ ...portrait, position: v })
-                      }
-                      min={0}
-                      max={100}
-                    />
-                  </div>
-                  <Slider
-                    value={[portrait.position]}
-                    onValueChange={([v]) =>
-                      setPortrait({ ...portrait, position: v })
-                    }
-                    max={100}
-                    className="cursor-pointer"
-                  />
-                </div>
-                <div>
-                  <div className="mb-2 flex items-baseline justify-between">
-                    <span className="text-[11px] text-muted-foreground">
-                      Distance
-                    </span>
-                    <EditableValue
-                      value={portrait.distance}
-                      onChange={(v) =>
-                        setPortrait({ ...portrait, distance: v })
-                      }
-                      min={0}
-                      max={100}
-                    />
-                  </div>
-                  <Slider
-                    value={[portrait.distance]}
-                    onValueChange={([v]) =>
-                      setPortrait({ ...portrait, distance: v })
-                    }
-                    min={0}
-                    max={100}
-                    className="cursor-pointer"
-                  />
-                </div>
+                <EffectSlider
+                  label="Intensity"
+                  value={portrait.intensity}
+                  onChange={(v) => setPortrait({ ...portrait, intensity: v })}
+                />
+                <EffectSlider
+                  label="Position"
+                  value={portrait.position}
+                  onChange={(v) => setPortrait({ ...portrait, position: v })}
+                  suffix=""
+                />
+                <EffectSlider
+                  label="Distance"
+                  value={portrait.distance}
+                  onChange={(v) => setPortrait({ ...portrait, distance: v })}
+                  suffix=""
+                />
               </div>
             ) : null
           }

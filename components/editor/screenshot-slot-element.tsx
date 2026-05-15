@@ -65,12 +65,14 @@ export function ScreenshotSlotView({
   slot,
   canvasRef,
   canvasAspectRatio,
+  rowLayout,
   onCropRequest,
   onCenterGuideChange,
 }: {
   slot: ScreenshotSlot
   canvasRef: React.RefObject<HTMLDivElement | null>
   canvasAspectRatio: number
+  rowLayout?: { widthPct: number; xPct: number } | null
   onCropRequest: (slotId: string) => void
   onCenterGuideChange?: (guides: { x: boolean; y: boolean }) => void
 }) {
@@ -136,6 +138,8 @@ export function ScreenshotSlotView({
     slot.heightPct,
     slot.rotation,
     canvasAspectRatio,
+    rowLayout?.widthPct,
+    rowLayout?.xPct,
   ])
 
   const select = (e: { stopPropagation: () => void }) => {
@@ -267,11 +271,12 @@ export function ScreenshotSlotView({
     `scale(var(--slot-ts-scale, ${slot.scale / 100}))`,
   ].join(" ")
   const boxAspectRatio = slotBoxAspectRatio(slot.frame, canvasAspectRatio)
+  const effectiveWidthPct = rowLayout?.widthPct ?? slot.widthPct
 
   const containerStyle: React.CSSProperties = {
     left: `${slot.xPct}%`,
     top: `${slot.yPct}%`,
-    width: `${slot.widthPct}%`,
+    width: `${effectiveWidthPct}%`,
     aspectRatio: boxAspectRatio,
     transform: `translate(-50%, -50%) rotate(${slot.rotation}deg)`,
     zIndex: 60 + slot.zIndex,

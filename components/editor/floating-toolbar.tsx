@@ -9,6 +9,7 @@ import {
   RiDragMove2Line,
   RiFocus3Line,
   RiGalleryLine,
+  RiGroupLine,
   RiImageAddLine,
   RiLayoutColumnLine,
   RiLayoutGridLine,
@@ -43,6 +44,7 @@ import {
   useEditor,
   useEditorStore,
 } from "@/lib/editor/store"
+import { editorValueSchemas } from "@/lib/editor/value-schemas"
 import { cn } from "@/lib/utils"
 
 const ENHANCE_PRESETS: {
@@ -339,6 +341,8 @@ function DefaultToolbarContents() {
 
   const isScreenshotSelected = useEditorStore((s) => s.isScreenshotSelected)
 
+  const [groupAllScreenshots, setGroupAllScreenshots] = React.useState(false)
+
   type PositionTarget =
     | "text"
     | "asset"
@@ -347,6 +351,7 @@ function DefaultToolbarContents() {
     | "slotGroup"
     | "screenshot"
     | "canvas"
+    | "allScreenshots"
     | null
   const activeFrame = selectedSlot?.frame ?? frame
   const activeScale = selectedSlot?.scale ?? scale
@@ -355,23 +360,28 @@ function DefaultToolbarContents() {
   const hasScalableContent = selectedSlot
     ? true
     : Boolean(screenshot || hasDeviceFrame)
-  const positionTarget: PositionTarget = selectedText
-    ? "text"
-    : selectedAsset
-      ? "asset"
-      : selectedAnnotation
-        ? "annotation"
-        : selectedSlot
-          ? "slot"
-          : isScreenshotSelected && (screenshot || hasDeviceFrame)
-            ? "screenshot"
-            : screenshotSlots.length > 0
-              ? "slotGroup"
-              : bulkEditMode
-                ? "canvas"
-                : screenshot || hasDeviceFrame
-                  ? "screenshot"
-                  : null
+  const hasAnyScreenshotContent =
+    Boolean(screenshot) || hasDeviceFrame || screenshotSlots.length > 0
+  const positionTarget: PositionTarget =
+    groupAllScreenshots && hasAnyScreenshotContent
+      ? "allScreenshots"
+      : selectedText
+        ? "text"
+        : selectedAsset
+          ? "asset"
+          : selectedAnnotation
+            ? "annotation"
+            : selectedSlot
+              ? "slot"
+              : isScreenshotSelected && (screenshot || hasDeviceFrame)
+                ? "screenshot"
+                : screenshotSlots.length > 0
+                  ? "slotGroup"
+                  : bulkEditMode
+                    ? "canvas"
+                    : screenshot || hasDeviceFrame
+                      ? "screenshot"
+                      : null
 
   const currentPositionId = React.useMemo<ScreenshotPosition | null>(() => {
     let xPct: number
@@ -418,6 +428,8 @@ function DefaultToolbarContents() {
       const row = Math.round(Math.max(0, Math.min(4, rowPct / 25)))
       if (col === 2 && row === 2) return "center"
       return `${row}-${col}` as ScreenshotPosition
+    } else if (positionTarget === "allScreenshots") {
+      return screenshotPosition
     } else if (positionTarget === "screenshot") {
       return screenshotPosition
     } else {
@@ -463,6 +475,11 @@ function DefaultToolbarContents() {
       setCanvasPosition(activeCanvasId, { x, y })
     } else if (positionTarget === "screenshot") {
       setScreenshotPosition(posId)
+    } else if (positionTarget === "allScreenshots") {
+      setScreenshotPosition(posId)
+      for (const slot of screenshotSlots) {
+        updateScreenshotSlot(slot.id, { xPct: anchor.x, yPct: anchor.y })
+      }
     }
   }
 
@@ -479,11 +496,13 @@ function DefaultToolbarContents() {
               ? "screenshot boxes"
               : positionTarget === "canvas"
                 ? "canvas"
-                : positionTarget === "screenshot"
-                  ? hasDeviceFrame
-                    ? "device frame"
-                    : "screenshot"
-                  : null
+                : positionTarget === "allScreenshots"
+                  ? "all screenshots"
+                  : positionTarget === "screenshot"
+                    ? hasDeviceFrame
+                      ? "device frame"
+                      : "screenshot"
+                    : null
 
   const handleAssetUpload = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -691,6 +710,37 @@ function DefaultToolbarContents() {
                 <span className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
                   Position {positionTargetLabel}
                 </span>
+                {hasAnyScreenshotContent ? (
+                  <button
+                    type="button"
+                    onClick={() => setGroupAllScreenshots((v) => !v)}
+                    className={cn(
+                      "flex cursor-pointer items-center justify-between gap-2 rounded-md border px-2 py-1.5 text-[11px] transition-colors",
+                      groupAllScreenshots
+                        ? "border-primary/40 bg-primary/10 text-foreground"
+                        : "border-border/60 bg-secondary/30 text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+                    )}
+                    aria-pressed={groupAllScreenshots}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <RiGroupLine className="size-3.5" />
+                      Group all screenshots
+                    </span>
+                    <span
+                      className={cn(
+                        "inline-flex h-3.5 w-6 items-center rounded-full p-0.5 transition-colors",
+                        groupAllScreenshots ? "bg-primary" : "bg-border"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "block size-2.5 rounded-full bg-white transition-transform",
+                          groupAllScreenshots && "translate-x-2.5"
+                        )}
+                      />
+                    </span>
+                  </button>
+                ) : null}
                 <div className="grid grid-cols-5 gap-1.5">
                   {SCREENSHOT_POSITIONS.map((pos) => (
                     <button
@@ -744,7 +794,9 @@ function DefaultToolbarContents() {
         }
         disabled={!hasScalableContent || activeScale <= 10}
         onClick={() => {
-          const nextScale = Math.max(10, activeScale - 10)
+          const nextScale = editorValueSchemas.scale
+            .catch(100)
+            .parse(activeScale - 10)
           if (selectedSlot) {
             updateScreenshotSlot(selectedSlot.id, { scale: nextScale })
             return
@@ -759,11 +811,12 @@ function DefaultToolbarContents() {
         type="button"
         disabled={!hasScalableContent}
         onClick={() => {
+          const resetScale = editorValueSchemas.scale.catch(100).parse(100)
           if (selectedSlot) {
-            updateScreenshotSlot(selectedSlot.id, { scale: 100 })
+            updateScreenshotSlot(selectedSlot.id, { scale: resetScale })
             return
           }
-          setScale(100)
+          setScale(resetScale)
         }}
         className={cn(
           "tabular min-w-[3.25rem] cursor-pointer rounded-md px-1 py-1.5 font-mono text-[11px] text-foreground/85 hover:bg-accent",
@@ -780,7 +833,9 @@ function DefaultToolbarContents() {
         }
         disabled={!hasScalableContent || activeScale >= 300}
         onClick={() => {
-          const nextScale = Math.min(300, activeScale + 10)
+          const nextScale = editorValueSchemas.scale
+            .catch(100)
+            .parse(activeScale + 10)
           if (selectedSlot) {
             updateScreenshotSlot(selectedSlot.id, { scale: nextScale })
             return
