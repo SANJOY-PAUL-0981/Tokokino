@@ -24,6 +24,7 @@ import {
   overlayUrl,
   shadowCss,
   shadowDropFilterCss,
+  screenshotPositionAnchor,
   useActiveCanvasField,
   useActiveCanvasId,
   useEditorStore,
@@ -53,7 +54,10 @@ type PresetMotionKind = "canvas" | "slot"
 
 const PRESET_MOTION_MS = 560
 
-function motionVarName(kind: PresetMotionKind, axis: "rx" | "ry" | "rz" | "scale") {
+function motionVarName(
+  kind: PresetMotionKind,
+  axis: "rx" | "ry" | "rz" | "scale"
+) {
   return `--${kind}-ts-${axis}`
 }
 
@@ -256,16 +260,16 @@ export function PresentPresetsSection() {
               applyPreset(preset)
             }}
             className={cn(
-              "group w-full cursor-pointer overflow-hidden rounded-[8px] border bg-secondary/30 p-2 text-left transition-colors",
+              "group w-full cursor-pointer overflow-hidden rounded-[8px] border bg-white/[0.045] p-2 text-left transition-colors",
               active
-                ? "border-primary/50 ring-1 ring-primary/30"
-                : "border-border/55 hover:border-border"
+                ? "border-white/80 ring-1 ring-white/25"
+                : "border-white/12 hover:border-white/35"
             )}
           >
             <div
               aria-hidden
               inert
-              className="relative h-[176px] overflow-hidden rounded-[6px] bg-black/35 [&_*]:pointer-events-none"
+              className="relative h-[176px] overflow-hidden rounded-[6px] bg-white/[0.035] [&_*]:pointer-events-none"
             >
               <PresentPresetPreview
                 aspect={aspect}
@@ -282,10 +286,10 @@ export function PresentPresetsSection() {
               </div>
               <span
                 className={cn(
-                  "grid size-5 shrink-0 place-items-center rounded-full border text-primary transition-opacity",
+                  "grid size-5 shrink-0 place-items-center rounded-full border text-white transition-opacity",
                   active
-                    ? "border-primary/40 bg-primary/10 opacity-100"
-                    : "border-border/60 opacity-0 group-hover:opacity-45"
+                    ? "border-white/45 bg-white/12 opacity-100"
+                    : "border-white/25 opacity-0 group-hover:opacity-55"
                 )}
                 aria-hidden
               >
@@ -340,6 +344,7 @@ function PresentPresetPreview({
     [canvas.frame, canvas.screenshotSlots, canvasAspectRatio, inRowMode]
   )
   const mainRowLayout = rowLayoutItems ? rowLayoutItems[0] : null
+  const screenshotAnchor = screenshotPositionAnchor(canvas.screenshotPosition)
   const slotRowLayoutById = React.useMemo(() => {
     if (!rowLayoutItems) return null
     const map = new Map<string, { widthPct: number; xPct: number }>()
@@ -380,6 +385,7 @@ function PresentPresetPreview({
           <PresentMainScreenshot
             canvas={canvas}
             transform={canvasTransform}
+            screenshotOffset={canvas.screenshotOffset}
             stageRef={stageRef}
             imageRef={imageRef}
             canvasAspectRatio={canvasAspectRatio}
@@ -399,6 +405,8 @@ function PresentPresetPreview({
             >
               <CanvasFrameContent
                 canvas={canvas}
+                screenshotAnchor={screenshotAnchor}
+                screenshotOffset={canvas.screenshotOffset}
                 stageRef={stageRef}
                 imageRef={imageRef}
               />
@@ -411,9 +419,7 @@ function PresentPresetPreview({
             slot={slot}
             canvasAspectRatio={canvasAspectRatio}
             rowLayout={slotRowLayoutById?.get(slot.id) ?? null}
-            previewTilt={
-              selectedSlot?.id === slot.id ? preset.tilt : undefined
-            }
+            previewTilt={selectedSlot?.id === slot.id ? preset.tilt : undefined}
             previewScale={
               selectedSlot?.id === slot.id
                 ? resolvePresentPresetScale(preset, slot.frame)
@@ -439,6 +445,7 @@ function PresentPresetPreview({
 function PresentMainScreenshot({
   canvas,
   transform,
+  screenshotOffset,
   stageRef,
   imageRef,
   canvasAspectRatio,
@@ -446,6 +453,7 @@ function PresentMainScreenshot({
 }: {
   canvas: CanvasState
   transform: string
+  screenshotOffset: { x: number; y: number }
   stageRef: React.RefObject<HTMLDivElement | null>
   imageRef: React.RefObject<HTMLImageElement | null>
   canvasAspectRatio: number
@@ -459,13 +467,15 @@ function PresentMainScreenshot({
         top: "50%",
         width: `${rowLayout.widthPct}%`,
         aspectRatio: slotBoxAspectRatio(canvas.frame, canvasAspectRatio),
-        transform: "translate(-50%, -50%)",
+        transform: `translate(-50%, -50%) translate(${screenshotOffset.x}px, ${screenshotOffset.y}px)`,
         zIndex: 60 + canvas.screenshotLayer.zIndex,
       }}
     >
       <div
         className="absolute inset-0"
-        style={{ padding: `${Math.max(0, Math.min(240, canvas.padding)) / 12}%` }}
+        style={{
+          padding: `${Math.max(0, Math.min(240, canvas.padding)) / 12}%`,
+        }}
       >
         <div
           className="relative h-full w-full"
@@ -500,10 +510,14 @@ function PresentMainScreenshot({
 
 function CanvasFrameContent({
   canvas,
+  screenshotAnchor,
+  screenshotOffset,
   stageRef,
   imageRef,
 }: {
   canvas: CanvasState
+  screenshotAnchor?: { x: number; y: number }
+  screenshotOffset?: { x: number; y: number }
   stageRef: React.RefObject<HTMLDivElement | null>
   imageRef: React.RefObject<HTMLImageElement | null>
 }) {
@@ -541,6 +555,8 @@ function CanvasFrameContent({
       onCrop={() => undefined}
       onReplaceFile={() => undefined}
       onDelete={() => undefined}
+      screenshotAnchor={screenshotAnchor}
+      screenshotOffset={screenshotOffset}
     />
   )
 }
@@ -561,7 +577,10 @@ function PresentSlot({
   const stageRef = React.useRef<HTMLDivElement>(null)
   const imageRef = React.useRef<HTMLImageElement>(null)
   const effectiveWidthPct = rowLayout?.widthPct ?? slot.widthPct
-  const filterChain = [enhanceFilterCss(slot.enhance), assetFilterCss(slot.filter)]
+  const filterChain = [
+    enhanceFilterCss(slot.enhance),
+    assetFilterCss(slot.filter),
+  ]
     .filter(Boolean)
     .join(" ")
     .trim()
@@ -586,8 +605,7 @@ function PresentSlot({
         transform: `translate(-50%, -50%) rotate(${slot.rotation}deg)`,
         zIndex: 60 + slot.zIndex,
         display: slot.hidden ? "none" : undefined,
-        mixBlendMode:
-          slot.blendMode !== "normal" ? slot.blendMode : undefined,
+        mixBlendMode: slot.blendMode !== "normal" ? slot.blendMode : undefined,
       }}
     >
       <div
@@ -603,7 +621,10 @@ function PresentSlot({
             ),
             transformStyle: "preserve-3d",
             opacity: slot.opacity / 100,
-            borderRadius: frameSelectionRadius(slot.frame.id, slot.borderRadius),
+            borderRadius: frameSelectionRadius(
+              slot.frame.id,
+              slot.borderRadius
+            ),
           }}
         >
           <ScreenshotFrameContent

@@ -28,6 +28,30 @@ export const PRESENT_PRESETS: PresentPreset[] = [
     tilt: { rx: 15, ry: -20, rz: 10 },
     scale: 85,
   },
+  {
+    id: "axis-drift",
+    name: "Axis Drift",
+    tilt: { rx: 2, ry: -6, rz: -4 },
+    scale: 92,
+  },
+  {
+    id: "axis-stage-left",
+    name: "Axis Stage L",
+    tilt: { rx: 42, ry: 12, rz: -18 },
+    scale: 92,
+  },
+  {
+    id: "axis-stage-right",
+    name: "Axis Stage R",
+    tilt: { rx: 42, ry: -12, rz: 18 },
+    scale: 92,
+  },
+  {
+    id: "axis-front",
+    name: "Axis Front",
+    tilt: { rx: 24, ry: 0, rz: 0 },
+    scale: 92,
+  },
 ]
 
 export function resolvePresentPresetScale(
@@ -35,6 +59,7 @@ export function resolvePresentPresetScale(
   frame: DeviceFrame
 ) {
   if (preset.id === "default") return 100
+  if (preset.id.startsWith("axis-")) return preset.scale
   if (frame.id === "none" || isBrowserFrame(frame.id)) return 85
   if (
     frame.id.startsWith("macbook") ||

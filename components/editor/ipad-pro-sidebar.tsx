@@ -13,8 +13,8 @@ import {
 } from "@/components/ui/drawer"
 
 /**
- * Sheet-triggered design panel for iPad Pro widths (lg ≤ w < xl).
- * Below lg the bottom MobileControls panel is used instead.
+ * Sheet-triggered design panel for iPad widths (md ≤ w < xl).
+ * Below md the bottom MobileControls panel is used instead.
  * At xl+ the EffectsSidebar is rendered inline.
  */
 export function IpadProSidebar() {
@@ -25,7 +25,7 @@ export function IpadProSidebar() {
           variant="outline"
           size="icon-lg"
           aria-label="Open design panel"
-          className="absolute top-4 left-4 z-20 hidden bg-popover/90 shadow-md backdrop-blur-md lg:inline-flex xl:hidden"
+          className="absolute top-4 left-4 z-20 hidden bg-popover/90 shadow-md backdrop-blur-md md:inline-flex xl:hidden"
         >
           <RiLayoutMasonryLine />
         </Button>

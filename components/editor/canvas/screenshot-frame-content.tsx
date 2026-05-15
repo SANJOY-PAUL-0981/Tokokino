@@ -12,7 +12,7 @@ import { getDeviceMockup, getDeviceMockupAsset } from "@/lib/mockups"
 
 import { BoxEmptyState } from "./box-empty-state"
 import { DeviceFrameEmptyState } from "./device-frame-empty-state"
-import { deviceMockupSpec } from "./helpers"
+import { deviceMockupSpec, framePositionTransform } from "./helpers"
 import { ScreenshotBare } from "./screenshot-bare"
 import {
   BrowserFrameEmptyState,
@@ -42,6 +42,8 @@ type ScreenshotFrameContentProps = {
   onCrop: () => void
   onReplaceFile: (file: File) => void
   onDelete: () => void
+  screenshotOffset?: { x: number; y: number }
+  screenshotAnchor?: { x: number; y: number }
 }
 
 const CENTER_ANCHOR = { x: 50, y: 50 }
@@ -51,6 +53,14 @@ const CONTENT_LAYER: ScreenshotLayer = {
   opacity: 100,
   blendMode: "normal",
   hidden: false,
+}
+
+function emptyBareStyle(style?: React.CSSProperties) {
+  if (!style) return undefined
+  const { transform, transformStyle, ...rest } = style
+  void transform
+  void transformStyle
+  return rest
 }
 
 export function ScreenshotFrameContent({
@@ -75,6 +85,8 @@ export function ScreenshotFrameContent({
   onCrop,
   onReplaceFile,
   onDelete,
+  screenshotOffset = ZERO_OFFSET,
+  screenshotAnchor = CENTER_ANCHOR,
 }: ScreenshotFrameContentProps) {
   const browserFrame = isBrowserFrame(frame.id)
   const browserFrameColor = resolveBrowserFrameColor(frame.color)
@@ -104,8 +116,8 @@ export function ScreenshotFrameContent({
           screenshotLayer={CONTENT_LAYER}
           transform=""
           shadowFilter={shadowFilter}
-          screenshotOffset={ZERO_OFFSET}
-          screenshotAnchor={CENTER_ANCHOR}
+          screenshotOffset={screenshotOffset}
+          screenshotAnchor={screenshotAnchor}
           enhanceFilter={imageFilter}
           isScreenshotDragging={isDragging}
           activeTool={activeTool}
@@ -136,8 +148,8 @@ export function ScreenshotFrameContent({
           transform=""
           mockupRotation={mockupRotation}
           shadowFilter={shadowFilter}
-          screenshotOffset={ZERO_OFFSET}
-          screenshotAnchor={CENTER_ANCHOR}
+          screenshotOffset={screenshotOffset}
+          screenshotAnchor={screenshotAnchor}
           enhanceFilter={imageFilter}
           isScreenshotDragging={isDragging}
           activeTool={activeTool}
@@ -158,38 +170,50 @@ export function ScreenshotFrameContent({
     }
 
     return (
-      <ScreenshotBare
-        screenshot={src}
-        imgStyle={bareStyle ?? {}}
-        positionedStyle={null}
-        transform=""
-        screenshotLeft={undefined}
-        screenshotTop={undefined}
-        placementDims={null}
-        screenshotLayer={CONTENT_LAYER}
-        isScreenshotSelected={false}
-        isScreenshotDragging={isDragging}
-        suppressTransition={false}
-        activeTool={activeTool}
-        selectedTextId={null}
-        stageRef={stageRef}
-        imageRef={imageRef}
-        onContainerPointerDown={() => undefined}
-        onSelect={onSelect}
-        onPointerDown={(e) =>
-          onPointerDown(e as unknown as React.PointerEvent<HTMLDivElement>)
-        }
-        onPointerMove={(e) =>
-          onPointerMove(e as unknown as React.PointerEvent<HTMLDivElement>)
-        }
-        onPointerUp={(e) =>
-          onPointerUp(e as unknown as React.PointerEvent<HTMLDivElement>)
-        }
-        onImageLoad={handleImageLoad}
-        onCropClick={onCrop}
-        onReplaceFile={onReplaceFile}
-        onDelete={onDelete}
-      />
+      <div
+        className="pointer-events-none absolute top-1/2 left-1/2 h-full w-full"
+        style={{
+          transform: framePositionTransform({
+            anchor: screenshotAnchor,
+            offset: screenshotOffset,
+            transform: "",
+          }),
+          transformOrigin: "center",
+        }}
+      >
+        <ScreenshotBare
+          screenshot={src}
+          imgStyle={bareStyle ?? {}}
+          positionedStyle={null}
+          transform=""
+          screenshotLeft={undefined}
+          screenshotTop={undefined}
+          placementDims={null}
+          screenshotLayer={CONTENT_LAYER}
+          isScreenshotSelected={false}
+          isScreenshotDragging={isDragging}
+          suppressTransition={false}
+          activeTool={activeTool}
+          selectedTextId={null}
+          stageRef={stageRef}
+          imageRef={imageRef}
+          onContainerPointerDown={() => undefined}
+          onSelect={onSelect}
+          onPointerDown={(e) =>
+            onPointerDown(e as unknown as React.PointerEvent<HTMLDivElement>)
+          }
+          onPointerMove={(e) =>
+            onPointerMove(e as unknown as React.PointerEvent<HTMLDivElement>)
+          }
+          onPointerUp={(e) =>
+            onPointerUp(e as unknown as React.PointerEvent<HTMLDivElement>)
+          }
+          onImageLoad={handleImageLoad}
+          onCropClick={onCrop}
+          onReplaceFile={onReplaceFile}
+          onDelete={onDelete}
+        />
+      </div>
     )
   }
 
@@ -201,8 +225,8 @@ export function ScreenshotFrameContent({
         isDragOver={isDragOver}
         onBrowse={onBrowse}
         transform=""
-        screenshotOffset={ZERO_OFFSET}
-        screenshotAnchor={CENTER_ANCHOR}
+        screenshotOffset={screenshotOffset}
+        screenshotAnchor={screenshotAnchor}
         isScreenshotDragging={isDragging}
         activeTool={activeTool}
         addressValue={addressValue}
@@ -223,8 +247,8 @@ export function ScreenshotFrameContent({
         onBrowse={onBrowse}
         transform=""
         mockupRotation={mockupRotation}
-        screenshotOffset={ZERO_OFFSET}
-        screenshotAnchor={CENTER_ANCHOR}
+        screenshotOffset={screenshotOffset}
+        screenshotAnchor={screenshotAnchor}
         isScreenshotDragging={isDragging}
         activeTool={activeTool}
         onPointerDown={onPointerDown}
@@ -237,7 +261,7 @@ export function ScreenshotFrameContent({
   return (
     <div
       className="relative h-full w-full overflow-hidden bg-black/40"
-      style={bareStyle}
+      style={emptyBareStyle(bareStyle)}
     >
       <BoxEmptyState isDragOver={isDragOver} onBrowse={onBrowse} />
     </div>

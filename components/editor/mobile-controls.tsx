@@ -1,10 +1,7 @@
 "use client"
 
 import * as React from "react"
-import {
-  RiLayoutMasonryLine,
-  RiSettingsLine,
-} from "@remixicon/react"
+import { RiLayoutMasonryLine, RiSettingsLine } from "@remixicon/react"
 
 import { EffectsSidebar } from "@/components/editor/effects-sidebar"
 import { Inspector } from "@/components/editor/inspector"
@@ -12,14 +9,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
 /**
- * Bottom panel shown on phone + smaller iPad (<lg). Stacks under the canvas.
+ * Bottom panel shown on phone widths only. iPad widths use the side-panel layout.
  * Sized so the canvas keeps the majority of the viewport on phones.
  */
 export function MobileControls() {
   return (
     <div
       className={cn(
-        "flex h-[45svh] min-h-[300px] shrink-0 flex-col border-t border-border/60 bg-sidebar md:h-[48svh] md:min-h-[360px] lg:hidden"
+        "flex h-[45svh] min-h-[300px] shrink-0 flex-col border-t border-border/60 bg-sidebar md:hidden"
       )}
     >
       <Tabs

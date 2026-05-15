@@ -45,7 +45,7 @@ export function ThemeToggle() {
         </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom" className="tabular">
-        Theme · press <kbd className="font-mono">d</kbd>
+        Theme
       </TooltipContent>
     </Tooltip>
   )
