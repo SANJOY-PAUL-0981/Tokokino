@@ -22,6 +22,7 @@ import {
   shadowCss,
   shadowDropFilterCss,
 } from "@/lib/editor/css-utils"
+import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 
 const SHADOW_COLOR_PRESETS = [
@@ -69,12 +70,14 @@ function DirectionField({
   lightSource,
   onChange,
   onPreview,
+  resolvedTheme,
 }: {
   color: string
   disabled: boolean
   lightSource: string
   onChange: (id: string) => void
   onPreview: (id: string | null) => void
+  resolvedTheme: string | undefined
 }) {
   const sourcePoint = lightSourceToPoint(lightSource)
   const orbRef = React.useRef<HTMLDivElement | null>(null)
@@ -264,7 +267,7 @@ function DirectionField({
             preventScrolling={false}
             proOptions={{ hideAttribution: true }}
             className="pointer-events-none absolute inset-0 text-black/25 dark:text-white/15"
-            colorMode="system"
+            colorMode={resolvedTheme === "dark" ? "dark" : "light"}
             style={{ background: "transparent" }}
           >
             <Background
@@ -373,6 +376,7 @@ export function ShadowSection() {
     }
     setShadow(nextShadow)
   }
+  const { resolvedTheme } = useTheme()
   const { type, intensity, lightSource, color = "#050505" } = shadow
 
   const enabled = type !== "none"
@@ -650,6 +654,7 @@ export function ShadowSection() {
           lightSource={lightSource}
           onChange={setLightSource}
           onPreview={previewLightSource}
+          resolvedTheme={resolvedTheme}
         />
       </div>
     </div>

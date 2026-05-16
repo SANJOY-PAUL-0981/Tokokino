@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import debounce from "lodash/debounce"
+import { AnimatePresence, motion } from "motion/react"
 import InfiniteScroll from "react-infinite-scroll-component"
 import {
   RiArrowRightLine,
@@ -50,12 +51,45 @@ import {
   type BgType,
 } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 import { ColorPresetGrid } from "./primitives"
 import { ScrollFadeBody } from "../scroll-fade"
 
 const BACKGROUND_PREVIEW_COUNT = 8
 const GRADIENT_PREVIEW_COUNT = 8
+
+const POP_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
+
+const TILE_GRID_VARIANTS = {
+  initial: { opacity: 0 },
+  animate: {
+    opacity: 1,
+    transition: { staggerChildren: 0.025, delayChildren: 0.04 },
+  },
+  exit: {
+    opacity: 0,
+    transition: { duration: 0.12, ease: POP_EASE },
+  },
+}
+
+const TILE_ITEM_VARIANTS = {
+  initial: { opacity: 0, y: 8, scale: 0.96, filter: "blur(4px)" },
+  animate: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    filter: "blur(0px)",
+    transition: { duration: 0.28, ease: POP_EASE },
+  },
+  exit: {
+    opacity: 0,
+    y: -4,
+    scale: 0.98,
+    filter: "blur(2px)",
+    transition: { duration: 0.12, ease: POP_EASE },
+  },
+}
 
 const DEFAULT_LINEAR_GRADIENT = {
   angle: 135,
@@ -89,12 +123,18 @@ function parseLinearGradient(gradientValue: string): {
   angle: number
   colors: string[]
 } | null {
-  if (!gradientValue.startsWith("linear-gradient(") || !gradientValue.endsWith(")")) return null
+  if (
+    !gradientValue.startsWith("linear-gradient(") ||
+    !gradientValue.endsWith(")")
+  )
+    return null
   const gradientBody = gradientValue.slice("linear-gradient(".length, -1)
   const parts = splitByTopLevelComma(gradientBody)
   if (parts.length < 3) return null
   const angleMatch = parts[0].trim().match(/(-?\d+(\.\d+)?)deg/)
-  const angle = angleMatch ? Number.parseFloat(angleMatch[1]) : DEFAULT_LINEAR_GRADIENT.angle
+  const angle = angleMatch
+    ? Number.parseFloat(angleMatch[1])
+    : DEFAULT_LINEAR_GRADIENT.angle
   const colors = parts
     .slice(1)
     .map((part) => part.trim().replace(/\s+\d+%$/g, ""))
@@ -121,10 +161,18 @@ function splitByTopLevelComma(value: string): string[] {
   return parts
 }
 
-function normalizeGradientColors(colors: string[], targetLength: number): string[] {
-  const safeColors = colors.length > 0 ? colors.slice(0, targetLength) : [...DEFAULT_LINEAR_GRADIENT.colors]
+function normalizeGradientColors(
+  colors: string[],
+  targetLength: number
+): string[] {
+  const safeColors =
+    colors.length > 0
+      ? colors.slice(0, targetLength)
+      : [...DEFAULT_LINEAR_GRADIENT.colors]
   while (safeColors.length < targetLength) {
-    safeColors.push(safeColors[safeColors.length - 1] ?? DEFAULT_LINEAR_GRADIENT.colors[0])
+    safeColors.push(
+      safeColors[safeColors.length - 1] ?? DEFAULT_LINEAR_GRADIENT.colors[0]
+    )
   }
   return safeColors
 }
@@ -192,11 +240,19 @@ function backgroundCategoryIcon(key: string) {
   }
 }
 
-function BgTabTrigger({ value, label, children }: { value: string; label: string; children: React.ReactNode }) {
+function BgTabTrigger({
+  value,
+  label,
+  children,
+}: {
+  value: string
+  label: string
+  children: React.ReactNode
+}) {
   return (
     <TabsTrigger
       value={value}
-      className="group flex h-auto flex-col items-center gap-2 bg-transparent p-0 border-none shadow-none data-[state=active]:bg-transparent data-active:!bg-transparent dark:data-active:!bg-transparent data-[state=active]:shadow-none focus-visible:outline-none focus-visible:ring-0 cursor-pointer"
+      className="group flex h-auto cursor-pointer flex-col items-center gap-2 border-none bg-transparent p-0 shadow-none focus-visible:ring-0 focus-visible:outline-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-active:!bg-transparent dark:data-active:!bg-transparent"
     >
       <div className="relative flex size-9 shrink-0 items-center justify-center rounded-lg transition-all duration-150 group-data-[state=active]:bg-[#e8445a]/10">
         {children}
@@ -212,30 +268,39 @@ function BackgroundTile({
   item,
   active,
   onClick,
+  layoutId,
 }: {
   item: BackgroundEntry
   active: boolean
   onClick: () => void
+  layoutId: string
 }) {
   return (
-    <button
-      onClick={onClick}
-      title={item.name}
-      className={cn(
-        "aspect-video overflow-hidden rounded-lg border cursor-pointer transition-colors",
-        active
-          ? "border-transparent ring-1 ring-primary/40 ring-offset-1 ring-offset-sidebar"
-          : "border-border/60 hover:border-foreground/30"
-      )}
-    >
-      <img
-        src={item.thumb}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        className="h-full w-full object-cover"
-      />
-    </button>
+    <motion.div variants={TILE_ITEM_VARIANTS} className="relative">
+      <button
+        onClick={onClick}
+        title={item.name}
+        className={cn(
+          "block aspect-video w-full cursor-pointer overflow-hidden rounded-lg border transition-colors",
+          active ? "border-transparent" : "border-border/60 hover:border-foreground/30"
+        )}
+      >
+        <img
+          src={item.thumb}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover"
+        />
+      </button>
+      {active ? (
+        <motion.span
+          layoutId={layoutId}
+          className="pointer-events-none absolute -inset-0.5 rounded-[9px] ring-1 ring-primary/50"
+          transition={{ type: "spring", stiffness: 380, damping: 32 }}
+        />
+      ) : null}
+    </motion.div>
   )
 }
 
@@ -285,64 +350,113 @@ function BackgroundLibrary({
                 setExpanded(false)
               }}
               className={cn(
-                "flex h-9 items-center justify-center gap-1.5 rounded-[5px] px-3 text-[11px] font-medium transition-colors cursor-pointer",
+                "relative flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-[5px] px-3 text-[11px] font-medium transition-colors",
                 active
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <CategoryIcon className="size-3.5 shrink-0" />
-              {c.label}
+              {active ? (
+                <motion.span
+                  layoutId="bg-category-pill"
+                  className="absolute inset-0 rounded-[5px] bg-primary shadow-sm"
+                  transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                />
+              ) : null}
+              <CategoryIcon className="relative z-10 size-3.5 shrink-0" />
+              <span className="relative z-10">{c.label}</span>
             </button>
           )
         })}
       </div>
 
-      <div
-        className={cn(
-          "grid grid-cols-3 gap-2 px-1 py-1",
-          expanded && "max-h-[280px] overflow-y-auto pr-1"
-        )}
+      <motion.div
+        layout
+        transition={{ layout: { duration: 0.3, ease: POP_EASE } }}
+        className="relative w-full"
       >
-        {visible.map((item) => (
-          <BackgroundTile
-            key={item.id}
-            item={item}
-            active={activeUrl === item.full}
-            onClick={() => onSelect(item.full)}
-          />
-        ))}
-        {showExpandTile ? (
-          <button
-            onClick={() => setExpanded(true)}
-            title={`Show all ${items.length} ${category.label.toLowerCase()} backgrounds`}
-            className="group relative aspect-video overflow-hidden rounded-lg border border-border/60 cursor-pointer transition-colors hover:border-foreground/30"
-          >
-            {peek ? (
-              <img
-                src={peek.thumb}
-                alt=""
-                aria-hidden
-                className="h-full w-full scale-110 object-cover blur-sm"
-              />
-            ) : (
-              <div className="h-full w-full bg-secondary/40" />
-            )}
-            <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-black/45 text-white">
-              <RiArrowRightLine className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-              <span className="text-[9px] font-semibold">+{hidden.length}</span>
-            </span>
-          </button>
-        ) : null}
-      </div>
+        {expanded ? (
+          <ScrollArea className="[&>[data-slot=scroll-area-viewport]]:max-h-[280px]">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={`bg-expanded-${category.key}`}
+                variants={TILE_GRID_VARIANTS}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                className="grid grid-cols-3 gap-2 px-1 py-1 pr-2"
+              >
+                {visible.map((item) => (
+                  <BackgroundTile
+                    key={item.id}
+                    item={item}
+                    active={activeUrl === item.full}
+                    onClick={() => onSelect(item.full)}
+                    layoutId={`bg-tile-ring-${category.key}`}
+                  />
+                ))}
+              </motion.div>
+            </AnimatePresence>
+          </ScrollArea>
+        ) : (
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={`bg-collapsed-${category.key}`}
+              variants={TILE_GRID_VARIANTS}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="grid grid-cols-3 gap-2 px-1 py-1"
+            >
+              {visible.map((item) => (
+                <BackgroundTile
+                  key={item.id}
+                  item={item}
+                  active={activeUrl === item.full}
+                  onClick={() => onSelect(item.full)}
+                  layoutId={`bg-tile-ring-${category.key}`}
+                />
+              ))}
+              {showExpandTile ? (
+                <motion.button
+                  variants={TILE_ITEM_VARIANTS}
+                  onClick={() => setExpanded(true)}
+                  title={`Show all ${items.length} ${category.label.toLowerCase()} backgrounds`}
+                  className="group relative aspect-video cursor-pointer overflow-hidden rounded-lg border border-border/60 transition-colors hover:border-foreground/30"
+                >
+                  {peek ? (
+                    <img
+                      src={peek.thumb}
+                      alt=""
+                      aria-hidden
+                      className="h-full w-full scale-110 object-cover blur-sm"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-secondary/40" />
+                  )}
+                  <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-black/45 text-white">
+                    <RiArrowRightLine className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                    <span className="text-[9px] font-semibold">
+                      +{hidden.length}
+                    </span>
+                  </span>
+                </motion.button>
+              ) : null}
+            </motion.div>
+          </AnimatePresence>
+        )}
+      </motion.div>
 
       {expanded ? (
-        <button
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2, delay: 0.15 }}
           onClick={() => setExpanded(false)}
-          className="text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          className="mt-2 cursor-pointer text-[11px] text-muted-foreground transition-colors hover:text-foreground"
         >
           Show less
-        </button>
+        </motion.button>
       ) : null}
     </div>
   )
@@ -368,7 +482,7 @@ function GradientCustomizerPopover({
       <PopoverTrigger asChild>
         <button
           aria-label={ariaLabel}
-          className="absolute inset-0 z-10 m-auto inline-flex size-7 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white backdrop-blur transition-colors hover:bg-black/60 cursor-pointer"
+          className="absolute inset-0 z-10 m-auto inline-flex size-7 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/45 text-white backdrop-blur transition-colors hover:bg-black/60"
         >
           <RiEqualizerLine className="size-3.5" />
         </button>
@@ -396,8 +510,8 @@ function GradientCustomizerPopover({
                 className={cn(
                   "inline-flex size-7 items-center justify-center rounded-md border border-border/60 bg-background/30 text-muted-foreground transition-colors",
                   canReset
-                    ? "hover:border-foreground/30 hover:text-foreground cursor-pointer"
-                    : "opacity-40 cursor-not-allowed"
+                    ? "cursor-pointer hover:border-foreground/30 hover:text-foreground"
+                    : "cursor-not-allowed opacity-40"
                 )}
               >
                 <RiRefreshLine className="size-3.5" />
@@ -419,8 +533,10 @@ function GradientCustomizerPopover({
               value={config.colors[colorIndex]}
               onChange={(colorValue) => onColorChange(colorIndex, colorValue)}
             >
-              <button className="flex h-10 items-center justify-between rounded-md border border-border/60 bg-background/40 px-2.5 text-left transition-colors hover:border-foreground/30 cursor-pointer">
-                <span className="text-[11px] text-muted-foreground">{label}</span>
+              <button className="flex h-10 cursor-pointer items-center justify-between rounded-md border border-border/60 bg-background/40 px-2.5 text-left transition-colors hover:border-foreground/30">
+                <span className="text-[11px] text-muted-foreground">
+                  {label}
+                </span>
                 <span
                   className="size-5 rounded-full border border-border/60"
                   style={{ background: config.colors[colorIndex] }}
@@ -501,41 +617,46 @@ export function BackgroundSection() {
     reader.readAsDataURL(file)
   }
 
-  const searchUnsplash = React.useCallback(async (overrideQuery?: string, page = 1) => {
-    const query = (overrideQuery ?? unsplashQuery).trim()
-    if (!query) return
+  const searchUnsplash = React.useCallback(
+    async (overrideQuery?: string, page = 1) => {
+      const query = (overrideQuery ?? unsplashQuery).trim()
+      if (!query) return
 
-    setUnsplashStatus("loading")
-    setUnsplashError(null)
-    try {
-      const response = await fetch(
-        `/api/unsplash/search?q=${encodeURIComponent(query)}&page=${page}`
-      )
-      const data = (await response.json()) as
-        | { results: UnsplashResult[]; hasMore?: boolean; page?: number }
-        | { error?: string }
+      setUnsplashStatus("loading")
+      setUnsplashError(null)
+      try {
+        const response = await fetch(
+          `/api/unsplash/search?q=${encodeURIComponent(query)}&page=${page}`
+        )
+        const data = (await response.json()) as
+          | { results: UnsplashResult[]; hasMore?: boolean; page?: number }
+          | { error?: string }
 
-      if (!response.ok || !("results" in data)) {
-        throw new Error(
-          "error" in data && data.error
-            ? data.error
-            : "Unable to search Unsplash"
+        if (!response.ok || !("results" in data)) {
+          throw new Error(
+            "error" in data && data.error
+              ? data.error
+              : "Unable to search Unsplash"
+          )
+        }
+
+        setUnsplashResults((prev) =>
+          page === 1 ? data.results : [...prev, ...data.results]
+        )
+        setUnsplashPage(page)
+        setUnsplashHasMore(Boolean(data.hasMore))
+        setUnsplashStatus("ready")
+        setUnsplashOpen(true)
+      } catch (error) {
+        setUnsplashStatus("error")
+        setUnsplashHasMore(false)
+        setUnsplashError(
+          error instanceof Error ? error.message : "Unable to search Unsplash"
         )
       }
-
-      setUnsplashResults((prev) => (page === 1 ? data.results : [...prev, ...data.results]))
-      setUnsplashPage(page)
-      setUnsplashHasMore(Boolean(data.hasMore))
-      setUnsplashStatus("ready")
-      setUnsplashOpen(true)
-    } catch (error) {
-      setUnsplashStatus("error")
-      setUnsplashHasMore(false)
-      setUnsplashError(
-        error instanceof Error ? error.message : "Unable to search Unsplash"
-      )
-    }
-  }, [unsplashQuery])
+    },
+    [unsplashQuery]
+  )
 
   const debouncedSearchUnsplash = React.useMemo(
     () =>
@@ -545,7 +666,10 @@ export function BackgroundSection() {
     [searchUnsplash]
   )
 
-  React.useEffect(() => () => debouncedSearchUnsplash.cancel(), [debouncedSearchUnsplash])
+  React.useEffect(
+    () => () => debouncedSearchUnsplash.cancel(),
+    [debouncedSearchUnsplash]
+  )
 
   const loadMoreUnsplash = () => {
     if (
@@ -568,61 +692,74 @@ export function BackgroundSection() {
     background.type === "solid" && !SOLID_PRESETS.includes(background.value)
       ? background.value
       : null
-  const [gradientOverrides, setGradientOverrides] = React.useState<Record<string, string>>({})
-  const [autoGradientOverrides, setAutoGradientOverrides] = React.useState<Record<string, string>>({})
+  const [gradientOverrides, setGradientOverrides] = React.useState<
+    Record<string, string>
+  >({})
+  const [autoGradientOverrides, setAutoGradientOverrides] = React.useState<
+    Record<string, string>
+  >({})
   const gradientOptions = React.useMemo(
-    () => withGradientOptions({
-      values: GRADIENT_PRESETS,
-      valuePrefix: "preset",
-      overrides: gradientOverrides,
-    }),
+    () =>
+      withGradientOptions({
+        values: GRADIENT_PRESETS,
+        valuePrefix: "preset",
+        overrides: gradientOverrides,
+      }),
     [gradientOverrides]
   )
-  const gradientCategoryOptions = React.useMemo(
-    () => {
-      let cursor = 0
-      return GRADIENT_LIBRARY.map((category) => {
-        const slice = gradientOptions.slice(cursor, cursor + category.items.length)
-        cursor += category.items.length
-        return { key: category.key, label: category.label, options: slice }
-      })
-    },
-    [gradientOptions]
-  )
-  const [gradientCategoryKey, setGradientCategoryKey] = React.useState<string>(() => {
-    if (background.type === "gradient") {
-      const found = GRADIENT_LIBRARY.find((c) =>
-        c.items.includes(background.value)
+  const gradientCategoryOptions = React.useMemo(() => {
+    let cursor = 0
+    return GRADIENT_LIBRARY.map((category) => {
+      const slice = gradientOptions.slice(
+        cursor,
+        cursor + category.items.length
       )
-      if (found) return found.key
+      cursor += category.items.length
+      return { key: category.key, label: category.label, options: slice }
+    })
+  }, [gradientOptions])
+  const [gradientCategoryKey, setGradientCategoryKey] = React.useState<string>(
+    () => {
+      if (background.type === "gradient") {
+        const found = GRADIENT_LIBRARY.find((c) =>
+          c.items.includes(background.value)
+        )
+        if (found) return found.key
+      }
+      return GRADIENT_LIBRARY[0]?.key ?? "warm"
     }
-    return GRADIENT_LIBRARY[0]?.key ?? "warm"
-  })
+  )
   const [gradientExpanded, setGradientExpanded] = React.useState(false)
   const autoGradientOptions = React.useMemo(
-    () => withGradientOptions({
-      values: autoGradients,
-      valuePrefix: "auto",
-      overrides: autoGradientOverrides,
-    }),
+    () =>
+      withGradientOptions({
+        values: autoGradients,
+        valuePrefix: "auto",
+        overrides: autoGradientOverrides,
+      }),
     [autoGradients, autoGradientOverrides]
   )
   const activeGradientOption = React.useMemo(
     () =>
       background.type === "gradient"
-        ? gradientOptions.find((option) => option.value === background.value) ?? null
+        ? (gradientOptions.find(
+            (option) => option.value === background.value
+          ) ?? null)
         : null,
     [background, gradientOptions]
   )
   const activeAutoGradientOption = React.useMemo(
     () =>
       background.type === "auto"
-        ? autoGradientOptions.find((option) => option.value === background.value) ?? null
+        ? (autoGradientOptions.find(
+            (option) => option.value === background.value
+          ) ?? null)
         : null,
     [background, autoGradientOptions]
   )
   const gradientConfig = React.useMemo(() => {
-    if (background.type !== "gradient" && background.type !== "auto") return null
+    if (background.type !== "gradient" && background.type !== "auto")
+      return null
     const parsedGradient = parseLinearGradient(background.value)
     if (!parsedGradient) return null
     return {
@@ -633,7 +770,8 @@ export function BackgroundSection() {
 
   const setGradientAngle = (angle: number) => {
     if (background.type !== "gradient" && background.type !== "auto") return
-    const parsedGradient = parseLinearGradient(background.value) ?? DEFAULT_LINEAR_GRADIENT
+    const parsedGradient =
+      parseLinearGradient(background.value) ?? DEFAULT_LINEAR_GRADIENT
     const normalizedColors = normalizeGradientColors(parsedGradient.colors, 4)
     const nextGradient = buildLinearGradient({
       angle,
@@ -658,7 +796,8 @@ export function BackgroundSection() {
 
   const setGradientColor = (colorIndex: number, colorValue: string) => {
     if (background.type !== "gradient" && background.type !== "auto") return
-    const parsedGradient = parseLinearGradient(background.value) ?? DEFAULT_LINEAR_GRADIENT
+    const parsedGradient =
+      parseLinearGradient(background.value) ?? DEFAULT_LINEAR_GRADIENT
     const normalizedColors = normalizeGradientColors(parsedGradient.colors, 4)
     if (colorIndex < 0 || colorIndex >= normalizedColors.length) return
     normalizedColors[colorIndex] = colorValue
@@ -704,8 +843,14 @@ export function BackgroundSection() {
   }
   const canResetGradient =
     background.type === "gradient"
-      ? !!(activeGradientOption && activeGradientOption.value !== activeGradientOption.baseValue)
-      : !!(activeAutoGradientOption && activeAutoGradientOption.value !== activeAutoGradientOption.baseValue)
+      ? !!(
+          activeGradientOption &&
+          activeGradientOption.value !== activeGradientOption.baseValue
+        )
+      : !!(
+          activeAutoGradientOption &&
+          activeAutoGradientOption.value !== activeAutoGradientOption.baseValue
+        )
 
   return (
     <div className="flex flex-col gap-6 pt-3">
@@ -744,7 +889,7 @@ export function BackgroundSection() {
               value:
                 background.type === "auto"
                   ? background.value
-                  : autoGradients[0] ?? AUTO_PLACEHOLDER_GRADIENT,
+                  : (autoGradients[0] ?? AUTO_PLACEHOLDER_GRADIENT),
             })
         }}
         className="w-full"
@@ -785,7 +930,7 @@ export function BackgroundSection() {
                 <Button
                   variant="default"
                   size="sm"
-                  className="h-9 flex-1 gap-2 bg-[#9BCD64] text-[#10220e] hover:bg-[#8ec25a] cursor-pointer"
+                  className="h-9 flex-1 cursor-pointer gap-2 bg-[#9BCD64] text-[#10220e] hover:bg-[#8ec25a]"
                 >
                   <RiUnsplashLine className="size-4" />
                   <span className="text-[11px] font-medium">Unsplash</span>
@@ -816,7 +961,7 @@ export function BackgroundSection() {
                         if (e.key === "Enter") void searchUnsplash()
                       }}
                       placeholder="Search backgrounds"
-                      className="h-9 min-w-0 flex-1 rounded-md border border-border/60 bg-secondary/30 px-3 text-[12px] outline-none transition-colors placeholder:text-muted-foreground focus:border-[#9BCD64]/70"
+                      className="h-9 min-w-0 flex-1 rounded-md border border-border/60 bg-secondary/30 px-3 text-[12px] transition-colors outline-none placeholder:text-muted-foreground focus:border-[#9BCD64]/70"
                     />
                     <Button
                       variant="outline"
@@ -833,21 +978,24 @@ export function BackgroundSection() {
                     </Button>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {["Abstract", "Minimal", "Nature", "Gradient", "Space"].map((q) => (
-                      <button
-                        key={q}
-                        onClick={() => {
-                          setUnsplashQuery(q)
-                          void searchUnsplash(q, 1)
-                        }}
-                        className={cn(
-                          "rounded-md border border-border/60 bg-secondary/30 px-2 py-1 text-[10px] font-medium transition-all cursor-pointer hover:bg-[#9BCD64]/10 hover:border-[#9BCD64]/40 hover:text-foreground",
-                          unsplashQuery === q && "border-[#9BCD64]/50 bg-[#9BCD64]/10 text-[#9BCD64] ring-1 ring-[#9BCD64]/20"
-                        )}
-                      >
-                        {q}
-                      </button>
-                    ))}
+                    {["Abstract", "Minimal", "Nature", "Gradient", "Space"].map(
+                      (q) => (
+                        <button
+                          key={q}
+                          onClick={() => {
+                            setUnsplashQuery(q)
+                            void searchUnsplash(q, 1)
+                          }}
+                          className={cn(
+                            "cursor-pointer rounded-md border border-border/60 bg-secondary/30 px-2 py-1 text-[10px] font-medium transition-all hover:border-[#9BCD64]/40 hover:bg-[#9BCD64]/10 hover:text-foreground",
+                            unsplashQuery === q &&
+                              "border-[#9BCD64]/50 bg-[#9BCD64]/10 text-[#9BCD64] ring-1 ring-[#9BCD64]/20"
+                          )}
+                        >
+                          {q}
+                        </button>
+                      )
+                    )}
                   </div>
                   {unsplashStatus === "error" ? (
                     <p className="rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-[11px] text-destructive">
@@ -878,10 +1026,10 @@ export function BackgroundSection() {
                             onClick={() => selectUnsplashImage(photo)}
                             title={`Photo by ${photo.photographer}`}
                             className={cn(
-                              "relative aspect-video overflow-hidden rounded-lg border cursor-pointer transition-colors",
+                              "relative aspect-video cursor-pointer overflow-hidden rounded-lg border transition-colors",
                               background.type === "image" &&
                                 background.value === photo.full
-                                ? "border-primary/80 ring-2 ring-inset ring-primary/60"
+                                ? "border-primary/80 ring-2 ring-primary/60 ring-inset"
                                 : "border-border/60 hover:border-foreground/30"
                             )}
                           >
@@ -897,7 +1045,9 @@ export function BackgroundSection() {
                       </InfiniteScroll>
                     ) : (
                       <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
-                        <p className="text-[11px]">Select a topic or search to load photos.</p>
+                        <p className="text-[11px]">
+                          Select a topic or search to load photos.
+                        </p>
                       </div>
                     )}
                   </ScrollFadeBody>
@@ -907,7 +1057,7 @@ export function BackgroundSection() {
             <Button
               variant="default"
               size="sm"
-              className="h-9 flex-1 gap-2 cursor-pointer"
+              className="h-9 flex-1 cursor-pointer gap-2"
               onClick={() => fileRef.current?.click()}
             >
               <RiUpload2Line className="size-4" />
@@ -924,8 +1074,9 @@ export function BackgroundSection() {
         <TabsContent value="gradient" className="mt-6">
           {(() => {
             const activeCategory =
-              gradientCategoryOptions.find((c) => c.key === gradientCategoryKey) ??
-              gradientCategoryOptions[0]
+              gradientCategoryOptions.find(
+                (c) => c.key === gradientCategoryKey
+              ) ?? gradientCategoryOptions[0]
             if (!activeCategory) return null
             const items = activeCategory.options
             const visible = gradientExpanded
@@ -948,92 +1099,179 @@ export function BackgroundSection() {
                           setGradientExpanded(false)
                         }}
                         className={cn(
-                          "flex h-9 items-center justify-center gap-1.5 rounded-[5px] px-3 text-[11px] font-medium transition-colors cursor-pointer",
+                          "relative flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-[5px] px-3 text-[11px] font-medium transition-colors",
                           active
-                            ? "bg-primary text-primary-foreground shadow-sm"
+                            ? "text-primary-foreground"
                             : "text-muted-foreground hover:text-foreground"
                         )}
                       >
-                        <CategoryIcon className="size-3.5 shrink-0" />
-                        {c.label}
+                        {active ? (
+                          <motion.span
+                            layoutId="gradient-category-pill"
+                            className="absolute inset-0 rounded-[5px] bg-primary shadow-sm"
+                            transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                          />
+                        ) : null}
+                        <CategoryIcon className="relative z-10 size-3.5 shrink-0" />
+                        <span className="relative z-10">{c.label}</span>
                       </button>
                     )
                   })}
                 </div>
 
-                <div
-                  className={cn(
-                    "grid grid-cols-3 gap-2 px-1 py-1",
-                    gradientExpanded &&
-                    "max-h-[280px] overflow-y-auto pr-1"
-                  )}
+                <motion.div
+                  layout
+                  transition={{ layout: { duration: 0.3, ease: POP_EASE } }}
+                  className="relative w-full"
                 >
-                  {visible.map((option) => {
-                    const active =
-                      background.type === "gradient" &&
-                      background.value === option.value
-                    return (
-                      <div key={option.id} className="relative">
-                        <button
-                          onClick={() =>
-                            setBackground({ type: "gradient", value: option.value })
-                          }
-                          className={cn(
-                            "aspect-video w-full overflow-hidden rounded-xl border cursor-pointer",
-                            active
-                              ? "border-transparent ring-1 ring-primary/35 ring-offset-1 ring-offset-sidebar"
-                              : "border-border/60"
-                          )}
+                  {gradientExpanded ? (
+                    <ScrollArea className="[&>[data-slot=scroll-area-viewport]]:max-h-[280px]">
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.div
+                          key={`grad-expanded-${activeCategory.key}`}
+                          variants={TILE_GRID_VARIANTS}
+                          initial="initial"
+                          animate="animate"
+                          exit="exit"
+                          className="grid grid-cols-3 gap-2 px-1 py-1 pr-2"
                         >
-                          <span
-                            className="block size-full rounded-[inherit]"
-                            style={{ background: option.value }}
-                          />
-                        </button>
-                        {active && gradientConfig ? (
-                          <GradientCustomizerPopover
-                            ariaLabel="Customize gradient"
-                            config={gradientConfig}
-                            canReset={canResetGradient}
-                            onAngleChange={setGradientAngle}
-                            onColorChange={setGradientColor}
-                            onReset={resetGradientEdits}
-                          />
+                          {visible.map((option) => {
+                            const active =
+                              background.type === "gradient" &&
+                              background.value === option.value
+                            return (
+                              <motion.div key={option.id} variants={TILE_ITEM_VARIANTS} className="relative">
+                              <button
+                                onClick={() =>
+                                  setBackground({
+                                    type: "gradient",
+                                    value: option.value,
+                                  })
+                                }
+                                className={cn(
+                                  "aspect-video w-full cursor-pointer overflow-hidden rounded-xl border",
+                                  active ? "border-transparent" : "border-border/60"
+                                )}
+                              >
+                                <span
+                                  className="block size-full rounded-[inherit]"
+                                  style={{ background: option.value }}
+                                />
+                              </button>
+                              {active ? (
+                                <motion.span
+                                  layoutId={`gradient-tile-ring-${activeCategory.key}`}
+                                  className="pointer-events-none absolute -inset-0.5 rounded-[13px] ring-1 ring-primary/45"
+                                  transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                                />
+                              ) : null}
+                                {active && gradientConfig ? (
+                                  <GradientCustomizerPopover
+                                    ariaLabel="Customize gradient"
+                                    config={gradientConfig}
+                                    canReset={canResetGradient}
+                                    onAngleChange={setGradientAngle}
+                                    onColorChange={setGradientColor}
+                                    onReset={resetGradientEdits}
+                                  />
+                                ) : null}
+                              </motion.div>
+                            )
+                          })}
+                        </motion.div>
+                      </AnimatePresence>
+                    </ScrollArea>
+                  ) : (
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.div
+                        key={`grad-collapsed-${activeCategory.key}`}
+                        variants={TILE_GRID_VARIANTS}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        className="grid grid-cols-3 gap-2 px-1 py-1"
+                      >
+                        {visible.map((option) => {
+                          const active =
+                            background.type === "gradient" &&
+                            background.value === option.value
+                          return (
+                            <motion.div key={option.id} variants={TILE_ITEM_VARIANTS} className="relative">
+                            <button
+                              onClick={() =>
+                                setBackground({
+                                  type: "gradient",
+                                  value: option.value,
+                                })
+                              }
+                              className={cn(
+                                "aspect-video w-full cursor-pointer overflow-hidden rounded-xl border",
+                                active ? "border-transparent" : "border-border/60"
+                              )}
+                            >
+                              <span
+                                className="block size-full rounded-[inherit]"
+                                style={{ background: option.value }}
+                              />
+                            </button>
+                            {active ? (
+                              <motion.span
+                                layoutId={`gradient-tile-ring-${activeCategory.key}`}
+                                className="pointer-events-none absolute -inset-0.5 rounded-[13px] ring-1 ring-primary/45"
+                                transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                              />
+                            ) : null}
+                              {active && gradientConfig ? (
+                                <GradientCustomizerPopover
+                                  ariaLabel="Customize gradient"
+                                  config={gradientConfig}
+                                  canReset={canResetGradient}
+                                  onAngleChange={setGradientAngle}
+                                  onColorChange={setGradientColor}
+                                  onReset={resetGradientEdits}
+                                />
+                              ) : null}
+                            </motion.div>
+                          )
+                        })}
+                        {showExpandTile ? (
+                          <motion.button
+                            variants={TILE_ITEM_VARIANTS}
+                            onClick={() => setGradientExpanded(true)}
+                            title={`Show all ${items.length} ${activeCategory.label.toLowerCase()} gradients`}
+                            className="group relative aspect-video w-full cursor-pointer overflow-hidden rounded-xl border border-border/60 transition-colors hover:border-foreground/30"
+                          >
+                            {peek ? (
+                              <span
+                                className="block size-full scale-110 blur-sm"
+                                style={{ background: peek.value }}
+                              />
+                            ) : (
+                              <span className="block size-full bg-secondary/40" />
+                            )}
+                            <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-black/45 text-white">
+                              <RiArrowRightLine className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                              <span className="text-[9px] font-semibold">
+                                +{hidden.length}
+                              </span>
+                            </span>
+                          </motion.button>
                         ) : null}
-                      </div>
-                    )
-                  })}
-                  {showExpandTile ? (
-                    <button
-                      onClick={() => setGradientExpanded(true)}
-                      title={`Show all ${items.length} ${activeCategory.label.toLowerCase()} gradients`}
-                      className="group relative aspect-video w-full overflow-hidden rounded-xl border border-border/60 cursor-pointer transition-colors hover:border-foreground/30"
-                    >
-                      {peek ? (
-                        <span
-                          className="block size-full scale-110 blur-sm"
-                          style={{ background: peek.value }}
-                        />
-                      ) : (
-                        <span className="block size-full bg-secondary/40" />
-                      )}
-                      <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-black/45 text-white">
-                        <RiArrowRightLine className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-                        <span className="text-[9px] font-semibold">
-                          +{hidden.length}
-                        </span>
-                      </span>
-                    </button>
-                  ) : null}
-                </div>
+                      </motion.div>
+                    </AnimatePresence>
+                  )}
+                </motion.div>
 
                 {gradientExpanded ? (
-                  <button
+                  <motion.button
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2, delay: 0.15 }}
                     onClick={() => setGradientExpanded(false)}
-                    className="text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    className="mt-2 cursor-pointer text-[11px] text-muted-foreground transition-colors hover:text-foreground"
                   >
                     Show less
-                  </button>
+                  </motion.button>
                 ) : null}
               </div>
             )
@@ -1044,11 +1282,15 @@ export function BackgroundSection() {
           <ColorPresetGrid
             presets={SOLID_PRESETS}
             selected={
-              background.type === "solid" && !customSolid ? background.value : null
+              background.type === "solid" && !customSolid
+                ? background.value
+                : null
             }
             onSelect={(c) => setBackground({ type: "solid", value: c })}
             customColor={customSolid || "#000000"}
-            onCustomColor={(hex) => setBackground({ type: "solid", value: hex })}
+            onCustomColor={(hex) =>
+              setBackground({ type: "solid", value: hex })
+            }
             isCustom={!!customSolid}
           />
         </TabsContent>
@@ -1076,16 +1318,17 @@ export function BackgroundSection() {
             <div className="grid grid-cols-3 gap-2 px-1 py-1">
               {autoGradientOptions.map((option) => {
                 const active =
-                  background.type === "auto" && background.value === option.value
+                  background.type === "auto" &&
+                  background.value === option.value
                 return (
                   <div key={option.id} className="relative">
                     <button
-                      onClick={() => setBackground({ type: "auto", value: option.value })}
+                      onClick={() =>
+                        setBackground({ type: "auto", value: option.value })
+                      }
                       className={cn(
-                        "aspect-video w-full overflow-hidden rounded-xl border cursor-pointer",
-                        active
-                          ? "border-transparent ring-1 ring-primary/35 ring-offset-1 ring-offset-sidebar"
-                          : "border-border/60"
+                        "aspect-video w-full cursor-pointer overflow-hidden rounded-xl border",
+                        active ? "border-transparent" : "border-border/60"
                       )}
                     >
                       <span
@@ -1093,6 +1336,13 @@ export function BackgroundSection() {
                         style={{ background: option.value }}
                       />
                     </button>
+                    {active ? (
+                      <motion.span
+                        layoutId="auto-gradient-tile-ring"
+                        className="pointer-events-none absolute -inset-0.5 rounded-[13px] ring-1 ring-primary/45"
+                        transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                      />
+                    ) : null}
                     {active && gradientConfig ? (
                       <GradientCustomizerPopover
                         ariaLabel="Customize auto gradient"

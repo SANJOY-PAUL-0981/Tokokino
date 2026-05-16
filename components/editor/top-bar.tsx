@@ -98,10 +98,10 @@ export function TopBar() {
     setIsCopyingPng(true)
     try {
       await copyCanvasAsPng(activeCanvasId, "1080p")
-      toast.success("Copied PNG · 1080p ✨")
+      toast.success("Copied PNG")
     } catch (err) {
       console.error(err)
-      toast.error("Copy failed ❌")
+      toast.error("Copy failed ")
     } finally {
       setIsCopyingPng(false)
     }
@@ -159,7 +159,7 @@ export function TopBar() {
           <TopBarButton
             label="Save"
             icon={RiSaveLine}
-            onClick={() => toast.success("Project saved 💾")}
+            onClick={() => toast.success("Project saved")}
           />
         </div>
 
@@ -256,7 +256,7 @@ export function TopBar() {
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => toast.success("Share link copied 🔗")}
+                onClick={() => toast.success("Share link copied ")}
               >
                 <RiShareForwardLine />
                 Share
@@ -380,7 +380,10 @@ function ExportControls() {
           <div className="flex flex-col gap-1 px-1 pt-1">
             <SummaryRow label="Resolution" value={dimsLabel} />
             <div className="h-px bg-border/50" />
-            <SummaryRow label="Format" value={EXPORT_FORMAT_EXTENSION[format]} />
+            <SummaryRow
+              label="Format"
+              value={EXPORT_FORMAT_EXTENSION[format]}
+            />
           </div>
         </PopoverContent>
       </Popover>
@@ -699,11 +702,11 @@ function MobileOverflowMenu({
           <DropdownMenuLabel className="label-eyebrow !px-2 !py-1.5">
             File
           </DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => toast.success("Opening… 📂")}>
+          <DropdownMenuItem onClick={() => toast.success("Opening… ")}>
             <RiFolderOpenLine />
             Open
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => toast.success("Project saved 💾")}>
+          <DropdownMenuItem onClick={() => toast.success("Project saved ")}>
             <RiSaveLine />
             Save
           </DropdownMenuItem>
@@ -720,8 +723,7 @@ function MobileOverflowMenu({
             disabled={atCanvasCap}
             onClick={() => {
               const id = addCanvas()
-              if (id) toast.success("Canvas added ➕")
-              else toast.error(`Canvas limit reached (${MAX_CANVASES}) ⚠️`)
+              if (!id) toast.error(`Canvas limit reached (${MAX_CANVASES})`)
             }}
           >
             <RiAddLine />
@@ -742,7 +744,7 @@ function MobileOverflowMenu({
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => toast.success("Share link copied 🔗")}>
+          <DropdownMenuItem onClick={() => toast.success("Share link copied")}>
             <RiShareForwardLine />
             Copy link
           </DropdownMenuItem>

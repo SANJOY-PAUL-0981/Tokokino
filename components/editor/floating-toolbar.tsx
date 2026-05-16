@@ -338,8 +338,7 @@ export function FloatingToolbar() {
                   disabled={canvases.length >= MAX_CANVASES}
                   onClick={() => {
                     const id = addCanvas()
-                    if (id) toast("Canvas added")
-                    else toast(`Canvas limit reached (${MAX_CANVASES})`)
+                    if (!id) toast(`Canvas limit reached (${MAX_CANVASES})`)
                   }}
                   className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
                 >
@@ -484,7 +483,7 @@ function DefaultToolbarContents() {
                 ? "screenshot"
                 : screenshotSlots.length > 0
                   ? "slotGroup"
-                    : bulkEditMode
+                  : bulkEditMode
                     ? "canvas"
                     : screenshot || hasDeviceFrame
                       ? "screenshot"
@@ -738,9 +737,10 @@ function DefaultToolbarContents() {
             setSelectedAssetId(null)
             setSelectedAnnotationShapeId(null)
             setIsScreenshotSelected(false)
-            toast("Screenshot box added")
           } else {
-            toast(`Screenshot box limit reached (${MAX_SCREENSHOT_SLOTS})`)
+            toast.error(
+              `Screenshot box limit reached (${MAX_SCREENSHOT_SLOTS})`
+            )
           }
         }}
       >

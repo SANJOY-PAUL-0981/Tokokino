@@ -390,44 +390,45 @@ export function FramePopover({
               </div>
             ) : null}
 
-            <div className="w-[140px] shrink-0">
-              <div className="label-eyebrow mb-1.5 px-1 !text-[9px]">
-                Orientation
-              </div>
-              <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-secondary/40 p-0.5">
-                {(["vertical", "horizontal"] as const).map((orientation) => {
-                  const active = effectiveOrientation === orientation
-                  const disabled =
-                    !currentDevice ||
-                    current.kind === "desktop" ||
-                    current.kind === "watch"
-                  return (
-                    <button
-                      key={orientation}
-                      disabled={disabled}
-                      aria-label={formatOrientation(orientation)}
-                      title={formatOrientation(orientation)}
-                      onClick={() =>
-                        onChange({
-                          id: current.id,
-                          color: currentColor,
-                          orientation,
-                        })
-                      }
-                      className={cn(
-                        "flex flex-1 items-center justify-center rounded-md px-2 py-1.5 transition-colors",
-                        active
-                          ? "bg-background text-foreground shadow-sm"
-                          : "text-muted-foreground",
-                        disabled && "cursor-not-allowed opacity-35"
-                      )}
-                    >
-                      <OrientGlyph orientation={orientation} active={active} />
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
+            {currentDevice &&
+              current.kind !== "desktop" &&
+              current.kind !== "watch" && (
+                <div className="w-[140px] shrink-0">
+                  <div className="label-eyebrow mb-1.5 px-1 !text-[9px]">
+                    Orientation
+                  </div>
+                  <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-secondary/40 p-0.5">
+                    {(["vertical", "horizontal"] as const).map((orientation) => {
+                      const active = effectiveOrientation === orientation
+                      return (
+                        <button
+                          key={orientation}
+                          aria-label={formatOrientation(orientation)}
+                          title={formatOrientation(orientation)}
+                          onClick={() =>
+                            onChange({
+                              id: current.id,
+                              color: currentColor,
+                              orientation,
+                            })
+                          }
+                          className={cn(
+                            "flex flex-1 items-center justify-center rounded-md px-2 py-1.5 transition-colors",
+                            active
+                              ? "bg-background text-foreground shadow-sm"
+                              : "text-muted-foreground"
+                          )}
+                        >
+                          <OrientGlyph
+                            orientation={orientation}
+                            active={active}
+                          />
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
           </div>
         </motion.div>
       </PopoverContent>
