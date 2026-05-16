@@ -192,8 +192,6 @@ export function MainScreenshotRowItem({
                 "outline-2 outline-offset-2 outline-[#9BCD64]/95 outline-dashed"
             )}
             style={{
-              transform,
-              transformStyle: "preserve-3d",
               opacity: imgStyle.opacity as number | undefined,
               mixBlendMode:
                 imgStyle.mixBlendMode as React.CSSProperties["mixBlendMode"],
@@ -207,6 +205,7 @@ export function MainScreenshotRowItem({
               onBrowse={onBrowse}
               imageFilter={filterChain}
               shadowFilter={shadowFilter}
+              contentTransform={transform}
               bareStyle={imgStyle}
               activeTool={activeTool}
               isDragging={isScreenshotDragging}

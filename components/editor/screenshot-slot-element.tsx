@@ -299,8 +299,6 @@ export function ScreenshotSlotView({
   const bareBorderRadius = slot.borderRadius
   const selectionRadius = frameSelectionRadius(slot.frame.id, bareBorderRadius)
   const transformedStyle: React.CSSProperties = {
-    transform: contentTransform,
-    transformStyle: "preserve-3d",
     opacity: slot.opacity / 100,
     borderRadius: selectionRadius,
   }
@@ -381,6 +379,7 @@ export function ScreenshotSlotView({
               onBrowse={onBrowse}
               imageFilter={filterChain || undefined}
               shadowFilter={computedShadowFilter}
+              contentTransform={contentTransform}
               bareStyle={bareImgStyle}
               activeTool={activeTool}
               isDragging={false}

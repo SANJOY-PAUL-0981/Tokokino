@@ -627,6 +627,8 @@ function CanvasViewInner({
                   isDragOver={isDragOver}
                   onBrowse={() => fileInputRef.current?.click()}
                   transform={transform}
+                  shadowFilter={computedShadowFilter}
+                  enhanceFilter={enhanceFilter}
                   screenshotOffset={effectiveOffset}
                   screenshotAnchor={screenshotAnchor}
                   isScreenshotDragging={isScreenshotDragging}
@@ -649,6 +651,8 @@ function CanvasViewInner({
                   isDragOver={isDragOver}
                   onBrowse={() => fileInputRef.current?.click()}
                   transform={transform}
+                  shadowFilter={computedShadowFilter}
+                  enhanceFilter={enhanceFilter}
                   mockupRotation={mockupRotation}
                   screenshotOffset={effectiveOffset}
                   screenshotAnchor={screenshotAnchor}

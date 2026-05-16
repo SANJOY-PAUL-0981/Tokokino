@@ -115,9 +115,6 @@ export function ScreenshotMockup({
       style={{ containerType: "size" }}
     >
       <div
-        data-editor-shadow-filter-target
-        data-editor-shadow-filter-base={shadowFilter || ""}
-        data-editor-enhance-filter={enhanceFilter || ""}
         className={cn(
           "pointer-events-auto absolute top-0 left-0 max-h-full max-w-full select-none",
           screenshotLayer.hidden && "pointer-events-none",
@@ -126,6 +123,8 @@ export function ScreenshotMockup({
             : "transition-all duration-300 ease-out",
           activeTool === "pointer" && "cursor-grab"
         )}
+        data-editor-shadow-filter-target
+        data-editor-shadow-filter-base={shadowFilter || ""}
         style={{
           ...frameFitStyle(mockupSpec.aspectRatio, mockupRotation),
           left: "50%",
@@ -137,9 +136,8 @@ export function ScreenshotMockup({
             rotation: mockupRotation,
           }),
           transformOrigin: "center",
-          filter:
-            [shadowFilter, enhanceFilter].filter(Boolean).join(" ") ||
-            undefined,
+          transformStyle: "preserve-3d",
+          filter: [shadowFilter, enhanceFilter].filter(Boolean).join(" ") || undefined,
           opacity: screenshotLayer.hidden ? 0 : screenshotLayer.opacity / 100,
           mixBlendMode:
             screenshotLayer.blendMode && screenshotLayer.blendMode !== "normal"
@@ -180,6 +178,7 @@ export function ScreenshotMockup({
           src={mockupAsset.src}
           alt=""
           draggable={false}
+          data-editor-enhance-filter=""
           className="pointer-events-none absolute inset-0 z-10 h-full w-full object-contain select-none"
         />
 

@@ -301,7 +301,7 @@ function BackgroundLibrary({
       <div
         className={cn(
           "grid grid-cols-3 gap-2 px-1 py-1",
-          expanded && "max-h-[280px] overflow-y-auto pr-1 [scrollbar-width:thin]"
+          expanded && "max-h-[280px] overflow-y-auto pr-1"
         )}
       >
         {visible.map((item) => (
@@ -965,7 +965,7 @@ export function BackgroundSection() {
                   className={cn(
                     "grid grid-cols-3 gap-2 px-1 py-1",
                     gradientExpanded &&
-                    "max-h-[280px] overflow-y-auto pr-1 [scrollbar-width:thin]"
+                    "max-h-[280px] overflow-y-auto pr-1"
                   )}
                 >
                   {visible.map((option) => {

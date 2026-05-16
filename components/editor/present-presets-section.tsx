@@ -394,15 +394,10 @@ function PresentPresetPreview({
             className="absolute inset-0 flex items-center justify-center"
             style={{ padding: `${(canvas.padding / 1200) * 100}%` }}
           >
-            <div
-              className="relative flex h-full w-full items-center justify-center"
-              style={{
-                transform: canvasTransform,
-                transformStyle: "preserve-3d",
-              }}
-            >
+            <div className="relative flex h-full w-full items-center justify-center">
               <CanvasFrameContent
                 canvas={canvas}
+                contentTransform={canvasTransform}
                 screenshotAnchor={screenshotAnchor}
                 screenshotOffset={canvas.screenshotOffset}
                 stageRef={stageRef}
@@ -528,8 +523,6 @@ function PresentMainScreenshot({
         <div
           className="relative h-full w-full"
           style={{
-            transform,
-            transformStyle: "preserve-3d",
             opacity: canvas.screenshotLayer.hidden
               ? 0
               : canvas.screenshotLayer.opacity / 100,
@@ -545,6 +538,7 @@ function PresentMainScreenshot({
         >
           <CanvasFrameContent
             canvas={canvas}
+            contentTransform={transform}
             stageRef={stageRef}
             imageRef={imageRef}
           />
@@ -556,12 +550,14 @@ function PresentMainScreenshot({
 
 function CanvasFrameContent({
   canvas,
+  contentTransform,
   screenshotAnchor,
   screenshotOffset,
   stageRef,
   imageRef,
 }: {
   canvas: CanvasState
+  contentTransform: string
   screenshotAnchor?: { x: number; y: number }
   screenshotOffset?: { x: number; y: number }
   stageRef: React.RefObject<HTMLDivElement | null>
@@ -572,6 +568,8 @@ function CanvasFrameContent({
     borderRadius: canvas.borderRadius,
     boxShadow: shadowCss(canvas.shadow),
     filter: enhanceFilter,
+    transform: contentTransform,
+    transformStyle: "preserve-3d",
   }
   if (canvas.border.color && canvas.border.width > 0) {
     bareStyle.outline = `${canvas.border.width}px ${canvas.border.style || "solid"} ${canvas.border.color}`
@@ -586,6 +584,7 @@ function CanvasFrameContent({
       onBrowse={() => undefined}
       imageFilter={enhanceFilter}
       shadowFilter={shadowDropFilterCss(canvas.shadow)}
+      contentTransform={contentTransform}
       bareStyle={bareStyle}
       activeTool="pointer"
       isDragging={false}
@@ -661,11 +660,6 @@ function PresentSlot({
         <div
           className="relative h-full w-full"
           style={{
-            transform: transformFromTiltAndScale(
-              previewTilt ?? slot.tilt,
-              previewScale ?? slot.scale
-            ),
-            transformStyle: "preserve-3d",
             opacity: slot.opacity / 100,
             borderRadius: frameSelectionRadius(
               slot.frame.id,
@@ -680,7 +674,18 @@ function PresentSlot({
             onBrowse={() => undefined}
             imageFilter={filterChain || undefined}
             shadowFilter={shadowDropFilterCss(slot.shadow)}
-            bareStyle={bareStyle}
+            contentTransform={transformFromTiltAndScale(
+              previewTilt ?? slot.tilt,
+              previewScale ?? slot.scale
+            )}
+            bareStyle={{
+              ...bareStyle,
+              transform: transformFromTiltAndScale(
+                previewTilt ?? slot.tilt,
+                previewScale ?? slot.scale
+              ),
+              transformStyle: "preserve-3d",
+            }}
             activeTool="pointer"
             isDragging={false}
             stageRef={stageRef}

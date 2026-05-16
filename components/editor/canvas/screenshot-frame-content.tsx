@@ -42,6 +42,7 @@ type ScreenshotFrameContentProps = {
   onCrop: () => void
   onReplaceFile: (file: File) => void
   onDelete: () => void
+  contentTransform?: string
   screenshotOffset?: { x: number; y: number }
   screenshotAnchor?: { x: number; y: number }
 }
@@ -85,6 +86,7 @@ export function ScreenshotFrameContent({
   onCrop,
   onReplaceFile,
   onDelete,
+  contentTransform = "",
   screenshotOffset = ZERO_OFFSET,
   screenshotAnchor = CENTER_ANCHOR,
 }: ScreenshotFrameContentProps) {
@@ -114,7 +116,7 @@ export function ScreenshotFrameContent({
           frameId={frame.id}
           color={browserFrameColor}
           screenshotLayer={CONTENT_LAYER}
-          transform=""
+          transform={contentTransform}
           shadowFilter={shadowFilter}
           screenshotOffset={screenshotOffset}
           screenshotAnchor={screenshotAnchor}
@@ -145,7 +147,7 @@ export function ScreenshotFrameContent({
           mockupAsset={mockupAsset}
           mockupSpec={mockupSpec}
           screenshotLayer={CONTENT_LAYER}
-          transform=""
+          transform={contentTransform}
           mockupRotation={mockupRotation}
           shadowFilter={shadowFilter}
           screenshotOffset={screenshotOffset}
@@ -225,7 +227,9 @@ export function ScreenshotFrameContent({
         color={browserFrameColor}
         isDragOver={isDragOver}
         onBrowse={onBrowse}
-        transform=""
+        transform={contentTransform}
+        shadowFilter={shadowFilter}
+        enhanceFilter={imageFilter}
         screenshotOffset={screenshotOffset}
         screenshotAnchor={screenshotAnchor}
         isScreenshotDragging={isDragging}
@@ -246,7 +250,9 @@ export function ScreenshotFrameContent({
         mockupSpec={mockupSpec}
         isDragOver={isDragOver}
         onBrowse={onBrowse}
-        transform=""
+        transform={contentTransform}
+        shadowFilter={shadowFilter}
+        enhanceFilter={imageFilter}
         mockupRotation={mockupRotation}
         screenshotOffset={screenshotOffset}
         screenshotAnchor={screenshotAnchor}

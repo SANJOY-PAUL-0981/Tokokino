@@ -27,6 +27,8 @@ type DeviceFrameEmptyStateProps = {
   screenshotAnchor: { x: number; y: number }
   isScreenshotDragging: boolean
   activeTool: EditorTool
+  shadowFilter?: string
+  enhanceFilter?: string
   onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void
   onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void
   onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void
@@ -43,6 +45,8 @@ export function DeviceFrameEmptyState({
   screenshotAnchor,
   isScreenshotDragging,
   activeTool,
+  shadowFilter,
+  enhanceFilter,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -78,6 +82,8 @@ export function DeviceFrameEmptyState({
             : "transition-all duration-300 ease-out",
           activeTool === "pointer" && !isScreenshotDragging && "cursor-grab"
         )}
+        data-editor-shadow-filter-target
+        data-editor-shadow-filter-base={shadowFilter || ""}
         style={{
           ...frameFitStyle(mockupSpec.aspectRatio, mockupRotation),
           left: "50%",
@@ -89,6 +95,8 @@ export function DeviceFrameEmptyState({
             rotation: mockupRotation,
           }),
           transformOrigin: "center",
+          transformStyle: "preserve-3d",
+          filter: [shadowFilter, enhanceFilter].filter(Boolean).join(" ") || undefined,
         }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -129,6 +137,7 @@ export function DeviceFrameEmptyState({
           src={mockupAsset.src}
           alt=""
           draggable={false}
+          data-editor-enhance-filter=""
           className="pointer-events-none absolute inset-0 z-10 h-full w-full object-contain select-none"
         />
       </div>

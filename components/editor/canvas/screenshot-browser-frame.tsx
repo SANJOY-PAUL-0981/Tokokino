@@ -60,6 +60,8 @@ type BrowserFrameEmptyStateProps = {
   isDragOver: boolean
   onBrowse: () => void
   transform: string
+  shadowFilter?: string
+  enhanceFilter?: string
   screenshotOffset: { x: number; y: number }
   screenshotAnchor: { x: number; y: number }
   isScreenshotDragging: boolean
@@ -135,6 +137,7 @@ export function ScreenshotBrowserFrame({
             transform,
           }),
           transformOrigin: "center",
+          transformStyle: "preserve-3d",
           filter:
             [shadowFilter, enhanceFilter].filter(Boolean).join(" ") ||
             undefined,
@@ -220,6 +223,8 @@ export function BrowserFrameEmptyState({
   isDragOver,
   onBrowse,
   transform,
+  shadowFilter,
+  enhanceFilter,
   screenshotOffset,
   screenshotAnchor,
   isScreenshotDragging,
@@ -242,6 +247,9 @@ export function BrowserFrameEmptyState({
       style={{ containerType: "size" }}
     >
       <div
+        data-editor-shadow-filter-target
+        data-editor-shadow-filter-base={shadowFilter || ""}
+        data-editor-enhance-filter={enhanceFilter || ""}
         className={cn(
           "pointer-events-auto absolute top-0 left-0 max-h-full max-w-full select-none",
           isScreenshotDragging
@@ -259,6 +267,10 @@ export function BrowserFrameEmptyState({
             transform,
           }),
           transformOrigin: "center",
+          transformStyle: "preserve-3d",
+          filter:
+            [shadowFilter, enhanceFilter].filter(Boolean).join(" ") ||
+            undefined,
         }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}

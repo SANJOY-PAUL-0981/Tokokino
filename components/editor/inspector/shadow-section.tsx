@@ -83,6 +83,8 @@ function DirectionField({
   const draftPointRef = React.useRef(sourcePoint)
   const committedLightSourceRef = React.useRef(lightSource)
   const previewLightSourceRef = React.useRef(lightSource)
+  const [mounted, setMounted] = React.useState(false)
+  React.useEffect(() => setMounted(true), [])
   const x = (sourcePoint.col / 4) * 100
   const y = (sourcePoint.row / 4) * 100
   const glowOpacity = disabled ? 0.25 : 0.75
@@ -241,37 +243,39 @@ function DirectionField({
           : "cursor-grab focus-visible:ring-2 focus-visible:ring-[#f65d72]/50 active:cursor-grabbing"
       )}
     >
-      <ReactFlowProvider>
-        <ReactFlow
-          nodes={[]}
-          edges={[]}
-          minZoom={1}
-          maxZoom={1}
-          panOnDrag={false}
-          panOnScroll={false}
-          zoomOnScroll={false}
-          zoomOnPinch={false}
-          zoomOnDoubleClick={false}
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable={false}
-          selectionOnDrag={false}
-          edgesFocusable={false}
-          nodesFocusable={false}
-          preventScrolling={false}
-          proOptions={{ hideAttribution: true }}
-          className="pointer-events-none absolute inset-0 text-black/25 dark:text-white/15"
-          colorMode="system"
-          style={{ background: "transparent" }}
-        >
-          <Background
-            variant={BackgroundVariant.Dots}
-            gap={14}
-            size={1.4}
-            color="currentColor"
-          />
-        </ReactFlow>
-      </ReactFlowProvider>
+      {mounted && (
+        <ReactFlowProvider>
+          <ReactFlow
+            nodes={[]}
+            edges={[]}
+            minZoom={1}
+            maxZoom={1}
+            panOnDrag={false}
+            panOnScroll={false}
+            zoomOnScroll={false}
+            zoomOnPinch={false}
+            zoomOnDoubleClick={false}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            elementsSelectable={false}
+            selectionOnDrag={false}
+            edgesFocusable={false}
+            nodesFocusable={false}
+            preventScrolling={false}
+            proOptions={{ hideAttribution: true }}
+            className="pointer-events-none absolute inset-0 text-black/25 dark:text-white/15"
+            colorMode="system"
+            style={{ background: "transparent" }}
+          >
+            <Background
+              variant={BackgroundVariant.Dots}
+              gap={14}
+              size={1.4}
+              color="currentColor"
+            />
+          </ReactFlow>
+        </ReactFlowProvider>
+      )}
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.38),rgba(136,180,143,0.06)_48%,rgba(255,90,114,0.05))] dark:bg-[linear-gradient(145deg,rgba(255,255,255,0.08),transparent_54%)]" />
       <div
         ref={glowRef}
