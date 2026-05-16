@@ -3,6 +3,7 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import { EmptyStateBackdrop } from "./empty-state-backdrop"
 import { type CaptureSettings, UploadCard } from "./upload-card"
 
 type CanvasEmptyStateProps = {
@@ -11,6 +12,7 @@ type CanvasEmptyStateProps = {
   onCapture?: (url: string, settings: CaptureSettings) => void
   isActive?: boolean
   previewStyle?: React.CSSProperties
+  compact?: boolean
 }
 
 export function CanvasEmptyState({
@@ -19,6 +21,7 @@ export function CanvasEmptyState({
   onCapture,
   isActive = false,
   previewStyle,
+  compact = false,
 }: CanvasEmptyStateProps) {
   return (
     <div
@@ -30,52 +33,24 @@ export function CanvasEmptyState({
         "data-[drag-over=true]:scale-[1.005]"
       )}
     >
-      <div
+      <EmptyStateBackdrop
+        style={previewStyle ? { transition: "none", ...previewStyle } : undefined}
         data-drag-over={isDragOver}
         data-active={isActive}
-        style={previewStyle ? { transition: "none", ...previewStyle } : undefined}
         className={cn(
-          "group/empty relative flex w-full flex-col rounded-3xl",
-          !previewStyle && "max-w-[400px] transition-all duration-300",
-          previewStyle && "h-full items-center justify-center"
+          "flex h-full w-full items-center justify-center rounded-3xl border border-white/8",
+          "data-[drag-over=true]:border-primary/60 data-[drag-over=true]:ring-2 data-[drag-over=true]:ring-primary/35"
         )}
       >
-        <div
-          className={cn(
-            "relative flex w-full flex-col overflow-hidden rounded-3xl border backdrop-blur-md",
-            !previewStyle && "transition-all duration-300",
-            previewStyle && "max-w-[400px]",
-            isActive
-              ? "border-dashed border-border/70 bg-sidebar/90 ring-1 ring-primary/40"
-              : "border-white/12 bg-black/40 hover:border-white/20",
-            "data-[active=true]:bg-primary/10",
-            "data-[drag-over=true]:border-primary/70 data-[drag-over=true]:bg-primary/8 data-[drag-over=true]:ring-2 data-[drag-over=true]:ring-primary/35"
-          )}
-          data-drag-over={isDragOver}
-          data-active={isActive}
-        >
-          {/* Dot grid texture */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-60"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.07) 1px, transparent 0)",
-              backgroundSize: "16px 16px",
-              maskImage:
-                "radial-gradient(ellipse 80% 70% at 50% 40%, black 40%, transparent 100%)",
-              WebkitMaskImage:
-                "radial-gradient(ellipse 80% 70% at 50% 40%, black 40%, transparent 100%)",
-            }}
-          />
-          <UploadCard
-            isDragOver={isDragOver}
-            onBrowse={onBrowse}
-            onCapture={onCapture}
-            showHint
-          />
-        </div>
-      </div>
+        <UploadCard
+          compact={compact}
+          isDragOver={isDragOver}
+          onBrowse={onBrowse}
+          onCapture={onCapture}
+          showHint
+          className={compact ? undefined : "w-full max-w-[400px]"}
+        />
+      </EmptyStateBackdrop>
     </div>
   )
 }

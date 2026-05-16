@@ -683,6 +683,13 @@ function CanvasViewInner({
                   isDragOver={isDragOver}
                   onBrowse={() => fileInputRef.current?.click()}
                   previewStyle={imgStyle}
+                  compact={
+                    tilt.rx !== 0 ||
+                    tilt.ry !== 0 ||
+                    tilt.rz !== 0 ||
+                    scale !== 100 ||
+                    screenshotSlots.length > 0
+                  }
                 />
               )}
             </div>

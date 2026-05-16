@@ -184,6 +184,7 @@ export function MainScreenshotRowItem({
               contentTransform={transform}
               bareStyle={imgStyle}
               applyTransformWhenEmpty
+              emptyCompact
               activeTool={activeTool}
               isDragging={isScreenshotDragging}
               stageRef={stageRef}

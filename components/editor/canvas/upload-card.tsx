@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import {
+  RiAddLine,
   RiCameraLine,
   RiGlobeLine,
   RiSettings3Line,
@@ -182,6 +183,8 @@ type UploadCardProps = {
   className?: string
   /** Use cqw-based sizing for container-query contexts (e.g. preset thumbnails) */
   fluid?: boolean
+  /** Render only a small trigger icon; full upload UI opens in a popover */
+  compact?: boolean
 }
 
 export function UploadCard({
@@ -191,6 +194,7 @@ export function UploadCard({
   showHint = false,
   className,
   fluid = false,
+  compact = false,
 }: UploadCardProps) {
   const PREFIX = "https://"
   const [url, setUrl] = React.useState(PREFIX)
@@ -219,11 +223,46 @@ export function UploadCard({
     onCapture?.(url, settings)
   }
 
+  if (compact) {
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Add screenshot"
+            className={cn(
+              "pointer-events-auto grid size-16 place-items-center rounded-2xl border-2 border-primary bg-neutral-900/95 text-white shadow-[0_0_0_4px_rgba(0,0,0,0.4),0_8px_24px_-8px_rgba(0,0,0,0.6)] backdrop-blur-sm transition-all hover:scale-105 hover:bg-neutral-800 active:scale-95 data-[state=open]:scale-105",
+              className
+            )}
+          >
+            <RiAddLine className="size-8" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          side="bottom"
+          align="center"
+          sideOffset={8}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="w-[320px] rounded-2xl border border-white/10 bg-neutral-900 p-0 text-white shadow-2xl"
+        >
+          <UploadCard
+            isDragOver={isDragOver}
+            onBrowse={onBrowse}
+            onCapture={onCapture}
+            showHint={showHint}
+          />
+        </PopoverContent>
+      </Popover>
+    )
+  }
+
   if (fluid) {
     return (
       <div
         className={cn(
-          "flex w-full flex-col gap-[2cqw] overflow-hidden rounded-[4cqw] border border-white/12 bg-black/40 p-[2cqw] backdrop-blur-md",
+          "flex w-full flex-col gap-[2cqw] overflow-hidden rounded-[4cqw] border border-white/10 bg-neutral-900 p-[2cqw]",
           className
         )}
       >

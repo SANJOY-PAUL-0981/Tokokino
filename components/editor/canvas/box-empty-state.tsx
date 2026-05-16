@@ -3,6 +3,7 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import { EmptyStateBackdrop } from "./empty-state-backdrop"
 import { UploadCard } from "./upload-card"
 
 type BoxEmptyStateProps = {
@@ -11,34 +12,40 @@ type BoxEmptyStateProps = {
   onCapture?: () => void
   url?: string
   onUrlChange?: (value: string) => void
+  compact?: boolean
 }
 
 export function BoxEmptyState({
   isDragOver = false,
   onBrowse,
   onCapture,
+  compact = false,
 }: BoxEmptyStateProps) {
   return (
-    <div
+    <EmptyStateBackdrop
       data-drag-over={isDragOver}
       className={cn(
-        "relative flex size-full items-center justify-center p-[6cqw] text-white transition-all",
-        "data-[drag-over=true]:bg-primary/15 data-[drag-over=true]:ring-2 data-[drag-over=true]:ring-primary/60"
+        "flex items-center justify-center p-[3cqw] text-white transition-all",
+        "data-[drag-over=true]:ring-2 data-[drag-over=true]:ring-primary/40"
       )}
-      style={{
-        backgroundImage:
-          "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 0)",
-        backgroundSize: "16px 16px",
-        containerType: "inline-size",
-      }}
+      style={{ containerType: "inline-size" }}
     >
-      <UploadCard
-        fluid
-        isDragOver={isDragOver}
-        onBrowse={onBrowse}
-        onCapture={onCapture ? (url) => onCapture() : undefined}
-        className="w-full max-w-[80cqw]"
-      />
-    </div>
+      {compact ? (
+        <UploadCard
+          compact
+          isDragOver={isDragOver}
+          onBrowse={onBrowse}
+          onCapture={onCapture ? () => onCapture() : undefined}
+        />
+      ) : (
+        <UploadCard
+          fluid
+          isDragOver={isDragOver}
+          onBrowse={onBrowse}
+          onCapture={onCapture ? () => onCapture() : undefined}
+          className="w-full"
+        />
+      )}
+    </EmptyStateBackdrop>
   )
 }

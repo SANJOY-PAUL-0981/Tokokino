@@ -312,7 +312,16 @@ export function FramePopover({
           className="h-full overscroll-contain p-3"
         >
           {visibleSections.map((section, idx) => (
-            <div key={section.id}>
+            <motion.div
+              key={section.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.32,
+                ease: POP_EASE,
+                delay: 0.06 + idx * 0.035,
+              }}
+            >
               {idx !== 0 ? <div className="mt-4 h-px bg-border/50" /> : null}
               <div className="mt-3 mb-2.5 flex items-center gap-1.5 first:mt-0">
                 <section.icon className="size-3.5 text-foreground/80" />
@@ -325,19 +334,29 @@ export function FramePopover({
               </div>
 
               <div className={frameSectionGridClass(section.id)}>
-                {section.options.map((option) => (
-                  <DeviceTile
+                {section.options.map((option, optIdx) => (
+                  <motion.div
                     key={option.id}
-                    option={option}
-                    selectedColor={currentColor}
-                    active={value.id === option.id}
-                    screenshot={previewScreenshot}
-                    compact={isCompactFrameSection(section.id)}
-                    onSelect={selectFrame}
-                  />
+                    initial={{ opacity: 0, scale: 0.9, y: 6 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{
+                      duration: 0.28,
+                      ease: POP_EASE,
+                      delay: 0.08 + idx * 0.035 + Math.min(optIdx, 10) * 0.018,
+                    }}
+                  >
+                    <DeviceTile
+                      option={option}
+                      selectedColor={currentColor}
+                      active={value.id === option.id}
+                      screenshot={previewScreenshot}
+                      compact={isCompactFrameSection(section.id)}
+                      onSelect={selectFrame}
+                    />
+                  </motion.div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           ))}
 
           {visibleSections.length === 0 ? (

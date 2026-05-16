@@ -383,6 +383,7 @@ export function ScreenshotSlotView({
               contentTransform={contentTransform}
               bareStyle={bareImgStyle}
               applyTransformWhenEmpty
+              emptyCompact
               activeTool={activeTool}
               isDragging={false}
               stageRef={stageRef}

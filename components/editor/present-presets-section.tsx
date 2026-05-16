@@ -36,7 +36,7 @@ import {
   type CanvasState,
   type ScreenshotSlot,
   type Tilt,
-  ScreenshotPosition,
+  type ScreenshotPosition,
 } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
 
@@ -266,7 +266,7 @@ export function PresentPresetsSection() {
             <div
               aria-hidden
               inert
-              className="relative h-[176px] overflow-hidden rounded-[6px] isolate [&_*]:pointer-events-none"
+              className="relative isolate h-[176px] overflow-hidden rounded-[6px] [&_*]:pointer-events-none"
             >
               <PresentPresetPreview
                 aspect={aspect}
@@ -359,7 +359,7 @@ function PresentPresetPreview({
   return (
     <div ref={previewRef} className="pointer-events-none absolute inset-0">
       <div
-        className="absolute top-1/2 left-1/2 overflow-hidden [contain:paint] ring-1 ring-white/10"
+        className="absolute top-1/2 left-1/2 overflow-hidden ring-1 ring-white/10 [contain:paint]"
         style={{
           width: stageWidth,
           height: stageHeight,
@@ -402,6 +402,13 @@ function PresentPresetPreview({
                 screenshotOffset={canvas.screenshotOffset}
                 stageRef={stageRef}
                 imageRef={imageRef}
+                emptyCompact={
+                  preset.tilt.rx !== 0 ||
+                  preset.tilt.ry !== 0 ||
+                  preset.tilt.rz !== 0 ||
+                  resolvePresentPresetScale(preset, canvas.frame) !== 100 ||
+                  canvas.screenshotSlots.length > 0
+                }
               />
             </div>
           </div>
@@ -540,6 +547,7 @@ function PresentMainScreenshot({
             canvas={canvas}
             contentTransform={transform}
             stageRef={stageRef}
+            emptyCompact
             imageRef={imageRef}
           />
         </div>
@@ -555,6 +563,7 @@ function CanvasFrameContent({
   screenshotOffset,
   stageRef,
   imageRef,
+  emptyCompact = false,
 }: {
   canvas: CanvasState
   contentTransform: string
@@ -562,6 +571,7 @@ function CanvasFrameContent({
   screenshotOffset?: { x: number; y: number }
   stageRef: React.RefObject<HTMLDivElement | null>
   imageRef: React.RefObject<HTMLImageElement | null>
+  emptyCompact?: boolean
 }) {
   const enhanceFilter = enhanceFilterCss(canvas.enhance)
   const bareStyle: React.CSSProperties = {
@@ -603,6 +613,7 @@ function CanvasFrameContent({
       screenshotAnchor={screenshotAnchor}
       screenshotOffset={screenshotOffset}
       applyTransformWhenEmpty
+      emptyCompact={emptyCompact}
     />
   )
 }
@@ -702,6 +713,7 @@ function PresentSlot({
             onReplaceFile={() => undefined}
             onDelete={() => undefined}
             applyTransformWhenEmpty
+            emptyCompact
           />
         </div>
       </div>

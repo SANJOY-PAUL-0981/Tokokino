@@ -47,6 +47,8 @@ type ScreenshotFrameContentProps = {
   screenshotAnchor?: { x: number; y: number }
   /** Keep transform in the empty-state container (needed for preset previews) */
   applyTransformWhenEmpty?: boolean
+  /** Show a compact icon trigger instead of the full upload card */
+  emptyCompact?: boolean
 }
 
 const CENTER_ANCHOR = { x: 50, y: 50 }
@@ -92,6 +94,7 @@ export function ScreenshotFrameContent({
   screenshotOffset = ZERO_OFFSET,
   screenshotAnchor = CENTER_ANCHOR,
   applyTransformWhenEmpty = false,
+  emptyCompact = false,
 }: ScreenshotFrameContentProps) {
   const browserFrame = isBrowserFrame(frame.id)
   const browserFrameColor = resolveBrowserFrameColor(frame.color)
@@ -206,13 +209,13 @@ export function ScreenshotFrameContent({
           onContainerPointerDown={() => undefined}
           onSelect={onSelect}
           onPointerDown={(e) =>
-            onPointerDown(e as unknown as React.PointerEvent<HTMLDivElement>)
+            onPointerDown(e)
           }
           onPointerMove={(e) =>
-            onPointerMove(e as unknown as React.PointerEvent<HTMLDivElement>)
+            onPointerMove(e)
           }
           onPointerUp={(e) =>
-            onPointerUp(e as unknown as React.PointerEvent<HTMLDivElement>)
+            onPointerUp(e)
           }
           onImageLoad={handleImageLoad}
           onCropClick={onCrop}
@@ -274,7 +277,11 @@ export function ScreenshotFrameContent({
       className="relative h-full w-full overflow-hidden"
       style={applyTransformWhenEmpty ? bareStyle : emptyBareStyle(bareStyle)}
     >
-      <BoxEmptyState isDragOver={isDragOver} onBrowse={onBrowse} />
+      <BoxEmptyState
+        isDragOver={isDragOver}
+        onBrowse={onBrowse}
+        compact={emptyCompact}
+      />
     </div>
   )
 }

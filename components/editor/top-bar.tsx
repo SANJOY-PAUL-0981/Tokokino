@@ -50,8 +50,8 @@ import {
   EXPORT_FORMAT_EXTENSION,
   EXPORT_FORMAT_LABELS,
   EXPORT_RESOLUTION_LABELS,
-  ExportFormat,
-  ExportResolution,
+  type ExportFormat,
+  type ExportResolution,
   exportCanvas,
   getOutputDims,
 } from "@/lib/editor/export"
@@ -74,6 +74,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
+import { motion, AnimatePresence } from "motion/react"
 
 export function TopBar() {
   const {
@@ -92,16 +93,18 @@ export function TopBar() {
   const canvases = useEditorStore((s) => s.present.canvases)
   const activeCanvasId = useEditorStore((s) => s.present.activeCanvasId)
   const [isCopyingPng, setIsCopyingPng] = React.useState(false)
+  const [isCopiedPng, setIsCopiedPng] = React.useState(false)
 
   const handleCopyPng = React.useCallback(async () => {
     if (isCopyingPng) return
     setIsCopyingPng(true)
     try {
       await copyCanvasAsPng(activeCanvasId, "1080p")
-      toast.success("Copied PNG")
+      setIsCopiedPng(true)
+      setTimeout(() => setIsCopiedPng(false), 1800)
     } catch (err) {
       console.error(err)
-      toast.error("Copy failed ")
+      toast.error("Copy failed. Please try again.")
     } finally {
       setIsCopyingPng(false)
     }
@@ -204,10 +207,7 @@ export function TopBar() {
                 <AlertDialogAction
                   variant="destructive"
                   className="cursor-pointer"
-                  onClick={() => {
-                    reset()
-                    toast.success("Reset to defaults 🧹")
-                  }}
+                  onClick={reset}
                 >
                   Reset
                 </AlertDialogAction>
@@ -255,7 +255,7 @@ export function TopBar() {
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => toast.success("Share link copied ")}
+                onClick={() => toast.success("Share link copied")}
               >
                 <RiShareForwardLine />
                 Share
@@ -270,10 +270,23 @@ export function TopBar() {
                 variant="outline"
                 size="lg"
                 onClick={handleCopyPng}
-                disabled={isCopyingPng}
               >
                 <RiFileCopyLine />
-                Copy
+                <span className="relative inline-grid [&>span]:col-start-1 [&>span]:row-start-1">
+                  <span className="invisible whitespace-nowrap" aria-hidden>Copying…</span>
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.span
+                      key={isCopyingPng ? "copying" : isCopiedPng ? "copied" : "copy"}
+                      className="whitespace-nowrap"
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      transition={{ duration: 0.1 }}
+                    >
+                      {isCopyingPng ? "Copying…" : isCopiedPng ? "Copied!" : "Copy"}
+                    </motion.span>
+                  </AnimatePresence>
+                </span>
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">Copy as PNG</TooltipContent>
@@ -311,13 +324,13 @@ function ExportControls() {
     if (isExporting) return
     setIsExporting(true)
     try {
+      const ts = Date.now()
       await exportCanvas(activeCanvasId, format, resolution)
-      toast.success(
-        `Exported ${EXPORT_FORMAT_LABELS[format]} · ${EXPORT_RESOLUTION_LABELS[resolution]} 🚀`
-      )
+      const filename = `screenshot_${resolution}_${ts}${EXPORT_FORMAT_EXTENSION[format]}`
+      toast.success(`Saved as ${filename}`)
     } catch (err) {
       console.error(err)
-      toast.error("Export failed ❌")
+      toast.error("Export failed. Please try again.")
     } finally {
       setIsExporting(false)
     }
@@ -330,8 +343,7 @@ function ExportControls() {
     <div className="flex h-8 items-stretch overflow-hidden rounded-md bg-primary text-white shadow-sm transition-all hover:shadow-md">
       {/* Export Zone */}
       <button
-        disabled={isExporting}
-        className="flex items-center gap-2 px-3.5 transition-colors hover:bg-white/10 disabled:opacity-50"
+        className="flex items-center gap-2 px-3.5 transition-colors hover:bg-white/10"
         onClick={handleExport}
       >
         <RiArrowUpCircleLine className="size-4 shrink-0" />
@@ -339,10 +351,20 @@ function ExportControls() {
           <span className="invisible whitespace-nowrap" aria-hidden>
             {EXPORT_BUTTON_MAX_LABEL}
           </span>
-          <span className="whitespace-nowrap">
-            Export {EXPORT_RESOLUTION_LABELS[resolution]} •{" "}
-            {EXPORT_FORMAT_LABELS[format]}
-          </span>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={isExporting ? "exporting" : "export"}
+              className="whitespace-nowrap"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+            >
+              {isExporting
+                ? "Exporting…"
+                : `Export ${EXPORT_RESOLUTION_LABELS[resolution]} • ${EXPORT_FORMAT_LABELS[format]}`}
+            </motion.span>
+          </AnimatePresence>
         </span>
       </button>
 
@@ -665,7 +687,7 @@ function MobileOverflowMenu({
               className="cursor-pointer"
               onClick={() => {
                 reset()
-                toast.success("Reset to defaults 🧹")
+                setShowResetAlert(false)
               }}
             >
               Reset
@@ -701,11 +723,11 @@ function MobileOverflowMenu({
           <DropdownMenuLabel className="label-eyebrow !px-2 !py-1.5">
             File
           </DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => toast.success("Opening… ")}>
+          <DropdownMenuItem onClick={() => toast.success("Opening file…")}>
             <RiFolderOpenLine />
             Open
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => toast.success("Project saved ")}>
+          <DropdownMenuItem onClick={() => toast.success("Project saved")}>
             <RiSaveLine />
             Save
           </DropdownMenuItem>

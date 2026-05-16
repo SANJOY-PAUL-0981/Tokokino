@@ -122,7 +122,7 @@ const DEFAULT_CANVAS_BASE: Omit<CanvasState, "id" | "position"> = {
     hidden: false,
   },
   shadow: {
-    type: "drop",
+    type: "none",
     intensity: 40,
     lightSource: "center",
     color: "#050505",
