@@ -2,10 +2,15 @@
 
 import * as React from "react"
 
-import type { EditorTool } from "@/lib/editor/store"
+import {
+  SCREENSHOT_POSITIONS,
+  screenshotPositionAnchor,
+  type EditorTool,
+  type ScreenshotPosition,
+} from "@/lib/editor/store"
 
 import type { CenterGuidesState } from "./center-guides"
-import { snapCenterToTarget } from "./helpers"
+import { screenshotPlacementStyle, snapCenterToTarget } from "./helpers"
 import type { PlacementDims } from "./use-placement-measurement"
 
 type Offset = { x: number; y: number }
@@ -36,10 +41,12 @@ export function useScreenshotDrag({
   activeTool,
   canDragScreenshot,
   effectiveScale,
+  screenshotScaleFactor,
   placementDims,
   positionedStyle,
   screenshotOffset,
   setScreenshotOffset,
+  setScreenshotPlacement,
   setIsScreenshotSelected,
   clearSelection,
   updateCenterGuides,
@@ -47,10 +54,12 @@ export function useScreenshotDrag({
   activeTool: EditorTool
   canDragScreenshot: boolean
   effectiveScale: number
+  screenshotScaleFactor: number
   placementDims: PlacementDims | null
   positionedStyle: React.CSSProperties | null
   screenshotOffset: Offset
   setScreenshotOffset: (offset: Offset) => void
+  setScreenshotPlacement: (position: ScreenshotPosition, offset: Offset) => void
   setIsScreenshotSelected: (selected: boolean) => void
   clearSelection: () => void
   updateCenterGuides: (next: CenterGuidesState) => void
@@ -66,8 +75,68 @@ export function useScreenshotDrag({
     setLiveOffset(offset)
   }
 
-  const commitLiveOffset = () => {
-    if (liveOffsetRef.current) setScreenshotOffset(liveOffsetRef.current)
+  const normalizeScreenshotOffset = (offset: Offset) => {
+    if (!placementDims || !positionedStyle) return null
+    const currentLeft = positionedStyle.left
+    const currentTop = positionedStyle.top
+    if (typeof currentLeft !== "number" || typeof currentTop !== "number") {
+      return null
+    }
+
+    const visualCenter = {
+      x: currentLeft + offset.x + placementDims.imgW / 2,
+      y: currentTop + offset.y + placementDims.imgH / 2,
+    }
+
+    let best: {
+      position: ScreenshotPosition
+      left: number
+      top: number
+      distance: number
+    } | null = null
+
+    for (const pos of SCREENSHOT_POSITIONS) {
+      const anchor = screenshotPositionAnchor(pos.id)
+      const candidate = screenshotPlacementStyle(
+        placementDims,
+        screenshotScaleFactor,
+        anchor.x / 100,
+        anchor.y / 100
+      )
+      const left = candidate.left
+      const top = candidate.top
+      if (typeof left !== "number" || typeof top !== "number") continue
+      const dx = visualCenter.x - (left + placementDims.imgW / 2)
+      const dy = visualCenter.y - (top + placementDims.imgH / 2)
+      const distance = dx * dx + dy * dy
+      if (!best || distance < best.distance) {
+        best = { position: pos.id, left, top, distance }
+      }
+    }
+
+    if (!best) return null
+    return {
+      position: best.position,
+      offset: {
+        x: snapTinyOffset(
+          visualCenter.x - (best.left + placementDims.imgW / 2)
+        ),
+        y: snapTinyOffset(visualCenter.y - (best.top + placementDims.imgH / 2)),
+      },
+    }
+  }
+
+  const commitLiveOffset = (normalize = false) => {
+    if (liveOffsetRef.current) {
+      const normalized = normalize
+        ? normalizeScreenshotOffset(liveOffsetRef.current)
+        : null
+      if (normalized) {
+        setScreenshotPlacement(normalized.position, normalized.offset)
+      } else {
+        setScreenshotOffset(liveOffsetRef.current)
+      }
+    }
     updateLiveOffset(null)
   }
 
@@ -127,7 +196,7 @@ export function useScreenshotDrag({
     dragRef.current = null
     setIsScreenshotDragging(false)
     updateCenterGuides({ x: false, y: false })
-    commitLiveOffset()
+    commitLiveOffset(true)
   }
 
   const startMockupDrag = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -191,4 +260,8 @@ export function useScreenshotDrag({
     moveMockup,
     stopMockupDrag,
   }
+}
+
+function snapTinyOffset(value: number) {
+  return Math.abs(value) < 0.5 ? 0 : value
 }

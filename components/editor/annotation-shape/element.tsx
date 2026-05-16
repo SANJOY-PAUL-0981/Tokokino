@@ -571,6 +571,7 @@ export function AnnotationShapeElement({
         <div
           ref={selectionChromeRef}
           data-annotation-selection-chrome-id={shape.id}
+          data-export-hidden="true"
           className="pointer-events-none absolute touch-none select-none"
           style={{
             left: `${shape.xPct}%`,

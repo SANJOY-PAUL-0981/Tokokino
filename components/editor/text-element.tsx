@@ -588,7 +588,7 @@ export function TextElementView({ text, canvasRef, onCenterGuideChange }: Props)
       } : undefined}
     >
       {isSelected && !isEditing ? (
-        <>
+        <div data-export-hidden="true" className="contents">
           {/* Snapping Guidelines */}
           {isRotateSnapped && (
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-[-1] flex items-center justify-center">
@@ -646,7 +646,7 @@ export function TextElementView({ text, canvasRef, onCenterGuideChange }: Props)
               style={{ cursor }}
             />
           ))}
-        </>
+        </div>
       ) : null}
 
       {isEditing ? (

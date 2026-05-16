@@ -213,6 +213,11 @@ type EditorActions = {
   setCanvasZoom: (n: number) => void
   setScreenshotPosition: (p: ScreenshotPosition, canvasId?: string) => void
   setScreenshotOffset: (o: { x: number; y: number }, canvasId?: string) => void
+  setScreenshotPlacement: (
+    p: ScreenshotPosition,
+    o: { x: number; y: number },
+    canvasId?: string
+  ) => void
   updateScreenshotLayer: (
     patch: Partial<ScreenshotLayer>,
     canvasId?: string
@@ -732,6 +737,12 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       ),
     setScreenshotOffset: (o, canvasId) =>
       commitCanvas(canvasId, { screenshotOffset: o }, "screenshotOffset"),
+    setScreenshotPlacement: (p, o, canvasId) =>
+      commitCanvas(
+        canvasId,
+        { screenshotPosition: p, screenshotOffset: o },
+        "screenshotPlacement"
+      ),
     updateScreenshotLayer: (patch, canvasId) =>
       commitCanvas(
         canvasId,
@@ -1569,6 +1580,8 @@ export function useEditor(): EditorContext {
       store.setScreenshotPosition(p, canvasId ?? targetId),
     setScreenshotOffset: (o, canvasId) =>
       store.setScreenshotOffset(o, canvasId ?? targetId),
+    setScreenshotPlacement: (p, o, canvasId) =>
+      store.setScreenshotPlacement(p, o, canvasId ?? targetId),
     updateScreenshotLayer: (patch, canvasId) =>
       store.updateScreenshotLayer(patch, canvasId ?? targetId),
     setShadow: (s, canvasId) => store.setShadow(s, canvasId ?? targetId),

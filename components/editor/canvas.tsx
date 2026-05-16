@@ -99,6 +99,7 @@ function CanvasViewInner({
     setScreenshot,
     applyCroppedScreenshot,
     setScreenshotOffset,
+    setScreenshotPlacement,
     texts,
     selectedTextId,
     setSelectedTextId,
@@ -221,10 +222,7 @@ function CanvasViewInner({
           screenshotPosition === "center"
             ? `${mainRowLayout.xPct}%`
             : `${screenshotAnchor.x}%`,
-        top:
-          screenshotPosition === "center"
-            ? "50%"
-            : `${screenshotAnchor.y}%`,
+        top: screenshotPosition === "center" ? "50%" : `${screenshotAnchor.y}%`,
         width: `${mainRowLayout.widthPct}%`,
         aspectRatio: screenshotBoxAspect,
         transform: "translate(-50%, -50%)",
@@ -311,10 +309,12 @@ function CanvasViewInner({
     activeTool,
     canDragScreenshot: Boolean(canDragScreenshot),
     effectiveScale,
+    screenshotScaleFactor: scaleFactor,
     placementDims,
     positionedStyle,
     screenshotOffset,
     setScreenshotOffset,
+    setScreenshotPlacement,
     setIsScreenshotSelected,
     clearSelection: clearElementSelection,
     updateCenterGuides,

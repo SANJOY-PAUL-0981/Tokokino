@@ -44,6 +44,12 @@ import {
   useEditor,
   useEditorStore,
 } from "@/lib/editor/store"
+import { computeRowLayout } from "@/lib/editor/screenshot-layout"
+import type {
+  AspectState,
+  DeviceFrame,
+  ScreenshotSlot,
+} from "@/lib/editor/state-types"
 import { editorValueSchemas } from "@/lib/editor/value-schemas"
 import { cn } from "@/lib/utils"
 
@@ -90,6 +96,102 @@ type BulkLayout = "grid" | "row" | "column"
 
 const BASE_CANVAS_WIDTH = 1100
 const ARRANGE_GAP = 80
+const SCREENSHOT_OFFSET_GRID_SPREAD_PX = 300
+const POSITION_GRID_OUT_OF_BOUNDS_PCT = 25
+
+function positionIdFromPercent(xPct: number, yPct: number): ScreenshotPosition {
+  const col = Math.round(Math.max(0, Math.min(4, xPct / 25)))
+  const row = Math.round(Math.max(0, Math.min(4, yPct / 25)))
+  if (col === 2 && row === 2) return "center"
+  return `${row}-${col}` as ScreenshotPosition
+}
+
+function screenshotPositionFromOffset(
+  position: ScreenshotPosition,
+  offset: { x: number; y: number }
+): ScreenshotPosition {
+  const anchor = screenshotPositionAnchorFn(position)
+  const xPct = anchor.x + (offset.x / SCREENSHOT_OFFSET_GRID_SPREAD_PX) * 50
+  const yPct = anchor.y + (offset.y / SCREENSHOT_OFFSET_GRID_SPREAD_PX) * 50
+  const min = -POSITION_GRID_OUT_OF_BOUNDS_PCT
+  const max = 100 + POSITION_GRID_OUT_OF_BOUNDS_PCT
+
+  if (xPct < min || xPct > max || yPct < min || yPct > max) return "center"
+  return positionIdFromPercent(xPct, yPct)
+}
+
+function canvasDimsFromAspect(aspect: AspectState) {
+  const aw = aspect.w || 16
+  const ah = aspect.h || 10
+  return {
+    width: BASE_CANVAS_WIDTH,
+    height: (BASE_CANVAS_WIDTH * ah) / aw,
+    ratio: aw / ah,
+  }
+}
+
+function mainScreenshotRowPositionPct({
+  aspect,
+  frame,
+  position,
+  offset,
+  slots,
+}: {
+  aspect: AspectState
+  frame: DeviceFrame
+  position: ScreenshotPosition
+  offset: { x: number; y: number }
+  slots: ScreenshotSlot[]
+}) {
+  if (slots.length === 0) return null
+  const dims = canvasDimsFromAspect(aspect)
+  const rowLayout = computeRowLayout(
+    [
+      { id: "__main__", frame },
+      ...slots.map((slot) => ({ id: slot.id, frame: slot.frame })),
+    ],
+    dims.ratio
+  )
+  const mainLayout = rowLayout[0]
+  if (!mainLayout) return null
+
+  const anchor = screenshotPositionAnchorFn(position)
+  const baseX = position === "center" ? mainLayout.xPct : anchor.x
+  const baseY = position === "center" ? 50 : anchor.y
+  return {
+    xPct: baseX + (offset.x / dims.width) * 100,
+    yPct: baseY + (offset.y / dims.height) * 100,
+  }
+}
+
+function mainScreenshotOffsetForAnchor({
+  aspect,
+  frame,
+  position,
+  slots,
+}: {
+  aspect: AspectState
+  frame: DeviceFrame
+  position: ScreenshotPosition
+  slots: ScreenshotSlot[]
+}) {
+  if (slots.length === 0) return { x: 0, y: 0 }
+  const current = mainScreenshotRowPositionPct({
+    aspect,
+    frame,
+    position,
+    offset: { x: 0, y: 0 },
+    slots,
+  })
+  if (!current) return { x: 0, y: 0 }
+
+  const dims = canvasDimsFromAspect(aspect)
+  const anchor = screenshotPositionAnchorFn(position)
+  return {
+    x: ((anchor.x - current.xPct) / 100) * dims.width,
+    y: ((anchor.y - current.yPct) / 100) * dims.height,
+  }
+}
 
 function computeArrangedPositions(
   canvasIds: string[],
@@ -287,8 +389,11 @@ function DefaultToolbarContents() {
   const {
     activeTool,
     setActiveTool,
+    aspect,
     screenshotPosition,
+    screenshotOffset,
     setScreenshotPosition,
+    setScreenshotPlacement,
     addText,
     setSelectedTextId,
     addAsset,
@@ -424,21 +529,25 @@ function DefaultToolbarContents() {
       const CANVAS_POS_SPREAD = 600
       const colPct = (canvas.position.x / CANVAS_POS_SPREAD) * 50 + 50
       const rowPct = (canvas.position.y / CANVAS_POS_SPREAD) * 50 + 50
-      const col = Math.round(Math.max(0, Math.min(4, colPct / 25)))
-      const row = Math.round(Math.max(0, Math.min(4, rowPct / 25)))
-      if (col === 2 && row === 2) return "center"
-      return `${row}-${col}` as ScreenshotPosition
+      return positionIdFromPercent(colPct, rowPct)
     } else if (positionTarget === "allScreenshots") {
-      return screenshotPosition
+      return screenshotPositionFromOffset(screenshotPosition, screenshotOffset)
     } else if (positionTarget === "screenshot") {
-      return screenshotPosition
+      const rowPosition = mainScreenshotRowPositionPct({
+        aspect,
+        frame,
+        position: screenshotPosition,
+        offset: screenshotOffset,
+        slots: screenshotSlots,
+      })
+      if (rowPosition) {
+        return positionIdFromPercent(rowPosition.xPct, rowPosition.yPct)
+      }
+      return screenshotPositionFromOffset(screenshotPosition, screenshotOffset)
     } else {
       return null
     }
-    const col = Math.round(xPct / 25)
-    const row = Math.round(yPct / 25)
-    if (col === 2 && row === 2) return "center"
-    return `${row}-${col}` as ScreenshotPosition
+    return positionIdFromPercent(xPct, yPct)
   }, [
     positionTarget,
     selectedText,
@@ -446,7 +555,10 @@ function DefaultToolbarContents() {
     selectedAnnotation,
     selectedSlot,
     screenshotSlots,
+    aspect,
+    frame,
     screenshotPosition,
+    screenshotOffset,
     canvases,
     activeCanvasId,
   ])
@@ -486,7 +598,19 @@ function DefaultToolbarContents() {
       const y = ((anchor.y - 50) / 50) * CANVAS_POS_SPREAD
       setCanvasPosition(activeCanvasId, { x, y })
     } else if (positionTarget === "screenshot") {
-      setScreenshotPosition(posId)
+      if (screenshotSlots.length > 0) {
+        setScreenshotPlacement(
+          posId,
+          mainScreenshotOffsetForAnchor({
+            aspect,
+            frame,
+            position: posId,
+            slots: screenshotSlots,
+          })
+        )
+      } else {
+        setScreenshotPosition(posId)
+      }
     } else if (positionTarget === "allScreenshots") {
       setScreenshotPosition(posId)
       for (const slot of screenshotSlots) {

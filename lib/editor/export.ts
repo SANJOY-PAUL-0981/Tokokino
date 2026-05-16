@@ -84,9 +84,30 @@ export async function exportCanvas(
   const targetWidth = EXPORT_RESOLUTION_WIDTHS[resolution]
   const pixelRatio = targetWidth / renderedWidth
 
+  const filterExportHidden = (node: Node) => {
+    if (node instanceof Element) {
+      if (node.getAttribute("data-export-hidden") === "true") return false
+    }
+    return true
+  }
+
+  const exportStyle = document.createElement("style")
+  exportStyle.id = "__export-override"
+  exportStyle.textContent = `
+    * {
+      outline: none !important;
+      caret-color: transparent !important;
+      --tw-ring-shadow: 0 0 #0000 !important;
+      --tw-ring-offset-shadow: 0 0 #0000 !important;
+    }
+    [data-export-hidden="true"] { display: none !important; }
+  `
+  document.head.appendChild(exportStyle)
+
   const baseOptions = {
     pixelRatio,
     cacheBust: true,
+    filter: filterExportHidden,
   } as const
 
   const ts = new Date()
@@ -96,38 +117,42 @@ export async function exportCanvas(
     .slice(0, 19)
   const filename = `screenshot_${resolution}_${ts}${EXPORT_FORMAT_EXTENSION[format]}`
 
-  if (format === "png") {
-    const url = await toPng(node, baseOptions)
-    triggerDownload(url, filename)
-    return
-  }
-  if (format === "jpeg") {
-    const url = await toJpeg(node, {
-      ...baseOptions,
-      backgroundColor: "#ffffff",
-      quality: 0.95,
-    })
-    triggerDownload(url, filename)
-    return
-  }
-  // webp — html-to-image doesn't have a direct toWebp, so render to canvas via toBlob (PNG) and re-encode
-  const pngBlob = await toBlob(node, baseOptions)
-  if (!pngBlob) throw new Error("Could not capture canvas")
-  const bitmap = await createImageBitmap(pngBlob)
-  const offscreen = document.createElement("canvas")
-  offscreen.width = bitmap.width
-  offscreen.height = bitmap.height
-  const ctx = offscreen.getContext("2d")
-  if (!ctx) throw new Error("Could not get 2d context")
-  ctx.drawImage(bitmap, 0, 0)
-  const webpBlob: Blob | null = await new Promise((resolve) =>
-    offscreen.toBlob(resolve, "image/webp", 0.95)
-  )
-  if (!webpBlob) throw new Error("Could not encode WebP")
-  const objectUrl = URL.createObjectURL(webpBlob)
   try {
-    triggerDownload(objectUrl, filename)
+    if (format === "png") {
+      const url = await toPng(node, baseOptions)
+      triggerDownload(url, filename)
+      return
+    }
+    if (format === "jpeg") {
+      const url = await toJpeg(node, {
+        ...baseOptions,
+        backgroundColor: "#ffffff",
+        quality: 0.95,
+      })
+      triggerDownload(url, filename)
+      return
+    }
+    // webp — html-to-image doesn't have a direct toWebp, so render to canvas via toBlob (PNG) and re-encode
+    const pngBlob = await toBlob(node, baseOptions)
+    if (!pngBlob) throw new Error("Could not capture canvas")
+    const bitmap = await createImageBitmap(pngBlob)
+    const offscreen = document.createElement("canvas")
+    offscreen.width = bitmap.width
+    offscreen.height = bitmap.height
+    const ctx = offscreen.getContext("2d")
+    if (!ctx) throw new Error("Could not get 2d context")
+    ctx.drawImage(bitmap, 0, 0)
+    const webpBlob: Blob | null = await new Promise((resolve) =>
+      offscreen.toBlob(resolve, "image/webp", 0.95)
+    )
+    if (!webpBlob) throw new Error("Could not encode WebP")
+    const objectUrl = URL.createObjectURL(webpBlob)
+    try {
+      triggerDownload(objectUrl, filename)
+    } finally {
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
+    }
   } finally {
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
+    exportStyle.remove()
   }
 }
