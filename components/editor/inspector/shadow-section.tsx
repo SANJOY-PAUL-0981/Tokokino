@@ -557,6 +557,20 @@ export function ShadowSection() {
         </div>
       ),
     },
+    {
+      id: "linear" as const,
+      label: "Linear",
+      icon: (
+        <div className={cn("size-full rounded-sm px-3 pt-2 pb-5", thumbBg)}>
+          <div
+            className={cn(
+              "size-full shadow-[0_4px_8px_rgba(0,0,0,0.1),_0_10px_20px_rgba(0,0,0,0.08),_0_20px_40px_rgba(0,0,0,0.05),_0_30px_60px_rgba(0,0,0,0.02)] dark:shadow-[0_4px_8px_rgba(255,255,255,0.1),_0_10px_20px_rgba(255,255,255,0.08),_0_20px_40px_rgba(255,255,255,0.05),_0_30px_60px_rgba(255,255,255,0.02)]",
+              thumbCard
+            )}
+          />
+        </div>
+      ),
+    },
   ]
 
   return (

@@ -49,7 +49,7 @@ export type Backdrop = {
   filter: AssetFilter
 }
 
-export type ShadowType = "none" | "drop" | "soft" | "hard" | "glow" | "float"
+export type ShadowType = "none" | "drop" | "soft" | "hard" | "glow" | "float" | "linear"
 
 export type Shadow = {
   type: ShadowType

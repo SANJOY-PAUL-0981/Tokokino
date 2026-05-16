@@ -213,6 +213,24 @@ export function shadowCss(shadow: Shadow): string | undefined {
     return `0 ${dy1.toFixed(1)}px ${blur1.toFixed(1)}px 0px ${shadowRgba(color, opacity1)}, 0 ${dy2.toFixed(1)}px ${blur2.toFixed(1)}px 0px ${shadowRgba(color, opacity2)}`
   }
 
+  if (shadow.type === "linear") {
+    let dx = 0,
+      dy = 0
+    if (shadow.lightSource !== "center") {
+      const [r, c] = shadow.lightSource.split("-").map(Number)
+      if (Number.isFinite(r) && Number.isFinite(c)) {
+        dx = -(c - 2)
+        dy = -(r - 2)
+      }
+    }
+    const unit = intensity * 12
+    const opacity1 = 0.1 + intensity * 0.15
+    const opacity2 = 0.08 + intensity * 0.12
+    const opacity3 = 0.05 + intensity * 0.08
+    const opacity4 = 0.02 + intensity * 0.05
+    return `${(dx * unit * 0.5).toFixed(1)}px ${(dy * unit * 0.5).toFixed(1)}px ${(10 + intensity * 15).toFixed(1)}px 0px ${shadowRgba(color, opacity1)}, ${(dx * unit * 1.2).toFixed(1)}px ${(dy * unit * 1.2).toFixed(1)}px ${(25 + intensity * 35).toFixed(1)}px 0px ${shadowRgba(color, opacity2)}, ${(dx * unit * 2.2).toFixed(1)}px ${(dy * unit * 2.2).toFixed(1)}px ${(45 + intensity * 65).toFixed(1)}px 0px ${shadowRgba(color, opacity3)}, ${(dx * unit * 3.5).toFixed(1)}px ${(dy * unit * 3.5).toFixed(1)}px ${(70 + intensity * 100).toFixed(1)}px 0px ${shadowRgba(color, opacity4)}`
+  }
+
   let dx = 0,
     dy = 0
   if (shadow.lightSource !== "center") {
