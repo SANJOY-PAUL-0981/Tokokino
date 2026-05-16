@@ -4,9 +4,12 @@ import * as React from "react"
 import { RiCheckLine } from "@remixicon/react"
 import { animate } from "motion/react"
 
+import { AnnotationShapeElement } from "@/components/editor/annotation-shape-element"
+import { AssetElementView } from "@/components/editor/asset-element"
+import { TextElementView } from "@/components/editor/text-element"
 import { CanvasBackdrop } from "@/components/editor/canvas/canvas-backdrop"
 import { BASE_CANVAS_WIDTH } from "@/components/editor/canvas/constants"
-import { frameSelectionRadius } from "@/components/editor/canvas/helpers"
+import { frameSelectionRadius, annotationPath } from "@/components/editor/canvas/helpers"
 import { ScreenshotFrameContent } from "@/components/editor/canvas/screenshot-frame-content"
 import {
   PRESENT_PRESETS,
@@ -33,6 +36,7 @@ import {
   type CanvasState,
   type ScreenshotSlot,
   type Tilt,
+  ScreenshotPosition,
 } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
 
@@ -310,6 +314,7 @@ function PresentPresetPreview({
   const previewRef = React.useRef<HTMLDivElement>(null)
   const stageRef = React.useRef<HTMLDivElement>(null)
   const imageRef = React.useRef<HTMLImageElement>(null)
+  const nullCanvasRef = React.useRef<HTMLDivElement>(null)
   const effectsFilter = effectsFilterCss(canvas.backdrop.effects)
   const noiseEnabled = canvas.backdrop.effects.noise > 0
   const noiseOpacity = noiseEnabled ? canvas.backdrop.effects.noise / 100 : 0
@@ -377,6 +382,8 @@ function PresentPresetPreview({
             canvas={canvas}
             transform={canvasTransform}
             screenshotOffset={canvas.screenshotOffset}
+            screenshotPosition={canvas.screenshotPosition}
+            screenshotAnchor={screenshotAnchor}
             stageRef={stageRef}
             imageRef={imageRef}
             canvasAspectRatio={canvasAspectRatio}
@@ -414,6 +421,49 @@ function PresentPresetPreview({
             previewScale={resolvePresentPresetScale(preset, slot.frame)}
           />
         ))}
+        {canvas.assets.map((a) => (
+          <AssetElementView key={a.id} asset={a} canvasRef={nullCanvasRef} />
+        ))}
+        {canvas.texts.map((t) => (
+          <TextElementView key={t.id} text={t} canvasRef={nullCanvasRef} />
+        ))}
+        {[...canvas.annotationShapes]
+          .sort((a, b) => a.zIndex - b.zIndex)
+          .map((shape) => (
+            <AnnotationShapeElement
+              key={shape.id}
+              shape={shape}
+              canvasRef={nullCanvasRef}
+            />
+          ))}
+        {canvas.annotations
+          .filter((s) => s.mode !== "eraser" && !s.hidden)
+          .map((stroke) => (
+            <svg
+              key={stroke.id}
+              aria-hidden
+              className="pointer-events-none absolute inset-0 h-full w-full"
+              style={{
+                zIndex: 60 + (stroke.zIndex ?? 0),
+                mixBlendMode:
+                  stroke.blendMode ??
+                  (stroke.mode === "highlight" ? "multiply" : "normal"),
+              }}
+            >
+              <path
+                d={annotationPath(stroke.points)}
+                fill="none"
+                stroke={stroke.color}
+                strokeWidth={stroke.strokeWidth}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={
+                  ((stroke.opacity ?? 100) / 100) *
+                  (stroke.mode === "highlight" ? 0.42 : 1)
+                }
+              />
+            </svg>
+          ))}
         {canvas.overlay.id !== null && canvas.overlay.position === "overlay" ? (
           <div
             aria-hidden
@@ -433,6 +483,8 @@ function PresentMainScreenshot({
   canvas,
   transform,
   screenshotOffset,
+  screenshotPosition,
+  screenshotAnchor,
   stageRef,
   imageRef,
   canvasAspectRatio,
@@ -441,17 +493,25 @@ function PresentMainScreenshot({
   canvas: CanvasState
   transform: string
   screenshotOffset: { x: number; y: number }
+  screenshotPosition: ScreenshotPosition
+  screenshotAnchor: { x: number; y: number }
   stageRef: React.RefObject<HTMLDivElement | null>
   imageRef: React.RefObject<HTMLImageElement | null>
   canvasAspectRatio: number
   rowLayout: { widthPct: number; xPct: number }
 }) {
+  const left =
+    screenshotPosition === "center"
+      ? `${rowLayout.xPct}%`
+      : `${screenshotAnchor.x}%`
+  const top =
+    screenshotPosition === "center" ? "50%" : `${screenshotAnchor.y}%`
   return (
     <div
       className="absolute"
       style={{
-        left: `${rowLayout.xPct}%`,
-        top: "50%",
+        left,
+        top,
         width: `${rowLayout.widthPct}%`,
         aspectRatio: slotBoxAspectRatio(canvas.frame, canvasAspectRatio),
         transform: `translate(-50%, -50%) translate(${screenshotOffset.x}px, ${screenshotOffset.y}px)`,

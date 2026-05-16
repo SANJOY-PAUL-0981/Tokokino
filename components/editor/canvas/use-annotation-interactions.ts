@@ -440,11 +440,13 @@ export function useAnnotationInteractions({
     if (dx * dx + dy * dy < 1) return
 
     drag.points = [...drag.points, point]
-    const path =
-      annotationLayerRef.current?.parentElement?.querySelector<SVGPathElement>(
-        `[data-annotation-stroke-id="${CSS.escape(drag.strokeId)}"]`
-      )
-    if (path) path.setAttribute("d", annotationPath(drag.points))
+    const strokePath = annotationPath(drag.points)
+    const escapedStrokeId = CSS.escape(drag.strokeId)
+    const parent = annotationLayerRef.current?.parentElement
+    const paths = parent?.querySelectorAll<SVGPathElement>(
+      `[data-annotation-stroke-id="${escapedStrokeId}"], [data-annotation-eraser-id="${escapedStrokeId}"]`
+    )
+    paths?.forEach((path) => path.setAttribute("d", strokePath))
   }
 
   const stopAnnotation = (e: React.PointerEvent<SVGSVGElement>) => {

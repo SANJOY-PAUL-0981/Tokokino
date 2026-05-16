@@ -104,6 +104,7 @@ export function ScreenshotSlotView({
   const imageRef = React.useRef<HTMLImageElement>(null)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const dragRef = React.useRef<DragState | null>(null)
+  const [isBeingDragged, setIsBeingDragged] = React.useState(false)
   const [isDragOver, setIsDragOver] = React.useState(false)
   const [toolbarRect, setToolbarRect] = React.useState<DOMRect | null>(null)
 
@@ -195,6 +196,7 @@ export function ScreenshotSlotView({
     if (!canvasRef.current) return
     e.stopPropagation()
     select(e)
+    setIsBeingDragged(true)
     const rect = canvasRef.current.getBoundingClientRect()
     dragRef.current = {
       pointerId: e.pointerId,
@@ -254,6 +256,7 @@ export function ScreenshotSlotView({
       })
     }
     dragRef.current = null
+    setIsBeingDragged(false)
     onCenterGuideChange?.({ x: false, y: false })
   }
 
@@ -281,6 +284,7 @@ export function ScreenshotSlotView({
     transform: `translate(-50%, -50%) rotate(${slot.rotation}deg)`,
     zIndex: 60 + slot.zIndex,
     display: slot.hidden ? "none" : undefined,
+    transition: isBeingDragged ? undefined : "left 300ms ease-out, top 300ms ease-out",
   }
   if (slot.blendMode && slot.blendMode !== "normal") {
     containerStyle.mixBlendMode = slot.blendMode

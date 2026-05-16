@@ -23,7 +23,7 @@ export const EXPORT_FORMAT_LABELS: Record<ExportFormat, string> = {
 
 export const EXPORT_FORMAT_EXTENSION: Record<ExportFormat, string> = {
   png: ".png",
-  jpeg: ".jpg",
+  jpeg: ".jpeg",
   webp: ".webp",
 }
 

@@ -75,6 +75,7 @@ export function AnnotationLayer({
               {eraserStrokes.map((eraser) => (
                 <path
                   key={eraser.id}
+                  data-annotation-eraser-id={eraser.id}
                   d={annotationPath(eraser.points)}
                   fill="none"
                   stroke="black"
