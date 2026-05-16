@@ -102,12 +102,49 @@ export function AnnotationShapeElement({
   const arrowEndpointRef = React.useRef<ArrowEndpointState | null>(null)
   const rotateRef = React.useRef<RotateState | null>(null)
   const [isRotateSnapped, setIsRotateSnapped] = React.useState(false)
+  const [isDragging, setIsDragging] = React.useState(false)
+  const [isResizing, setIsResizing] = React.useState(false)
+  const [isAdjustingArrowEndpoint, setIsAdjustingArrowEndpoint] =
+    React.useState(false)
+  const [isRotating, setIsRotating] = React.useState(false)
+  const [hideFloatingToolbar, setHideFloatingToolbar] = React.useState(false)
+  const [shouldAnimatePositionMove, setShouldAnimatePositionMove] =
+    React.useState(false)
   const [toolbarRect, setToolbarRect] = React.useState<DOMRect | null>(null)
   const [elementSize, setElementSize] = React.useState({
     width: 120,
     height: 48,
   })
   const rotation = shape.rotation ?? 0
+
+  React.useEffect(() => {
+    const onHideToolbar = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{
+          kind?: string
+          id?: string
+          durationMs?: number
+        }>
+      ).detail
+      if (detail?.kind !== "annotation" || detail.id !== shape.id) return
+      setHideFloatingToolbar(true)
+      const durationMs = detail.durationMs ?? 320
+      setShouldAnimatePositionMove(true)
+      window.setTimeout(() => setHideFloatingToolbar(false), durationMs)
+      window.setTimeout(() => setShouldAnimatePositionMove(false), durationMs)
+    }
+
+    window.addEventListener(
+      "beautiful-screenshots:hide-floating-toolbar",
+      onHideToolbar
+    )
+    return () => {
+      window.removeEventListener(
+        "beautiful-screenshots:hide-floating-toolbar",
+        onHideToolbar
+      )
+    }
+  }, [shape.id])
 
   React.useEffect(() => {
     if (!elRef.current) {
@@ -154,6 +191,16 @@ export function AnnotationShapeElement({
     shape.heightPct,
     rotation,
   ])
+
+  React.useEffect(() => {
+    if (bulkCanvasDragging || !isSelected || hideFloatingToolbar || !elRef.current)
+      return
+    const id = window.requestAnimationFrame(() => {
+      if (!elRef.current) return
+      setToolbarRect(elRef.current.getBoundingClientRect())
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [bulkCanvasDragging, hideFloatingToolbar, isSelected, shape.id])
 
   React.useEffect(() => {
     if (!isSelected) return
@@ -203,6 +250,7 @@ export function AnnotationShapeElement({
       nextYPct: shape.yPct,
       moved: false,
     }
+    setIsDragging(true)
   }
 
   const moveDrag = (e: React.PointerEvent<Element>) => {
@@ -238,6 +286,7 @@ export function AnnotationShapeElement({
     const drag = dragRef.current
     if (!drag || drag.pointerId !== e.pointerId) return
     dragRef.current = null
+    setIsDragging(false)
     if (drag.moved) {
       updateAnnotationShape(shape.id, {
         xPct: drag.nextXPct,
@@ -267,6 +316,7 @@ export function AnnotationShapeElement({
         canvasW: rect.width,
         canvasH: rect.height,
       }
+      setIsResizing(true)
     }
 
   const startArrowEndpoint =
@@ -289,6 +339,7 @@ export function AnnotationShapeElement({
         canvasW: rect.width,
         canvasH: rect.height,
       }
+      setIsAdjustingArrowEndpoint(true)
     }
 
   const moveArrowEndpoint = (e: React.PointerEvent<HTMLButtonElement>) => {
@@ -337,6 +388,7 @@ export function AnnotationShapeElement({
     const state = arrowEndpointRef.current
     if (!state || state.pointerId !== e.pointerId) return
     arrowEndpointRef.current = null
+    setIsAdjustingArrowEndpoint(false)
   }
 
   const moveResize = (e: React.PointerEvent<HTMLButtonElement>) => {
@@ -399,6 +451,7 @@ export function AnnotationShapeElement({
     const rs = resizeRef.current
     if (!rs || rs.pointerId !== e.pointerId) return
     resizeRef.current = null
+    setIsResizing(false)
   }
 
   const startRotate = (e: React.PointerEvent<HTMLButtonElement>) => {
@@ -417,6 +470,7 @@ export function AnnotationShapeElement({
       startAngle: Math.atan2(e.clientY - cy, e.clientX - cx),
       startRotation: rotation,
     }
+    setIsRotating(true)
   }
 
   const moveRotate = (e: React.PointerEvent<HTMLButtonElement>) => {
@@ -448,6 +502,7 @@ export function AnnotationShapeElement({
     const rot = rotateRef.current
     if (!rot || rot.pointerId !== e.pointerId) return
     rotateRef.current = null
+    setIsRotating(false)
     setIsRotateSnapped(false)
   }
 
@@ -487,6 +542,14 @@ export function AnnotationShapeElement({
           width: `${shape.widthPct}%`,
           height: `${shape.heightPct}%`,
           transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+          transition:
+            !isDragging &&
+            !isResizing &&
+            !isAdjustingArrowEndpoint &&
+            !isRotating &&
+            shouldAnimatePositionMove
+              ? "left 300ms ease-out, top 300ms ease-out"
+              : "none",
           zIndex: 60 + shape.zIndex,
           opacity: (shape.opacity ?? 100) / 100,
           mixBlendMode:
@@ -643,6 +706,7 @@ export function AnnotationShapeElement({
       {!previewMode &&
       !bulkCanvasDragging &&
       isSelected &&
+      !hideFloatingToolbar &&
       toolbarRect &&
       typeof document !== "undefined"
         ? createPortal(

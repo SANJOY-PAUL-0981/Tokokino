@@ -564,6 +564,16 @@ function DefaultToolbarContents() {
   ])
 
   const handlePositionClick = (posId: ScreenshotPosition) => {
+    const emitHideFloatingToolbar = (
+      kind: "text" | "asset" | "annotation",
+      id: string
+    ) => {
+      window.dispatchEvent(
+        new CustomEvent("beautiful-screenshots:hide-floating-toolbar", {
+          detail: { kind, id, durationMs: 320 },
+        })
+      )
+    }
     const anchor = screenshotPositionAnchorFn(posId)
     const latest = useEditorStore.getState()
     const latestSlotId = latest.selectedScreenshotSlotId
@@ -575,10 +585,13 @@ function DefaultToolbarContents() {
         null)
       : null
     if (positionTarget === "text" && selectedTextId) {
+      emitHideFloatingToolbar("text", selectedTextId)
       updateText(selectedTextId, { xPct: anchor.x, yPct: anchor.y })
     } else if (positionTarget === "asset" && selectedAssetId) {
+      emitHideFloatingToolbar("asset", selectedAssetId)
       updateAsset(selectedAssetId, { xPct: anchor.x, yPct: anchor.y })
     } else if (positionTarget === "annotation" && selectedAnnotationShapeId) {
+      emitHideFloatingToolbar("annotation", selectedAnnotationShapeId)
       updateAnnotationShape(selectedAnnotationShapeId, {
         xPct: anchor.x,
         yPct: anchor.y,
@@ -886,17 +899,34 @@ function DefaultToolbarContents() {
                       }
                       aria-label={`Move ${positionTargetLabel} to ${positionLabel(pos.id)}`}
                       className={cn(
-                        "flex size-8 cursor-pointer items-center justify-center rounded-md border transition-all",
+                        "relative flex size-8 cursor-pointer items-center justify-center rounded-md border transition-all duration-200 ease-out active:scale-95",
                         currentPositionId === pos.id
-                          ? "border-primary bg-primary text-white"
-                          : "border-border/60 bg-secondary/40 text-muted-foreground hover:border-foreground/30"
+                          ? "border-primary bg-primary text-white shadow-[0_0_0_3px_rgba(255,85,113,0.18)]"
+                          : "border-border/60 bg-secondary/40 text-muted-foreground hover:border-foreground/30 hover:bg-secondary/55"
                       )}
                     >
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "pointer-events-none absolute inset-0 rounded-md bg-white/10 transition-all duration-200 ease-out",
+                          currentPositionId === pos.id
+                            ? "scale-100 opacity-100"
+                            : "scale-75 opacity-0"
+                        )}
+                      />
                       {pos.isCenter ? (
-                        <RiFocus3Line className="size-3.5" />
+                        <RiFocus3Line
+                          className={cn(
+                            "size-3.5 transition-transform duration-200 ease-out",
+                            currentPositionId === pos.id && "scale-110"
+                          )}
+                        />
                       ) : (
                         <RiArrowRightLine
-                          className="size-3.5"
+                          className={cn(
+                            "size-3.5 transition-transform duration-200 ease-out",
+                            currentPositionId === pos.id && "scale-110"
+                          )}
                           style={{ transform: `rotate(${pos.angle}deg)` }}
                         />
                       )}

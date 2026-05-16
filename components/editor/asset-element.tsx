@@ -87,6 +87,40 @@ export function AssetElementView({
   const dragRef = React.useRef<DragState | null>(null)
   const resizeRef = React.useRef<ResizeState | null>(null)
   const [toolbarRect, setToolbarRect] = React.useState<DOMRect | null>(null)
+  const [hideFloatingToolbar, setHideFloatingToolbar] = React.useState(false)
+  const [shouldAnimatePositionMove, setShouldAnimatePositionMove] =
+    React.useState(false)
+  const [isDragging, setIsDragging] = React.useState(false)
+  const [isResizing, setIsResizing] = React.useState(false)
+
+  React.useEffect(() => {
+    const onHideToolbar = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{
+          kind?: string
+          id?: string
+          durationMs?: number
+        }>
+      ).detail
+      if (detail?.kind !== "asset" || detail.id !== asset.id) return
+      setHideFloatingToolbar(true)
+      const durationMs = detail.durationMs ?? 320
+      setShouldAnimatePositionMove(true)
+      window.setTimeout(() => setHideFloatingToolbar(false), durationMs)
+      window.setTimeout(() => setShouldAnimatePositionMove(false), durationMs)
+    }
+
+    window.addEventListener(
+      "beautiful-screenshots:hide-floating-toolbar",
+      onHideToolbar
+    )
+    return () => {
+      window.removeEventListener(
+        "beautiful-screenshots:hide-floating-toolbar",
+        onHideToolbar
+      )
+    }
+  }, [asset.id])
 
   React.useEffect(() => {
     if (bulkCanvasDragging || !isSelected || !elRef.current) {
@@ -119,6 +153,16 @@ export function AssetElementView({
     asset.heightPct,
     asset.rotation,
   ])
+
+  React.useEffect(() => {
+    if (bulkCanvasDragging || !isSelected || hideFloatingToolbar || !elRef.current)
+      return
+    const id = window.requestAnimationFrame(() => {
+      if (!elRef.current) return
+      setToolbarRect(elRef.current.getBoundingClientRect())
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [asset.id, bulkCanvasDragging, hideFloatingToolbar, isSelected])
 
   const select = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -170,6 +214,7 @@ export function AssetElementView({
       lastYPct: asset.yPct,
       moved: false,
     }
+    setIsDragging(true)
     ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
   }
 
@@ -202,6 +247,7 @@ export function AssetElementView({
       })
     }
     dragRef.current = null
+    setIsDragging(false)
   }
 
   const startResize =
@@ -231,6 +277,7 @@ export function AssetElementView({
         canvasW: rect.width,
         canvasH: rect.height,
       }
+      setIsResizing(true)
     }
 
   const moveResize = (e: React.PointerEvent<HTMLButtonElement>) => {
@@ -299,6 +346,7 @@ export function AssetElementView({
   const endResize = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (resizeRef.current?.pointerId === e.pointerId) {
       resizeRef.current = null
+      setIsResizing(false)
     }
   }
 
@@ -324,6 +372,10 @@ export function AssetElementView({
           width: `${asset.widthPct}%`,
           height: heightStyle,
           transform: `translate(-50%, -50%) rotate(${asset.rotation}deg)`,
+          transition:
+            !isDragging && !isResizing && shouldAnimatePositionMove
+              ? "left 300ms ease-out, top 300ms ease-out"
+              : "none",
           zIndex: 60 + asset.zIndex,
           mixBlendMode:
             asset.blendMode && asset.blendMode !== "normal"
@@ -435,6 +487,7 @@ export function AssetElementView({
       {!previewMode &&
       !bulkCanvasDragging &&
       isSelected &&
+      !hideFloatingToolbar &&
       toolbarRect &&
       typeof document !== "undefined"
         ? createPortal(

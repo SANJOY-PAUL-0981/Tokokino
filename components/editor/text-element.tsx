@@ -66,6 +66,9 @@ export function TextElementView({ text, canvasRef, onCenterGuideChange, previewM
   const isSelected = selectedTextId === text.id
   const [editingRequested, setEditingRequested] = React.useState(false)
   const [isDragging, setIsDragging] = React.useState(false)
+  const [hideFloatingToolbar, setHideFloatingToolbar] = React.useState(false)
+  const [shouldAnimatePositionMove, setShouldAnimatePositionMove] =
+    React.useState(false)
   const [isRotateSnapped, setIsRotateSnapped] = React.useState(false)
   const isEditing = isSelected && editingRequested
   const elRef = React.useRef<HTMLDivElement>(null)
@@ -96,6 +99,37 @@ export function TextElementView({ text, canvasRef, onCenterGuideChange, previewM
     sel?.removeAllRanges()
     sel?.addRange(range)
   }, [isEditing, text.content])
+
+  React.useEffect(() => {
+    const onHideToolbar = (
+      event: Event
+    ) => {
+      const detail = (
+        event as CustomEvent<{
+          kind?: string
+          id?: string
+          durationMs?: number
+        }>
+      ).detail
+      if (detail?.kind !== "text" || detail.id !== text.id) return
+      setHideFloatingToolbar(true)
+      const durationMs = detail.durationMs ?? 320
+      setShouldAnimatePositionMove(true)
+      window.setTimeout(() => setHideFloatingToolbar(false), durationMs)
+      window.setTimeout(() => setShouldAnimatePositionMove(false), durationMs)
+    }
+
+    window.addEventListener(
+      "beautiful-screenshots:hide-floating-toolbar",
+      onHideToolbar
+    )
+    return () => {
+      window.removeEventListener(
+        "beautiful-screenshots:hide-floating-toolbar",
+        onHideToolbar
+      )
+    }
+  }, [text.id])
 
   React.useEffect(() => {
     const selectText = (event: Event) => {
@@ -194,6 +228,16 @@ export function TextElementView({ text, canvasRef, onCenterGuideChange, previewM
     text.widthPx,
     text.heightPx,
   ])
+
+  React.useEffect(() => {
+    if (bulkCanvasDragging || !isSelected || hideFloatingToolbar || !elRef.current)
+      return
+    const id = window.requestAnimationFrame(() => {
+      if (!elRef.current) return
+      setToolbarRect(elRef.current.getBoundingClientRect())
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [bulkCanvasDragging, hideFloatingToolbar, isSelected, text.id])
 
   /* ---- Drag (move) ---- */
 
@@ -551,6 +595,10 @@ export function TextElementView({ text, canvasRef, onCenterGuideChange, previewM
         left: `${text.xPct}%`,
         top: `${text.yPct}%`,
         transform: `translate(-50%, -50%) rotate(${text.rotation}deg)`,
+        transition:
+          !isDragging && shouldAnimatePositionMove
+            ? "left 300ms ease-out, top 300ms ease-out"
+            : "none",
         zIndex: 60 + text.zIndex,
         width: outerWidth,
         height: outerHeight,
@@ -725,7 +773,7 @@ export function TextElementView({ text, canvasRef, onCenterGuideChange, previewM
         </div>
       )}
     </div>
-    {!previewMode && !bulkCanvasDragging && isSelected && toolbarRect && typeof document !== "undefined"
+    {!previewMode && !bulkCanvasDragging && isSelected && !hideFloatingToolbar && toolbarRect && typeof document !== "undefined"
       ? createPortal(
           (() => {
             const flipBelow = toolbarRect.top < 80
