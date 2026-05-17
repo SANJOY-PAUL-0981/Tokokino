@@ -854,6 +854,9 @@ function DefaultToolbarContents() {
               key={it.id}
               tooltip={it.label}
               contentClassName="w-auto p-0"
+              onOpenChange={(open) => {
+                if (!open) setActiveTool("pointer")
+              }}
               trigger={({ open }) => (
                 <ToolbarButton
                   aria-label={it.label}
@@ -879,6 +882,9 @@ function DefaultToolbarContents() {
               key={it.id}
               tooltip={canEnhance ? "Enhance image" : "Add a screenshot first"}
               contentClassName="w-56 p-2"
+              onOpenChange={(open) => {
+                if (!open) setActiveTool("pointer")
+              }}
               trigger={({ open }) => (
                 <ToolbarButton
                   aria-label={it.label}

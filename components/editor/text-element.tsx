@@ -525,6 +525,12 @@ export function TextElementView({ text, canvasRef, onCenterGuideChange, previewM
   // Compute outer dimensions
   const outerWidth = text.widthPx != null ? `${text.widthPx}px` : "max-content"
   const outerHeight = text.heightPx != null ? `${text.heightPx}px` : undefined
+  // Center-anchored box can't extend past the nearer canvas edge while typing.
+  const isXInside = text.xPct >= 0 && text.xPct <= 100
+  const outerMaxWidth =
+    text.widthPx == null && isXInside
+      ? `${2 * Math.min(text.xPct, 100 - text.xPct)}%`
+      : undefined
 
   return (
     <>
@@ -549,6 +555,7 @@ export function TextElementView({ text, canvasRef, onCenterGuideChange, previewM
         zIndex: 60 + text.zIndex,
         width: outerWidth,
         height: outerHeight,
+        maxWidth: outerMaxWidth,
         opacity: (text.opacity ?? 100) / 100,
         mixBlendMode:
           text.blendMode && text.blendMode !== "normal"

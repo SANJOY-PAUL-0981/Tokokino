@@ -249,6 +249,7 @@ type EditorActions = {
     >,
     canvasId?: string
   ) => void
+  deleteAnnotationStroke: (id: string, canvasId?: string) => void
   addAnnotationShape: (
     shape: Omit<AnnotationShape, "id" | "zIndex">,
     canvasId?: string
@@ -838,6 +839,14 @@ export const useEditorStore = create<EditorStore>((set, get) => {
           ),
         }),
         `annotation-stroke-${id}`
+      ),
+    deleteAnnotationStroke: (id, canvasId) =>
+      commitCanvas(
+        canvasId,
+        (canvas) => ({
+          annotations: canvas.annotations.filter((stroke) => stroke.id !== id),
+        }),
+        null
       ),
 
     addAnnotationShape: (shape, canvasId) => {
@@ -1651,6 +1660,8 @@ export function useEditor(): EditorContext {
       store.updateAnnotationStroke(id, points, canvasId ?? targetId),
     updateAnnotationStrokeLayer: (id, patch, canvasId) =>
       store.updateAnnotationStrokeLayer(id, patch, canvasId ?? targetId),
+    deleteAnnotationStroke: (id, canvasId) =>
+      store.deleteAnnotationStroke(id, canvasId ?? targetId),
     addAnnotationShape: (shape, canvasId) =>
       store.addAnnotationShape(shape, canvasId ?? targetId),
     updateAnnotationShape: (id, patch, canvasId) =>

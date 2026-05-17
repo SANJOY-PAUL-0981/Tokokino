@@ -113,14 +113,19 @@ export function LayersPanelContent() {
     updateScreenshotLayer,
     screenshotSlots,
     updateScreenshotSlot,
+    deleteScreenshotSlot,
     assets,
     updateAsset,
+    deleteAsset,
     texts,
     updateText,
+    deleteText,
     annotations,
     updateAnnotationStrokeLayer,
+    deleteAnnotationStroke,
     annotationShapes,
     updateAnnotationShape,
+    deleteAnnotationShape,
     selectedAssetId,
     setSelectedAssetId,
     selectedTextId,
@@ -293,6 +298,15 @@ export function LayersPanelContent() {
       updateAnnotationShape(layer.id, layerPatch)
   }
 
+  function deleteLayer(layer: EditorLayer) {
+    setSelectedLayerKey(null)
+    if (layer.type === "slot") deleteScreenshotSlot(layer.id)
+    if (layer.type === "asset") deleteAsset(layer.id)
+    if (layer.type === "text") deleteText(layer.id)
+    if (layer.source === "annotation-stroke") deleteAnnotationStroke(layer.id)
+    if (layer.source === "annotation-shape") deleteAnnotationShape(layer.id)
+  }
+
   function applyLayerOrder(nextTopFirst: EditorLayer[]) {
     const total = nextTopFirst.length
     nextTopFirst.forEach((layer, index) => {
@@ -395,6 +409,11 @@ export function LayersPanelContent() {
                 onMoveDown={() => moveLayer(layer, "down")}
                 onOpacityChange={(opacity) => updateLayer(layer, { opacity })}
                 onBlendChange={(blendMode) => updateLayer(layer, { blendMode })}
+                onDelete={
+                  layer.type !== "screenshot"
+                    ? () => deleteLayer(layer)
+                    : undefined
+                }
               />
             ))}
           </ul>
@@ -438,6 +457,7 @@ function LayerRow({
   onMoveDown,
   onOpacityChange,
   onBlendChange,
+  onDelete,
 }: {
   layer: EditorLayer
   selected: boolean
@@ -449,6 +469,7 @@ function LayerRow({
   onMoveDown: () => void
   onOpacityChange: (opacity: number) => void
   onBlendChange: (blendMode: AssetBlendMode) => void
+  onDelete?: () => void
 }) {
   const {
     attributes,
@@ -545,6 +566,18 @@ function LayerRow({
             <RiEyeLine className="size-3" />
           )}
         </button>
+        {onDelete && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete()
+            }}
+            aria-label="Delete layer"
+            className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-red-500/15 hover:text-red-500"
+          >
+            <RiDeleteBinLine className="size-3" />
+          </button>
+        )}
         <Popover>
           <PopoverTrigger asChild>
             <button

@@ -212,9 +212,12 @@ export function UploadCard({
   function handleUrlChange(value: string) {
     if (!value.startsWith(PREFIX)) {
       setUrl(PREFIX)
-    } else {
-      setUrl(value)
+      return
     }
+    // Strip duplicate protocol if user pastes a full URL into the prefixed input
+    const body = value.slice(PREFIX.length)
+    const stripped = body.replace(/^https?:\/\//i, "")
+    setUrl(PREFIX + stripped)
   }
 
   function handleCapture(e: React.MouseEvent | React.KeyboardEvent) {
