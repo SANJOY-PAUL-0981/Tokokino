@@ -24,7 +24,7 @@ export function Section({
     <div>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-2 py-1.5 text-left cursor-pointer"
+        className="flex w-full cursor-pointer items-center gap-2 py-1.5 text-left"
       >
         <motion.span
           animate={{ rotate: open ? 0 : -90 }}
@@ -48,7 +48,7 @@ export function Section({
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="pt-2 pb-1 pl-6">{children}</div>
+            <div className="pt-2 pb-1 pl-4 xl:pl-6">{children}</div>
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -86,7 +86,7 @@ export function PopoverHeader({
     <div>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <span className="block text-[13px] font-medium leading-tight">
+          <span className="block text-[13px] leading-tight font-medium">
             {title}
           </span>
           <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">

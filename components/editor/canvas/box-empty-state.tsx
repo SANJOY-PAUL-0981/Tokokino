@@ -77,8 +77,8 @@ export function BoxEmptyState({
         <>
           {/* Wide containers (desktop, browser, iPad horizontal) — full card */}
           <div
-            className="hidden w-full max-w-[420px] @md:block"
-            style={rotationStyle}
+            className="@container hidden w-full max-w-[420px] @md:block"
+            style={{ containerType: "inline-size", ...rotationStyle }}
           >
             <UploadCard
               fluid={!plainWideCard}

@@ -291,7 +291,7 @@ function ColorRail({
   onChange: (color: string) => void
 }) {
   return (
-    <div className="flex min-w-0 items-center justify-center gap-2.5">
+    <div className="flex min-w-0 items-center justify-center gap-2 xl:gap-2.5">
       {SHADOW_COLOR_PRESETS.map((preset) => {
         const active =
           !isCustomColor && color.toLowerCase() === preset.toLowerCase()
@@ -302,7 +302,7 @@ function ColorRail({
             aria-label={`Use ${preset} shadow`}
             onClick={() => onChange(preset)}
             className={cn(
-              "size-7 rounded-full border border-white/10 transition hover:scale-105",
+              "size-6 rounded-full border border-white/10 transition hover:scale-105 xl:size-7",
               active
                 ? "ring-2 ring-[#f65d72] ring-offset-2 ring-offset-[#f7f2ea] dark:ring-offset-[#151515]"
                 : "ring-1 ring-black/30"
@@ -321,7 +321,7 @@ function ColorRail({
           type="button"
           aria-label="Choose custom shadow color"
           className={cn(
-            "relative size-8 rounded-full border border-white/15 transition hover:scale-105",
+            "relative size-7 rounded-full border border-white/15 transition hover:scale-105 xl:size-8",
             isCustomColor
               ? "ring-2 ring-[#f65d72] ring-offset-2 ring-offset-[#f7f2ea] dark:ring-offset-[#151515]"
               : "ring-1 ring-black/30"
