@@ -321,7 +321,7 @@ export function TopBar() {
 const EXPORT_FORMATS: ExportFormat[] = ["png", "jpeg", "webp"]
 const EXPORT_RESOLUTIONS: ExportResolution[] = ["hd", "4k", "8k"]
 /** Widest export label — reserves button width so the toolbar does not shift */
-const EXPORT_BUTTON_MAX_LABEL = `Export ${EXPORT_RESOLUTION_LABELS["8k"]} • ${EXPORT_FORMAT_LABELS.webp}`
+const EXPORT_BUTTON_MAX_LABEL = `Export ${EXPORT_RESOLUTION_LABELS["hd"]} • ${EXPORT_FORMAT_LABELS.webp}`
 
 function ExportControls() {
   const activeCanvasId = useEditorStore((s) => s.present.activeCanvasId)
@@ -358,7 +358,7 @@ function ExportControls() {
       >
         <RiArrowUpCircleLine className="size-4 shrink-0" />
         <span className="relative inline-grid text-[12px] font-medium tracking-tight [&>span]:col-start-1 [&>span]:row-start-1">
-          <span className="invisible whitespace-nowrap" aria-hidden>
+          <span className="invisible pr-0.5 whitespace-nowrap" aria-hidden>
             {EXPORT_BUTTON_MAX_LABEL}
           </span>
           <AnimatePresence mode="wait" initial={false}>
