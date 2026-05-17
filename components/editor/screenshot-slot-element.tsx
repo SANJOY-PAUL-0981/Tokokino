@@ -6,12 +6,14 @@ import { motion } from "motion/react"
 import { RiFullscreenLine, RiSmartphoneLine } from "@remixicon/react"
 import { toast } from "sonner"
 
-import { BoxHoverActions } from "@/components/editor/canvas/box-hover-actions"
 import {
   frameSelectionRadius,
   snapBoxToTarget,
 } from "@/components/editor/canvas/helpers"
-import { ScreenshotFrameSettings } from "@/components/editor/canvas/screenshot-edit-menu"
+import {
+  ScreenshotEditMenu,
+  ScreenshotFrameSettings,
+} from "@/components/editor/canvas/screenshot-edit-menu"
 import { ScreenshotFrameContent } from "@/components/editor/canvas/screenshot-frame-content"
 import {
   bulkToolbarScale,
@@ -25,7 +27,6 @@ import {
   ToolbarPopover,
   ToolbarSurface,
 } from "@/components/editor/toolbar/primitives"
-import { isBrowserFrame } from "@/lib/browser-frame"
 import { slotBoxAspectRatio } from "@/lib/editor/screenshot-layout"
 import { shadowBoxShadowCss, shadowCss, shadowDropFilterCss } from "@/lib/editor/css-utils"
 import {
@@ -99,9 +100,7 @@ export function ScreenshotSlotView({
   const presetTab = useEditorStore((s) => s.presetTab)
   const isSelected = selectedScreenshotSlotId === slot.id
   const canDeleteSlot = presetTab !== "multi"
-  const hoverActionsScale = bulkEditMode
-    ? Math.max(0.45, Math.min(1, bulkViewportZoom))
-    : 1
+  const [slotEditOpen, setSlotEditOpen] = React.useState(false)
 
   const elRef = React.useRef<HTMLDivElement>(null)
   const stageRef = React.useRef<HTMLDivElement>(null)
@@ -416,30 +415,34 @@ export function ScreenshotSlotView({
             />
 
             {slot.src ? (
-              <BoxHoverActions
-                hoverGroupClass={cn(
-                  "group-hover/slot:opacity-100",
-                  isSelected && isBrowserFrame(slot.frame.id) && "opacity-100"
+              <div
+                className={cn(
+                  "pointer-events-none absolute top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-200",
+                  slotEditOpen
+                    ? "opacity-100"
+                    : "opacity-0 group-hover/slot:opacity-100",
+                  bulkCanvasDragging && !slotEditOpen && "!opacity-0"
                 )}
-                disabled={bulkCanvasDragging}
-                inline
-                mode={
-                  slot.frame.id !== "none" && !isBrowserFrame(slot.frame.id)
-                    ? "menu"
-                    : "buttons"
-                }
-                layoutKey={`${bulkViewportZoom}:${hoverActionsScale}`}
-                controlScale={bulkEditMode ? 1 : hoverActionsScale}
-                measureRef={elRef}
-                onCrop={() => onCropRequest(slot.id)}
-                onReplaceFile={(file) => void handleFiles([file])}
-                onDelete={() => {
-                  if (!canDeleteSlot) return
-                  deleteScreenshotSlot(slot.id)
-                  setSelectedScreenshotSlotId(null)
-                }}
-                showDelete={canDeleteSlot}
-              />
+              >
+                <ScreenshotEditMenu
+                  open={slotEditOpen}
+                  onOpenChange={(open) => {
+                    if (bulkCanvasDragging) {
+                      setSlotEditOpen(false)
+                      return
+                    }
+                    setSlotEditOpen(open)
+                  }}
+                  onCrop={() => onCropRequest(slot.id)}
+                  onReplaceFile={(file) => void handleFiles([file])}
+                  onDelete={() => {
+                    if (!canDeleteSlot) return
+                    deleteScreenshotSlot(slot.id)
+                    setSelectedScreenshotSlotId(null)
+                  }}
+                  showDelete={canDeleteSlot}
+                />
+              </div>
             ) : null}
           </div>
         </div>

@@ -15,13 +15,12 @@ import {
   ToolbarPopover,
   ToolbarSurface,
 } from "@/components/editor/toolbar/primitives"
-import { isBrowserFrame } from "@/lib/browser-frame"
 import type { DeviceFrame, EditorTool } from "@/lib/editor/store"
 import { useFloatingToolbarRect } from "@/hooks/use-floating-toolbar-rect"
 import { cn } from "@/lib/utils"
 
-import { BoxHoverActions } from "./box-hover-actions"
 import { frameSelectionRadius } from "./helpers"
+import { ScreenshotEditMenu } from "./screenshot-edit-menu"
 import { ScreenshotFrameContent } from "./screenshot-frame-content"
 
 type MainScreenshotRowItemProps = {
@@ -79,9 +78,6 @@ export function MainScreenshotRowItem({
   filterChain,
   isSelected,
   bulkCanvasDragging,
-  hoverActionsInline,
-  hoverActionsLayoutKey,
-  hoverActionsScale,
   toolbarScale,
   activeTool,
   isScreenshotDragging,
@@ -104,6 +100,7 @@ export function MainScreenshotRowItem({
   onPointerUp,
 }: MainScreenshotRowItemProps) {
   const rowRef = React.useRef<HTMLDivElement | null>(null)
+  const [editOpen, setEditOpen] = React.useState(false)
 
   const { toolbarRect, hideFloatingToolbar, measureRect } = useFloatingToolbarRect({
     elRef: rowRef,
@@ -207,25 +204,31 @@ export function MainScreenshotRowItem({
             />
 
             {screenshot && activeTool === "pointer" ? (
-              <BoxHoverActions
-                hoverGroupClass={cn(
-                  "group-hover/main-row:opacity-100",
-                  isSelected && isBrowserFrame(frame.id) && "opacity-100"
+              <div
+                className={cn(
+                  "pointer-events-none absolute top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-200",
+                  editOpen
+                    ? "opacity-100"
+                    : "opacity-0 group-hover/main-row:opacity-100",
+                  (bulkCanvasDragging || isScreenshotDragging) &&
+                    !editOpen &&
+                    "!opacity-0"
                 )}
-                disabled={bulkCanvasDragging || isScreenshotDragging}
-                inline
-                mode={
-                  frame.id !== "none" && !isBrowserFrame(frame.id)
-                    ? "menu"
-                    : "buttons"
-                }
-                layoutKey={hoverActionsLayoutKey}
-                controlScale={hoverActionsInline ? 1 : hoverActionsScale}
-                measureRef={rowRef}
-                onCrop={onCropClick}
-                onReplaceFile={onReplaceFile}
-                onDelete={onDelete}
-              />
+              >
+                <ScreenshotEditMenu
+                  open={editOpen}
+                  onOpenChange={(open) => {
+                    if (bulkCanvasDragging || isScreenshotDragging) {
+                      setEditOpen(false)
+                      return
+                    }
+                    setEditOpen(open)
+                  }}
+                  onCrop={onCropClick}
+                  onReplaceFile={onReplaceFile}
+                  onDelete={onDelete}
+                />
+              </div>
             ) : null}
           </div>
         </div>

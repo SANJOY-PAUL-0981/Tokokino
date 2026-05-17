@@ -1,10 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { RiCropLine, RiDeleteBinLine, RiRefreshLine } from "@remixicon/react"
 
 import { cn } from "@/lib/utils"
 import type { EditorTool, ScreenshotLayer } from "@/lib/editor/store"
+import { ScreenshotEditMenu } from "./screenshot-edit-menu"
 
 type PlacementDims = {
   stageW: number
@@ -70,7 +70,7 @@ export function ScreenshotBare({
   shadowBoxTarget = false,
   objectFit = "contain",
 }: ScreenshotBareProps) {
-  const replaceInputRef = React.useRef<HTMLInputElement>(null)
+  const [editOpen, setEditOpen] = React.useState(false)
 
   return (
     <div
@@ -118,7 +118,10 @@ export function ScreenshotBare({
       {activeTool === "pointer" && placementDims && !selectedTextId && (
         <div
           className={cn(
-            "pointer-events-none absolute z-50 flex items-center justify-center gap-3 opacity-0 transition-opacity group-hover/screenshot:opacity-100",
+            "pointer-events-none absolute z-50 flex items-center justify-center transition-opacity",
+            editOpen
+              ? "opacity-100"
+              : "opacity-0 group-hover/screenshot:opacity-100",
             isScreenshotDragging || suppressTransition
               ? "transition-none"
               : "transition-[opacity,left,top] duration-300 ease-out"
@@ -135,38 +138,13 @@ export function ScreenshotBare({
             transform: "translate(-50%, -50%)",
           }}
         >
-          <input
-            ref={replaceInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) onReplaceFile(file)
-              e.target.value = ""
-            }}
+          <ScreenshotEditMenu
+            open={editOpen}
+            onOpenChange={setEditOpen}
+            onCrop={onCropClick}
+            onReplaceFile={onReplaceFile}
+            onDelete={onDelete}
           />
-          <button
-            onClick={onCropClick}
-            className="pointer-events-auto flex size-12 items-center justify-center rounded-full bg-black/70 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110 hover:bg-black/90"
-            title="Crop image"
-          >
-            <RiCropLine className="size-5" />
-          </button>
-          <button
-            onClick={() => replaceInputRef.current?.click()}
-            className="pointer-events-auto flex size-12 items-center justify-center rounded-full bg-black/70 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110 hover:bg-black/90"
-            title="Replace image"
-          >
-            <RiRefreshLine className="size-5" />
-          </button>
-          <button
-            onClick={onDelete}
-            className="pointer-events-auto flex size-12 items-center justify-center rounded-full bg-black/70 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110 hover:bg-red-500/90"
-            title="Delete image"
-          >
-            <RiDeleteBinLine className="size-5" />
-          </button>
         </div>
       )}
     </div>

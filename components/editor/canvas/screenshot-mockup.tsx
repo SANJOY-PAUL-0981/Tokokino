@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils"
 import type { EditorTool, ScreenshotLayer } from "@/lib/editor/store"
 import type { DeviceMockupAsset, DEVICE_MOCKUP_SPECS } from "@/lib/mockups"
 
-import { BoxHoverActions } from "./box-hover-actions"
 import {
   frameFitStyle,
   framePositionTransform,
@@ -197,19 +196,25 @@ export function ScreenshotMockup({
                 transform: mockupScreenTransform(mockupSpec.screen),
               }}
             >
-              <BoxHoverActions
-                hoverGroupClass={cn(
-                  "group-hover/mockup:opacity-100",
-                  isScreenshotDragging && "!opacity-0"
+              <div
+                className={cn(
+                  "pointer-events-none absolute top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-200",
+                  editOpen
+                    ? "opacity-100"
+                    : "opacity-0 group-hover/mockup:opacity-100",
+                  isScreenshotDragging && !editOpen && "!opacity-0"
                 )}
-                disabled={isScreenshotDragging}
-                inline
-                actionSize="lg"
-                controlScale={1 / mockupSpec.screen.scale}
-                onCrop={onCropClick}
-                onReplaceFile={onReplaceFile}
-                onDelete={onDelete}
-              />
+                style={{ transform: `translate(-50%, -50%) scale(${1 / mockupSpec.screen.scale})` }}
+              >
+                <ScreenshotEditMenu
+                  open={editOpen}
+                  onOpenChange={setEditOpen}
+                  onCrop={onCropClick}
+                  onReplaceFile={onReplaceFile}
+                  onDelete={onDelete}
+                  onCaptureWebsite={onCaptureWebsite}
+                />
+              </div>
             </div>
           </div>
         ) : showHoverActions &&

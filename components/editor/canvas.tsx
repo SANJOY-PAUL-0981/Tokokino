@@ -890,9 +890,9 @@ export function Canvas() {
 
   const sectionRef = React.useRef<HTMLElement | null>(null)
   const [autoFit, setAutoFit] = React.useState(0.6)
-  const topGutter = 24
-  const bottomGutter = 96
-  const verticalOffset = (topGutter - bottomGutter) / 2
+  const topGutter = isPreviewMode ? 24 : 24
+  const bottomGutter = isPreviewMode ? 80 : 96
+  const verticalOffset = isPreviewMode ? 0 : (topGutter - bottomGutter) / 2
   React.useLayoutEffect(() => {
     const el = sectionRef.current
     if (!el) return

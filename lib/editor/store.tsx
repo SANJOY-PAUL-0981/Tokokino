@@ -1238,6 +1238,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         future: [state.present, ...state.future],
         _lastGroup: null,
         _lastTs: 0,
+        bulkEditMode: prev.canvases.length > 1,
       })
     },
     redo: () => {
@@ -1250,6 +1251,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         future: state.future.slice(1),
         _lastGroup: null,
         _lastTs: 0,
+        bulkEditMode: next.canvases.length > 1,
       })
     },
     reset: () => {

@@ -1318,48 +1318,50 @@ export function BackgroundSection() {
               Couldn&apos;t read colours from this image
             </p>
           ) : (
-            <div className="grid grid-cols-3 gap-2 px-1 py-1">
-              {autoGradientOptions.map((option) => {
-                const active =
-                  background.type === "auto" &&
-                  background.value === option.value
-                return (
-                  <div key={option.id} className="relative">
-                    <button
-                      onClick={() =>
-                        setBackground({ type: "auto", value: option.value })
-                      }
-                      className={cn(
-                        "aspect-video w-full cursor-pointer overflow-hidden rounded-xl border",
-                        active ? "border-transparent" : "border-border/60"
-                      )}
-                    >
-                      <span
-                        className="block size-full rounded-[inherit]"
-                        style={{ background: option.value }}
-                      />
-                    </button>
-                    {active ? (
-                      <motion.span
-                        layoutId="auto-gradient-tile-ring"
-                        className="pointer-events-none absolute -inset-0.5 rounded-[13px] ring-1 ring-primary/45"
-                        transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                      />
-                    ) : null}
-                    {active && gradientConfig ? (
-                      <GradientCustomizerPopover
-                        ariaLabel="Customize auto gradient"
-                        config={gradientConfig}
-                        canReset={canResetGradient}
-                        onAngleChange={setGradientAngle}
-                        onColorChange={setGradientColor}
-                        onReset={resetGradientEdits}
-                      />
-                    ) : null}
-                  </div>
-                )
-              })}
-            </div>
+            <ScrollArea className="[&>[data-slot=scroll-area-viewport]]:max-h-[280px]">
+              <div className="grid grid-cols-3 gap-2 px-1 py-1 pr-2">
+                {autoGradientOptions.map((option) => {
+                  const active =
+                    background.type === "auto" &&
+                    background.value === option.value
+                  return (
+                    <div key={option.id} className="relative">
+                      <button
+                        onClick={() =>
+                          setBackground({ type: "auto", value: option.value })
+                        }
+                        className={cn(
+                          "aspect-video w-full cursor-pointer overflow-hidden rounded-xl border",
+                          active ? "border-transparent" : "border-border/60"
+                        )}
+                      >
+                        <span
+                          className="block size-full rounded-[inherit]"
+                          style={{ background: option.value }}
+                        />
+                      </button>
+                      {active ? (
+                        <motion.span
+                          layoutId="auto-gradient-tile-ring"
+                          className="pointer-events-none absolute -inset-0.5 rounded-[13px] ring-1 ring-primary/45"
+                          transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                        />
+                      ) : null}
+                      {active && gradientConfig ? (
+                        <GradientCustomizerPopover
+                          ariaLabel="Customize auto gradient"
+                          config={gradientConfig}
+                          canReset={canResetGradient}
+                          onAngleChange={setGradientAngle}
+                          onColorChange={setGradientColor}
+                          onReset={resetGradientEdits}
+                        />
+                      ) : null}
+                    </div>
+                  )
+                })}
+              </div>
+            </ScrollArea>
           )}
         </TabsContent>
       </Tabs>

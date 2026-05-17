@@ -3,8 +3,8 @@
 import * as React from "react"
 import { RiAddLine } from "@remixicon/react"
 
-import { BoxHoverActions } from "@/components/editor/canvas/box-hover-actions"
 import { EmptyStateBackdrop } from "@/components/editor/canvas/empty-state-backdrop"
+import { ScreenshotEditMenu } from "@/components/editor/canvas/screenshot-edit-menu"
 import { UploadCard } from "@/components/editor/canvas/upload-card"
 import {
   Popover,
@@ -112,6 +112,7 @@ export function ScreenshotBrowserFrame({
   showHoverActions = true,
 }: ScreenshotBrowserFrameProps) {
   const frameRef = React.useRef<HTMLDivElement>(null)
+  const [editOpen, setEditOpen] = React.useState(false)
   const frame = getBrowserFrame(frameId)
   const frameFitStyle = browserFrameFitStyle(
     frame?.aspectRatio ?? BROWSER_FRAME_ASPECT_RATIO
@@ -218,20 +219,30 @@ export function ScreenshotBrowserFrame({
             transformOrigin: "center",
           }}
         >
-          <BoxHoverActions
-            hoverGroupClass={cn(
-              "group-hover/browser-frame:opacity-100",
-              isScreenshotDragging && "!opacity-0"
+          <div
+            className={cn(
+              "pointer-events-none absolute top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-200",
+              editOpen
+                ? "opacity-100"
+                : "opacity-0 group-hover/browser-frame:opacity-100",
+              isScreenshotDragging && !editOpen && "!opacity-0",
+              hoverActionsDisabled && !editOpen && "!opacity-0"
             )}
-            disabled={hoverActionsDisabled}
-            inline
-            layoutKey={hoverActionsLayoutKey}
-            controlScale={hoverActionsInline ? 1 : hoverActionsScale}
-            actionSize="lg"
-            onCrop={onCropClick}
-            onReplaceFile={onReplaceFile}
-            onDelete={onDelete}
-          />
+          >
+            <ScreenshotEditMenu
+              open={editOpen}
+              onOpenChange={(open) => {
+                if (hoverActionsDisabled) {
+                  setEditOpen(false)
+                  return
+                }
+                setEditOpen(open)
+              }}
+              onCrop={onCropClick}
+              onReplaceFile={onReplaceFile}
+              onDelete={onDelete}
+            />
+          </div>
         </div>
       ) : null}
     </div>
