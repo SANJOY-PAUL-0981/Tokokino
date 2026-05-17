@@ -193,6 +193,7 @@ type CanvasPatch =
 
 type EditorActions = {
   setActiveTool: (t: EditorTool) => void
+  setPresetTab: (tab: "single" | "multi") => void
   setScreenshot: (s: string | null, canvasId?: string) => void
   applyCroppedScreenshot: (
     s: string,
@@ -351,6 +352,7 @@ type EditorStore = {
   selectedAnnotationShapeId: string | null
   selectedScreenshotSlotId: string | null
   isScreenshotSelected: boolean
+  presetTab: "single" | "multi"
 } & EditorActions
 
 const computeNextZ = (items: { zIndex: number }[]) => {
@@ -666,8 +668,10 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     selectedAnnotationShapeId: null,
     selectedScreenshotSlotId: null,
     isScreenshotSelected: false,
+    presetTab: "single" as const,
 
     setActiveTool: (t) => commit({ activeTool: t }, null),
+    setPresetTab: (tab) => set({ presetTab: tab }),
     setScreenshot: (screenshot, canvasId) =>
       commitCanvas(
         canvasId,
@@ -1608,6 +1612,7 @@ export function useEditor(): EditorContext {
     canRedo,
 
     setActiveTool: store.setActiveTool,
+    setPresetTab: store.setPresetTab,
     setScreenshot: (s, canvasId) =>
       store.setScreenshot(s, canvasId ?? targetId),
     applyCroppedScreenshot: (s, region, canvasId) =>

@@ -23,6 +23,8 @@ export type LayoutPreset = {
   canvasTilt: Tilt
   canvasScale: number
   slots: SlotLayoutConfig[]
+  // Percentage of canvas width/height so layout is aspect-ratio independent
+  mainOffset?: { xPct: number; yPct: number }
 }
 
 // Row layout for 2 equal "none" frames at 16:10 puts:
@@ -80,13 +82,44 @@ export const LAYOUT_PRESETS: LayoutPreset[] = [
     ],
   },
   {
-    id: "hero-accent",
-    name: "Hero + Accent",
+    id: "perspective",
+    name: "Perspective",
+    canvasTilt: { rx: 0, ry: -25, rz: 0 },
+    canvasScale: 100,
+    slots: [
+      { xPct: 69, yPct: 64, rotation: 0, tilt: { rx: 0, ry: 24, rz: 0 }, scale: 100 },
+    ],
+    mainOffset: { xPct: 6.42, yPct: -7.2 },
+  },
+  {
+    id: "drift",
+    name: "Drift",
+    canvasTilt: { rx: 0, ry: 0, rz: -16 },
+    canvasScale: 100,
+    slots: [
+      { xPct: 69.2, yPct: 62.9, rotation: 0, tilt: { rx: 0, ry: 0, rz: 18 }, scale: 100 },
+    ],
+    mainOffset: { xPct: 11, yPct: -6.2 },
+  },
+  {
+    id: "step",
+    name: "Step",
     canvasTilt: { rx: 0, ry: 0, rz: 0 },
     canvasScale: 100,
     slots: [
-      { xPct: 77, yPct: 65, rotation: 0, tilt: { rx: 0, ry: 0, rz: 0 }, scale: 100 },
+      { xPct: 69, yPct: 64, rotation: 0, tilt: { rx: 0, ry: 0, rz: 0 }, scale: 100 },
     ],
+    mainOffset: { xPct: 6.42, yPct: -7.2 },
+  },
+  {
+    id: "stacked",
+    name: "Stacked",
+    canvasTilt: { rx: 0, ry: 0, rz: -16 },
+    canvasScale: 90,
+    slots: [
+      { xPct: 66.4, yPct: 54.1, rotation: 9, tilt: { rx: 0, ry: 0, rz: -29 }, scale: 90 },
+    ],
+    mainOffset: { xPct: 10.1, yPct: 0 },
   },
 ]
 

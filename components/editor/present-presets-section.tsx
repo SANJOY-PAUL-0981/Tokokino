@@ -300,7 +300,8 @@ export function PresentPresetsSection() {
   const activeScale = selectedSlot?.scale ?? canvas.scale
   const activeFrame = selectedSlot?.frame ?? canvas.frame
   const presetMotionCleanupRef = React.useRef<(() => void) | null>(null)
-  const [tab, setTab] = React.useState<PresetTab>("single")
+  const tab = useEditorStore((s) => s.presetTab)
+  const setTab = useEditorStore((s) => s.setPresetTab)
 
   const applyPreset = React.useCallback(
     (preset: PresentPreset) => {
@@ -339,9 +340,10 @@ export function PresentPresetsSection() {
     ]
   )
 
+  const setScreenshotOffset = useEditorStore((s) => s.setScreenshotOffset)
+
   const applyLayoutPreset = React.useCallback(
     (preset: LayoutPreset) => {
-      // Ensure main screenshot always uses row-layout centering
       setScreenshotPosition("center")
       const currentSlotIds = canvas.screenshotSlots.map((s) => s.id)
       const newSlotIds: string[] = []
@@ -363,10 +365,21 @@ export function PresentPresetsSection() {
         })
       }
       setTiltAndScale(preset.canvasTilt, preset.canvasScale)
+      if (preset.mainOffset) {
+        const aw = aspect.w || 16
+        const ah = aspect.h || 10
+        const canvasH = (BASE_CANVAS_WIDTH * ah) / aw
+        setScreenshotOffset({
+          x: (preset.mainOffset.xPct / 100) * BASE_CANVAS_WIDTH,
+          y: (preset.mainOffset.yPct / 100) * canvasH,
+        })
+      }
     },
     [
       addScreenshotSlot,
+      aspect,
       canvas.screenshotSlots,
+      setScreenshotOffset,
       setScreenshotPosition,
       setTiltAndScale,
       updateScreenshotSlot,
@@ -449,6 +462,9 @@ export function PresentPresetsSection() {
 
       {tab === "multi" && (
         <div className="space-y-2">
+          {canvas.screenshotSlots.length > 0 && (
+            <CapturePresetButton canvas={canvas} aspect={aspect} />
+          )}
           {LAYOUT_PRESETS.map((preset) => {
             const active = isLayoutPresetActive(preset, canvas)
             return (
@@ -465,6 +481,60 @@ export function PresentPresetsSection() {
         </div>
       )}
     </div>
+  )
+}
+
+function CapturePresetButton({ canvas, aspect }: { canvas: CanvasState; aspect: AspectState }) {
+  const [copied, setCopied] = React.useState(false)
+
+  const capture = () => {
+    const slots = canvas.screenshotSlots.map((s) => ({
+      xPct: Math.round(s.xPct * 10) / 10,
+      yPct: Math.round(s.yPct * 10) / 10,
+      rotation: Math.round(s.rotation * 10) / 10,
+      tilt: s.tilt,
+      scale: s.scale,
+    }))
+    const offset = canvas.screenshotOffset
+    const aw = aspect.w || 16
+    const ah = aspect.h || 10
+    const canvasH = (BASE_CANVAS_WIDTH * ah) / aw
+    const config = {
+      id: "custom",
+      name: "Custom",
+      canvasTilt: canvas.tilt,
+      canvasScale: canvas.scale,
+      slots,
+      mainOffset: (offset.x !== 0 || offset.y !== 0)
+        ? {
+            xPct: Math.round((offset.x / BASE_CANVAS_WIDTH) * 1000) / 10,
+            yPct: Math.round((offset.y / canvasH) * 1000) / 10,
+          }
+        : undefined,
+    }
+    const code = JSON.stringify(config, null, 2)
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <button
+      onClick={capture}
+      className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-white/20 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-white/40 hover:text-foreground"
+    >
+      {copied ? (
+        <>
+          <RiCheckLine className="size-3 text-green-400" />
+          <span className="text-green-400">Copied!</span>
+        </>
+      ) : (
+        <>
+          <span>Capture current as preset</span>
+        </>
+      )}
+    </button>
   )
 }
 
@@ -505,13 +575,22 @@ function LayoutPresetCard({
       blendMode: "normal" as const,
       frameAddress: canvas.frameAddress,
     }))
+    const aw = aspect.w || 16
+    const ah = aspect.h || 10
+    const canvasH = (BASE_CANVAS_WIDTH * ah) / aw
+    const offsetPx = preset.mainOffset
+      ? {
+          x: (preset.mainOffset.xPct / 100) * BASE_CANVAS_WIDTH,
+          y: (preset.mainOffset.yPct / 100) * canvasH,
+        }
+      : { x: 0, y: 0 }
     return {
       ...canvas,
       screenshotSlots: virtualSlots,
       screenshotPosition: "center" as const,
-      screenshotOffset: { x: 0, y: 0 },
+      screenshotOffset: offsetPx,
     }
-  }, [canvas, preset])
+  }, [aspect, canvas, preset])
 
   const virtualPreset: PresentPreset = React.useMemo(
     () => ({ id: preset.id, name: preset.name, tilt: preset.canvasTilt, scale: preset.canvasScale }),
@@ -546,6 +625,7 @@ function LayoutPresetCard({
           canvas={virtualCanvas}
           preset={virtualPreset}
           selectedSlot={null}
+          useSlotOwnTilt
         />
       </div>
       <div className="mt-2 flex items-center justify-between gap-2">
@@ -573,11 +653,13 @@ function PresentPresetPreview({
   canvas,
   preset,
   selectedSlot,
+  useSlotOwnTilt = false,
 }: {
   aspect: AspectState
   canvas: CanvasState
   preset: PresentPreset
   selectedSlot: ScreenshotSlot | null
+  useSlotOwnTilt?: boolean
 }) {
   const previewRef = React.useRef<HTMLDivElement>(null)
   const stageRef = React.useRef<HTMLDivElement>(null)
@@ -687,8 +769,8 @@ function PresentPresetPreview({
             slot={slot}
             canvasAspectRatio={canvasAspectRatio}
             rowLayout={slotRowLayoutById?.get(slot.id) ?? null}
-            previewTilt={preset.tilt}
-            previewScale={resolvePresentPresetScale(preset, slot.frame)}
+            previewTilt={useSlotOwnTilt ? undefined : preset.tilt}
+            previewScale={useSlotOwnTilt ? undefined : resolvePresentPresetScale(preset, slot.frame)}
           />
         ))}
         {canvas.assets.map((a) => (

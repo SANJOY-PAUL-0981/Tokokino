@@ -426,6 +426,7 @@ function DefaultToolbarContents() {
     objectFit,
     setObjectFit,
   } = useEditor()
+  const presetTab = useEditorStore((s) => s.presetTab)
   const assetInputRef = React.useRef<HTMLInputElement>(null)
 
   const selectedText = selectedTextId
@@ -729,11 +730,13 @@ function DefaultToolbarContents() {
       <ToolbarButton
         aria-label="Add screenshot box"
         tooltip={
-          screenshotSlots.length >= MAX_SCREENSHOT_SLOTS
-            ? `Maximum ${MAX_SCREENSHOT_SLOTS} screenshot boxes`
-            : "Add screenshot box"
+          presetTab === "multi"
+            ? "Disabled in Multi preset mode"
+            : screenshotSlots.length >= MAX_SCREENSHOT_SLOTS
+              ? `Maximum ${MAX_SCREENSHOT_SLOTS} screenshot boxes`
+              : "Add screenshot box"
         }
-        disabled={screenshotSlots.length >= MAX_SCREENSHOT_SLOTS}
+        disabled={presetTab === "multi" || screenshotSlots.length >= MAX_SCREENSHOT_SLOTS}
         onClick={() => {
           const id = addScreenshotSlot()
           if (id) {
