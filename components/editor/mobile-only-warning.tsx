@@ -4,6 +4,7 @@ import * as React from "react"
 import { motion } from "motion/react"
 import { RiCheckLine, RiLinkM } from "@remixicon/react"
 
+import { BrandLogo } from "@/components/editor/brand-logo"
 import { cn } from "@/lib/utils"
 
 const RECOMMENDED_MIN_PX = 1024
@@ -11,6 +12,7 @@ const RECOMMENDED_MIN_PX = 1024
 export function MobileOnlyWarning() {
   const [viewport, setViewport] = React.useState<number | null>(null)
   const [copied, setCopied] = React.useState(false)
+  const copyTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   React.useEffect(() => {
     const update = () => setViewport(window.innerWidth)
@@ -19,12 +21,22 @@ export function MobileOnlyWarning() {
     return () => window.removeEventListener("resize", update)
   }, [])
 
+  React.useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current)
+      }
+    }
+  }, [])
+
   const onCopyLink = React.useCallback(async () => {
     try {
       await navigator.clipboard.writeText(window.location.href)
       setCopied(true)
-      const t = setTimeout(() => setCopied(false), 1800)
-      return () => clearTimeout(t)
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current)
+      }
+      copyTimerRef.current = setTimeout(() => setCopied(false), 1800)
     } catch {
       /* clipboard unavailable */
     }
@@ -35,22 +47,21 @@ export function MobileOnlyWarning() {
       role="dialog"
       aria-modal="true"
       aria-label="Open on a larger screen"
-      className="fixed inset-0 z-[100] flex md:hidden"
+      className="fixed inset-0 z-[100] flex bg-background font-sans text-foreground md:hidden"
     >
       <Atmosphere />
 
-      <div className="relative z-10 flex h-full w-full flex-col items-center justify-between px-6 py-10 text-foreground">
+      <div className="relative z-10 flex h-full w-full flex-col items-center justify-between px-5 py-7 text-foreground">
         <motion.div
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.22em] text-foreground/55"
+          className="flex w-full justify-center"
         >
-          <span className="inline-block size-1.5 rounded-full bg-primary shadow-[0_0_12px_rgba(255,90,90,0.85)]" />
-          Noctivy Studio
+          <BrandLogo className="[&_span:last-child]:text-[13px] [&_svg]:text-primary [&>span:first-child]:size-9" />
         </motion.div>
 
-        <div className="flex w-full max-w-[420px] flex-col items-center text-center">
+        <div className="flex w-full max-w-[380px] flex-col items-center text-center">
           <Illustration />
 
           <motion.h1
@@ -61,26 +72,19 @@ export function MobileOnlyWarning() {
               ease: [0.22, 1, 0.36, 1],
               delay: 0.35,
             }}
-            style={{ fontFamily: "var(--font-playfair)" }}
-            className="mt-10 text-[34px] leading-[1.04] tracking-[-0.02em] text-foreground"
+            className="mt-8 text-[30px] leading-[1.04] font-semibold text-balance text-foreground"
           >
-            Best viewed{" "}
-            <span className="italic text-primary">
-              on a wider screen
-            </span>
-
-
+            Open Noctivy on a wider screen
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, ease: "easeOut", delay: 0.6 }}
-            className="mt-5 max-w-[34ch] text-[13.5px] leading-relaxed text-foreground/60"
+            className="mt-4 max-w-[34ch] text-[13px] leading-6 text-muted-foreground"
           >
-            The Noctivy editor was designed for desktops  its toolbars,
-            inspectors, and canvas don&apos;t fit comfortably on phones yet.
-            Hop on a laptop or tablet, and we&apos;ll be waiting.
+            The editor needs room for its canvas, sidebars, and floating tools.
+            Continue on a tablet, laptop, or desktop for the full workspace.
           </motion.p>
 
           <motion.div
@@ -91,20 +95,20 @@ export function MobileOnlyWarning() {
           >
             <button
               type="button"
-              onClick={onCopyLink}
+              onClick={() => void onCopyLink()}
               className={cn(
-                "group relative inline-flex items-center gap-2 overflow-hidden rounded-full border border-white/15 bg-white/[0.04] px-4 py-2.5 text-[12.5px] font-medium text-foreground/90 backdrop-blur-sm transition-colors",
-                "hover:border-primary/40 hover:bg-white/[0.08]"
+                "group relative inline-flex h-9 items-center gap-2 overflow-hidden rounded-md border border-border bg-secondary/60 px-3 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm transition-colors",
+                "hover:border-primary/50 hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none"
               )}
             >
               <span
                 aria-hidden
-                className="absolute inset-y-0 -left-12 w-12 -skew-x-12 bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 group-hover:translate-x-[280px]"
+                className="absolute inset-y-0 -left-12 w-12 -skew-x-12 bg-gradient-to-r from-transparent via-foreground/10 to-transparent transition-transform duration-700 group-hover:translate-x-[260px]"
               />
               {copied ? (
                 <RiCheckLine className="size-3.5 text-primary" />
               ) : (
-                <RiLinkM className="size-3.5 text-foreground/70" />
+                <RiLinkM className="size-3.5 text-muted-foreground" />
               )}
               {copied ? "Link copied" : "Copy link to open later"}
             </button>
@@ -115,18 +119,20 @@ export function MobileOnlyWarning() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 1.05 }}
-          className="flex flex-col items-center gap-2 text-[10.5px] uppercase tracking-[0.18em] text-foreground/40"
+          className="flex flex-col items-center gap-2 font-mono text-[10px] text-muted-foreground"
         >
           <div className="flex items-center gap-2">
-            <span className="font-mono normal-case tracking-normal text-foreground/55">
+            <span className="tabular text-foreground/65">
               {viewport !== null ? `${viewport}px` : "—"}
             </span>
-            <span className="h-px w-6 bg-foreground/20" />
-            <span className="font-mono normal-case tracking-normal text-foreground/55">
+            <span className="h-px w-6 bg-border" />
+            <span className="tabular text-foreground/65">
               {RECOMMENDED_MIN_PX}px+ recommended
             </span>
           </div>
-          <span>Made for big canvases</span>
+          <span className="tracking-[0.16em] uppercase">
+            Made for big canvases
+          </span>
         </motion.div>
       </div>
     </div>
@@ -138,57 +144,50 @@ function Atmosphere() {
     <div className="absolute inset-0 overflow-hidden bg-background">
       <div
         aria-hidden
-        className="absolute left-1/2 top-[18%] h-[420px] w-[420px] -translate-x-1/2 rounded-full opacity-[0.55] blur-[80px]"
-        style={{
-          background:
-            "radial-gradient(closest-side, oklch(0.7 0.2 18 / 35%), transparent 70%)",
-        }}
+        className="absolute inset-0 bg-[linear-gradient(to_right,oklch(from_var(--foreground)_l_c_h_/_0.035)_1px,transparent_1px),linear-gradient(to_bottom,oklch(from_var(--foreground)_l_c_h_/_0.035)_1px,transparent_1px)] [mask-image:linear-gradient(to_bottom,black,transparent_78%)] bg-size-[28px_28px]"
       />
       <div
         aria-hidden
-        className="absolute -bottom-24 left-1/2 h-[320px] w-[320px] -translate-x-1/2 rounded-full opacity-50 blur-[90px]"
-        style={{
-          background:
-            "radial-gradient(closest-side, oklch(0.55 0.18 200 / 28%), transparent 70%)",
-        }}
+        className="absolute inset-x-0 top-0 h-32 border-b border-border/50 bg-secondary/35"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-32 h-px bg-gradient-to-r from-transparent via-primary/45 to-transparent"
       />
       <div
         aria-hidden
         className="absolute inset-0 opacity-[0.08] mix-blend-overlay"
         style={{
           backgroundImage:
-            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.35 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
+            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.34 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
         }}
       />
       <div
         aria-hidden
-        className="absolute inset-0 [mask-image:radial-gradient(120%_80%_at_50%_30%,black,transparent_75%)]"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, oklch(1 0 0 / 0.04) 1px, transparent 1px), linear-gradient(to bottom, oklch(1 0 0 / 0.04) 1px, transparent 1px)",
-          backgroundSize: "44px 44px",
-        }}
+        className="absolute inset-0 bg-[radial-gradient(ellipse_110%_75%_at_50%_35%,transparent_35%,oklch(from_var(--background)_l_c_h)_100%)]"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-x-8 bottom-24 h-px bg-gradient-to-r from-transparent via-border to-transparent"
       />
     </div>
   )
 }
 
 const STARS: { cx: number; cy: number; r: number; delay: number }[] = [
-  { cx: 30, cy: 36, r: 1.1, delay: 0 },
-  { cx: 222, cy: 28, r: 1.4, delay: 0.4 },
-  { cx: 18, cy: 130, r: 0.9, delay: 0.8 },
-  { cx: 236, cy: 150, r: 1.2, delay: 1.1 },
-  { cx: 56, cy: 18, r: 0.7, delay: 0.6 },
-  { cx: 198, cy: 110, r: 0.8, delay: 1.4 },
-  { cx: 80, cy: 174, r: 0.9, delay: 0.2 },
-  { cx: 168, cy: 184, r: 1.0, delay: 0.9 },
+  { cx: 30, cy: 34, r: 1.0, delay: 0 },
+  { cx: 218, cy: 28, r: 1.2, delay: 0.4 },
+  { cx: 28, cy: 132, r: 0.8, delay: 0.8 },
+  { cx: 228, cy: 146, r: 1.0, delay: 1.1 },
+  { cx: 64, cy: 18, r: 0.7, delay: 0.6 },
+  { cx: 198, cy: 112, r: 0.8, delay: 1.4 },
 ]
 
 function Illustration() {
   const crescentMaskId = React.useId()
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.92, y: 12 }}
+      initial={{ opacity: 0, scale: 0.94, y: 12 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{
         type: "spring",
@@ -200,44 +199,38 @@ function Illustration() {
       className="relative"
     >
       <svg
-        viewBox="0 0 256 220"
+        viewBox="0 0 256 200"
         width="256"
-        height="220"
+        height="200"
         fill="none"
         aria-hidden="true"
-        className="drop-shadow-[0_30px_60px_rgba(255,90,90,0.18)]"
+        className="drop-shadow-[0_24px_50px_oklch(from_var(--foreground)_l_c_h_/_0.16)]"
       >
         <defs>
           <linearGradient id="screen-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="oklch(0.24 0.01 270)" />
-            <stop offset="100%" stopColor="oklch(0.16 0.01 270)" />
+            <stop offset="0%" stopColor="oklch(0.22 0 0)" />
+            <stop offset="100%" stopColor="oklch(0.13 0 0)" />
           </linearGradient>
           <linearGradient id="frame-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="oklch(1 0 0 / 0.25)" />
-            <stop offset="100%" stopColor="oklch(1 0 0 / 0.07)" />
+            <stop offset="0%" stopColor="oklch(1 0 0 / 0.18)" />
+            <stop offset="100%" stopColor="oklch(1 0 0 / 0.06)" />
           </linearGradient>
-          <radialGradient id="crescent-glow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="oklch(0.78 0.22 18 / 0.55)" />
-            <stop offset="60%" stopColor="oklch(0.78 0.22 18 / 0.1)" />
-            <stop offset="100%" stopColor="oklch(0.78 0.22 18 / 0)" />
-          </radialGradient>
           <mask id={crescentMaskId}>
             <rect width="100%" height="100%" fill="black" />
-            <circle cx="128" cy="100" r="26" fill="white" />
-            <circle cx="138" cy="92" r="22" fill="black" />
+            <rect x="99" y="70" width="48" height="48" rx="14" fill="white" />
+            <circle cx="137" cy="78" r="16" fill="black" />
           </mask>
         </defs>
 
-        {/* twinkling field */}
         {STARS.map((s, i) => (
           <motion.circle
             key={i}
             cx={s.cx}
             cy={s.cy}
             r={s.r}
-            fill="oklch(1 0 0 / 0.85)"
+            fill="oklch(1 0 0 / 0.55)"
             initial={{ opacity: 0 }}
-            animate={{ opacity: [0.15, 0.85, 0.15] }}
+            animate={{ opacity: [0.1, 0.65, 0.1] }}
             transition={{
               duration: 2.8 + (i % 3) * 0.6,
               ease: "easeInOut",
@@ -247,105 +240,85 @@ function Illustration() {
           />
         ))}
 
-        {/* arc / orbit */}
-        <motion.ellipse
-          cx="128"
-          cy="100"
-          rx="92"
-          ry="72"
-          stroke="oklch(1 0 0 / 0.07)"
-          strokeWidth="1"
-          strokeDasharray="2 6"
-          initial={{ rotate: -8 }}
-          animate={{ rotate: 6 }}
-          transition={{
-            duration: 14,
-            ease: "easeInOut",
-            repeat: Infinity,
-            repeatType: "reverse",
-          }}
-          style={{ transformOrigin: "128px 100px" }}
-        />
-
-        {/* glow halo behind crescent */}
-        <motion.circle
-          cx="128"
-          cy="100"
-          r="58"
-          fill="url(#crescent-glow)"
-          initial={{ opacity: 0.6 }}
-          animate={{ opacity: [0.45, 0.85, 0.45], scale: [1, 1.04, 1] }}
-          transition={{ duration: 4, ease: "easeInOut", repeat: Infinity }}
-          style={{ transformOrigin: "128px 100px" }}
-        />
-
-        {/* monitor frame */}
         <motion.g
           initial={{ y: 6, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
         >
           <rect
-            x="38"
-            y="40"
-            width="180"
-            height="120"
-            rx="14"
+            x="34"
+            y="36"
+            width="188"
+            height="116"
+            rx="10"
             fill="url(#screen-grad)"
             stroke="url(#frame-grad)"
             strokeWidth="1.2"
           />
           <rect
             x="44"
-            y="46"
-            width="168"
-            height="108"
-            rx="9"
-            fill="oklch(0.12 0 0)"
-            stroke="oklch(1 0 0 / 0.04)"
-          />
-          {/* faux inner content lines, very subtle */}
-          <rect
-            x="56"
-            y="58"
-            width="40"
-            height="3"
-            rx="1.5"
-            fill="oklch(1 0 0 / 0.08)"
+            y="48"
+            width="122"
+            height="92"
+            rx="7"
+            fill="oklch(0.1 0 0)"
+            stroke="oklch(1 0 0 / 0.06)"
           />
           <rect
-            x="56"
-            y="138"
-            width="60"
-            height="3"
-            rx="1.5"
-            fill="oklch(1 0 0 / 0.06)"
+            x="176"
+            y="48"
+            width="36"
+            height="92"
+            rx="7"
+            fill="oklch(0.18 0 0)"
+            stroke="oklch(1 0 0 / 0.08)"
           />
           <rect
             x="184"
-            y="58"
-            width="16"
-            height="3"
-            rx="1.5"
-            fill="oklch(1 0 0 / 0.08)"
+            y="60"
+            width="20"
+            height="4"
+            rx="2"
+            fill="oklch(1 0 0 / 0.14)"
+          />
+          <rect
+            x="184"
+            y="72"
+            width="15"
+            height="4"
+            rx="2"
+            fill="oklch(1 0 0 / 0.09)"
+          />
+          <rect
+            x="184"
+            y="84"
+            width="18"
+            height="4"
+            rx="2"
+            fill="oklch(1 0 0 / 0.09)"
+          />
+          <rect
+            x="184"
+            y="120"
+            width="20"
+            height="4"
+            rx="2"
+            fill="oklch(0.7 0.2 18 / 0.7)"
           />
 
-          {/* crescent (Noctivy mark) inside screen */}
           <rect
             x="44"
-            y="46"
-            width="168"
-            height="108"
+            y="48"
+            width="122"
+            height="92"
             mask={`url(#${crescentMaskId})`}
-            fill="oklch(0.82 0.2 18)"
+            fill="oklch(0.7 0.2 18)"
           />
-
-          {/* tiny accent star next to crescent */}
           <motion.circle
-            cx="156"
-            cy="78"
-            r="1.4"
-            fill="oklch(0.95 0.05 60)"
+            cx="150"
+            cy="72"
+            r="1.5"
+            fill="oklch(0.92 0.08 145)"
             initial={{ opacity: 0, scale: 0.4 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{
@@ -356,30 +329,31 @@ function Illustration() {
             }}
           />
 
-          {/* base / pedestal */}
-          <rect
-            x="116"
-            y="160"
-            width="24"
-            height="6"
-            rx="1.6"
-            fill="oklch(1 0 0 / 0.14)"
-          />
           <rect
             x="92"
-            y="166"
+            y="164"
             width="72"
-            height="4"
-            rx="2"
+            height="5"
+            rx="2.5"
             fill="oklch(1 0 0 / 0.1)"
+          />
+          <rect
+            x="116"
+            y="152"
+            width="24"
+            height="12"
+            rx="2"
+            fill="oklch(1 0 0 / 0.12)"
           />
         </motion.g>
 
-        {/* small phone, faded — visual narrative */}
         <motion.g
           initial={{ x: -4, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.6, ease: "easeOut", delay: 0.6 }}
+          style={{
+            transformOrigin: "210px 142px",
+          }}
         >
           <g transform="translate(196 138)">
             <rect
