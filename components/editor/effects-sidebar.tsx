@@ -120,7 +120,6 @@ export function EffectsSidebar({
         </div>
       </div>
       <div className="flex min-h-0 flex-1 flex-col px-4 pb-4">
-        <SectionLabel>Presets</SectionLabel>
         <ScrollArea className="min-h-0 flex-1 pr-2">
           <div className="pb-4">
             <PresentPresetsSection />

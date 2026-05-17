@@ -9,6 +9,87 @@ export type PresentPreset = {
   scale: number
 }
 
+export type SlotLayoutConfig = {
+  xPct: number
+  yPct: number
+  rotation: number
+  tilt: Tilt
+  scale: number
+}
+
+export type LayoutPreset = {
+  id: string
+  name: string
+  canvasTilt: Tilt
+  canvasScale: number
+  slots: SlotLayoutConfig[]
+}
+
+// Row layout for 2 equal "none" frames at 16:10 puts:
+//   main  at x≈25%  (width≈48%, spans 1–49%)
+//   natural slot at x≈75% (spans 51–99%)
+// Slot xPct/yPct override the position; row layout still sets the width.
+// Keeping slot near x=75 centers the composition (avg of 25+75=50%).
+// Moving slot left creates overlap but shifts the center leftward.
+export const LAYOUT_PRESETS: LayoutPreset[] = [
+  {
+    id: "side-by-side",
+    name: "Side by Side",
+    canvasTilt: { rx: 0, ry: 0, rz: 0 },
+    canvasScale: 100,
+    slots: [
+      { xPct: 75, yPct: 50, rotation: 0, tilt: { rx: 0, ry: 0, rz: 0 }, scale: 100 },
+    ],
+  },
+  {
+    id: "depth-duo",
+    name: "Depth Duo",
+    canvasTilt: { rx: 0, ry: 0, rz: 0 },
+    canvasScale: 100,
+    slots: [
+      { xPct: 76, yPct: 62, rotation: 0, tilt: { rx: 0, ry: 0, rz: 0 }, scale: 100 },
+    ],
+  },
+  {
+    id: "cascade",
+    name: "Cascade",
+    canvasTilt: { rx: 0, ry: 0, rz: 0 },
+    canvasScale: 100,
+    slots: [
+      { xPct: 74, yPct: 67, rotation: 0, tilt: { rx: 0, ry: 0, rz: 0 }, scale: 100 },
+    ],
+  },
+  {
+    // Rotations create the fan; base positions match natural row (25%+75%)
+    // so the composition is centered before rotation is applied.
+    id: "fan-out",
+    name: "Fan Out",
+    canvasTilt: { rx: 0, ry: 0, rz: -13 },
+    canvasScale: 92,
+    slots: [
+      { xPct: 75, yPct: 50, rotation: 14, tilt: { rx: 0, ry: 0, rz: 0 }, scale: 92 },
+    ],
+  },
+  {
+    id: "scatter",
+    name: "Scatter",
+    canvasTilt: { rx: 0, ry: 0, rz: -9 },
+    canvasScale: 90,
+    slots: [
+      { xPct: 74, yPct: 52, rotation: 10, tilt: { rx: 0, ry: 0, rz: 0 }, scale: 90 },
+    ],
+  },
+  {
+    id: "hero-accent",
+    name: "Hero + Accent",
+    canvasTilt: { rx: 0, ry: 0, rz: 0 },
+    canvasScale: 100,
+    slots: [
+      { xPct: 77, yPct: 65, rotation: 0, tilt: { rx: 0, ry: 0, rz: 0 }, scale: 100 },
+    ],
+  },
+]
+
 export const PRESENT_PRESETS: PresentPreset[] = [
   {
     id: "default",

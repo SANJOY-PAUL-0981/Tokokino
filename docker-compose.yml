@@ -1,0 +1,16 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: noctivy-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: noctivy
+      MONGO_INITDB_ROOT_PASSWORD: noctivy
+      MONGO_INITDB_DATABASE: noctivy
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:

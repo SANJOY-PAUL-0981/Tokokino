@@ -12,10 +12,18 @@ import { BASE_CANVAS_WIDTH } from "@/components/editor/canvas/constants"
 import { frameSelectionRadius, annotationPath } from "@/components/editor/canvas/helpers"
 import { ScreenshotFrameContent } from "@/components/editor/canvas/screenshot-frame-content"
 import {
+  LAYOUT_PRESETS,
   PRESENT_PRESETS,
   resolvePresentPresetScale,
+  type LayoutPreset,
   type PresentPreset,
 } from "@/lib/editor/present-presets"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { RiArrowRightSLine, RiLayoutGridLine } from "@remixicon/react"
 import {
   computeRowLayout,
   slotBoxAspectRatio,
@@ -42,6 +50,24 @@ import { cn } from "@/lib/utils"
 
 function isSameTilt(a: Tilt, b: Tilt) {
   return a.rx === b.rx && a.ry === b.ry && a.rz === b.rz
+}
+
+function isLayoutPresetActive(preset: LayoutPreset, canvas: CanvasState): boolean {
+  if (canvas.screenshotSlots.length !== preset.slots.length) return false
+  if (!isSameTilt(canvas.tilt, preset.canvasTilt)) return false
+  if (canvas.scale !== preset.canvasScale) return false
+  for (let i = 0; i < preset.slots.length; i++) {
+    const slot = canvas.screenshotSlots[i]
+    const config = preset.slots[i]
+    if (!slot || !config) return false
+    if (
+      slot.xPct !== config.xPct ||
+      slot.yPct !== config.yPct ||
+      slot.rotation !== config.rotation
+    )
+      return false
+  }
+  return true
 }
 
 function transformFromTiltAndScale(tilt: Tilt, scale: number) {
@@ -183,17 +209,98 @@ function useContainScale(
   return scale
 }
 
+type PresetTab = "single" | "multi"
+
+function TabTriggerRow({
+  tab,
+  onTabChange,
+}: {
+  tab: PresetTab
+  onTabChange: (t: PresetTab) => void
+}) {
+  const [open, setOpen] = React.useState(false)
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className={cn(
+            "group flex h-11 w-full items-center gap-2.5 rounded-lg bg-secondary/40 px-3 text-left transition-colors hover:bg-secondary/70",
+            open && "bg-secondary/70"
+          )}
+        >
+          <span className="inline-flex size-5 items-center justify-center text-foreground/60">
+            <RiLayoutGridLine className="size-4" />
+          </span>
+          <span className="flex-1 text-[13px] font-medium text-foreground capitalize">
+            {tab === "single" ? "Single" : "Multi"}
+          </span>
+          <RiArrowRightSLine
+            className={cn(
+              "size-4 text-muted-foreground/60 transition-transform duration-200",
+              open && "rotate-90"
+            )}
+          />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="bottom"
+        align="start"
+        sideOffset={6}
+        className="w-[180px] p-1.5"
+      >
+        <div className="flex gap-1.5">
+          {(["single", "multi"] as PresetTab[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => { onTabChange(t); setOpen(false) }}
+              className={cn(
+                "flex flex-1 flex-col items-center gap-2 rounded-lg border p-2.5 transition-colors",
+                tab === t
+                  ? "border-primary bg-primary/10"
+                  : "border-border/50 bg-secondary/30 hover:bg-secondary/60"
+              )}
+            >
+              {t === "single" ? (
+                <svg width="44" height="30" viewBox="0 0 44 30" fill="none" className="shrink-0">
+                  <rect x="8" y="4" width="28" height="22" rx="3" fill="currentColor" className={tab === t ? "text-primary/40" : "text-foreground/20"} />
+                  <rect x="8" y="4" width="28" height="22" rx="3" stroke="currentColor" strokeWidth="1.5" className={tab === t ? "text-primary/70" : "text-foreground/30"} />
+                </svg>
+              ) : (
+                <svg width="44" height="30" viewBox="0 0 44 30" fill="none" className="shrink-0">
+                  <rect x="2" y="6" width="20" height="18" rx="2.5" fill="currentColor" className={tab === t ? "text-primary/40" : "text-foreground/20"} />
+                  <rect x="2" y="6" width="20" height="18" rx="2.5" stroke="currentColor" strokeWidth="1.5" className={tab === t ? "text-primary/70" : "text-foreground/30"} />
+                  <rect x="24" y="9" width="18" height="15" rx="2" fill="currentColor" className={tab === t ? "text-primary/30" : "text-foreground/15"} />
+                  <rect x="24" y="9" width="18" height="15" rx="2" stroke="currentColor" strokeWidth="1.5" className={tab === t ? "text-primary/60" : "text-foreground/25"} />
+                </svg>
+              )}
+              <span className={cn(
+                "text-[11px] font-medium",
+                tab === t ? "text-primary" : "text-muted-foreground"
+              )}>
+                {t === "single" ? "Single" : "Multi"}
+              </span>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 export function PresentPresetsSection() {
   const canvas = useActiveCanvasField((c) => c)
   const activeCanvasId = useActiveCanvasId()
   const aspect = useEditorStore((s) => s.present.aspect)
   const selectedSlot = useSelectedScreenshotSlot()
   const setTiltAndScale = useEditorStore((s) => s.setTiltAndScale)
+  const setScreenshotPosition = useEditorStore((s) => s.setScreenshotPosition)
   const updateScreenshotSlot = useEditorStore((s) => s.updateScreenshotSlot)
+  const addScreenshotSlot = useEditorStore((s) => s.addScreenshotSlot)
   const activeTilt = selectedSlot?.tilt ?? canvas.tilt
   const activeScale = selectedSlot?.scale ?? canvas.scale
   const activeFrame = selectedSlot?.frame ?? canvas.frame
   const presetMotionCleanupRef = React.useRef<(() => void) | null>(null)
+  const [tab, setTab] = React.useState<PresetTab>("single")
 
   const applyPreset = React.useCallback(
     (preset: PresentPreset) => {
@@ -232,70 +339,231 @@ export function PresentPresetsSection() {
     ]
   )
 
+  const applyLayoutPreset = React.useCallback(
+    (preset: LayoutPreset) => {
+      // Ensure main screenshot always uses row-layout centering
+      setScreenshotPosition("center")
+      const currentSlotIds = canvas.screenshotSlots.map((s) => s.id)
+      const newSlotIds: string[] = []
+      for (let i = currentSlotIds.length; i < preset.slots.length; i++) {
+        const id = addScreenshotSlot()
+        if (id) newSlotIds.push(id)
+      }
+      const allSlotIds = [...currentSlotIds, ...newSlotIds]
+      for (let i = 0; i < preset.slots.length; i++) {
+        const slotId = allSlotIds[i]
+        const config = preset.slots[i]
+        if (!slotId || !config) continue
+        updateScreenshotSlot(slotId, {
+          xPct: config.xPct,
+          yPct: config.yPct,
+          rotation: config.rotation,
+          tilt: config.tilt,
+          scale: config.scale,
+        })
+      }
+      setTiltAndScale(preset.canvasTilt, preset.canvasScale)
+    },
+    [
+      addScreenshotSlot,
+      canvas.screenshotSlots,
+      setScreenshotPosition,
+      setTiltAndScale,
+      updateScreenshotSlot,
+    ]
+  )
+
   React.useEffect(() => {
     return () => presetMotionCleanupRef.current?.()
   }, [])
 
   return (
-    <div className="space-y-2">
-      {PRESENT_PRESETS.map((preset) => {
-        const scale = resolvePresentPresetScale(preset, activeFrame)
-        const active =
-          activeScale === scale && isSameTilt(activeTilt, preset.tilt)
+    <div className="space-y-3">
+      <div>
+        <p className="mb-2 text-[13px] font-medium text-foreground">Presets</p>
+        <TabTriggerRow tab={tab} onTabChange={setTab} />
+      </div>
 
-        return (
-          <div
-            key={preset.id}
-            role="button"
-            tabIndex={0}
-            aria-pressed={active}
-            aria-label={preset.name}
-            onClick={() => applyPreset(preset)}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter" && e.key !== " ") return
-              e.preventDefault()
-              applyPreset(preset)
-            }}
-            className={cn(
-              "group w-full cursor-pointer overflow-hidden rounded-[8px] border bg-white/[0.045] p-2 text-left transition-colors",
-              active
-                ? "border-primary ring-1 ring-primary/40"
-                : "border-white/12 hover:border-primary/55"
-            )}
-          >
-            <div
-              aria-hidden
-              inert
-              className="relative isolate h-[176px] overflow-hidden rounded-[6px] [&_*]:pointer-events-none"
-            >
-              <PresentPresetPreview
-                aspect={aspect}
-                canvas={canvas}
-                preset={preset}
-                selectedSlot={selectedSlot}
-              />
-            </div>
-            <div className="mt-2 flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="truncate text-[12px] leading-tight font-medium">
-                  {preset.name}
-                </p>
-              </div>
-              <span
+      {tab === "single" && (
+        <div className="space-y-2">
+          {PRESENT_PRESETS.map((preset) => {
+            const scale = resolvePresentPresetScale(preset, activeFrame)
+            const active =
+              activeScale === scale && isSameTilt(activeTilt, preset.tilt)
+
+            return (
+              <div
+                key={preset.id}
+                role="button"
+                tabIndex={0}
+                aria-pressed={active}
+                aria-label={preset.name}
+                onClick={() => applyPreset(preset)}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" && e.key !== " ") return
+                  e.preventDefault()
+                  applyPreset(preset)
+                }}
                 className={cn(
-                  "grid size-5 shrink-0 place-items-center rounded-full border text-white transition-opacity",
+                  "group w-full cursor-pointer overflow-hidden rounded-[8px] border bg-white/[0.045] p-2 text-left transition-colors",
                   active
-                    ? "border-primary/70 bg-primary/20 text-black dark:text-primary-foreground opacity-100"
-                    : "border-white/25 opacity-0 group-hover:opacity-70"
+                    ? "border-primary ring-1 ring-primary/40"
+                    : "border-white/12 hover:border-primary/55"
                 )}
-                aria-hidden
               >
-                <RiCheckLine className="size-3" />
-              </span>
-            </div>
-          </div>
-        )
-      })}
+                <div
+                  aria-hidden
+                  inert
+                  className="relative isolate h-[176px] overflow-hidden rounded-[6px] [&_*]:pointer-events-none"
+                >
+                  <PresentPresetPreview
+                    aspect={aspect}
+                    canvas={canvas}
+                    preset={preset}
+                    selectedSlot={selectedSlot}
+                  />
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-[12px] leading-tight font-medium">
+                      {preset.name}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      "grid size-5 shrink-0 place-items-center rounded-full border text-white transition-opacity",
+                      active
+                        ? "border-primary/70 bg-primary/20 text-black dark:text-primary-foreground opacity-100"
+                        : "border-white/25 opacity-0 group-hover:opacity-70"
+                    )}
+                    aria-hidden
+                  >
+                    <RiCheckLine className="size-3" />
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {tab === "multi" && (
+        <div className="space-y-2">
+          {LAYOUT_PRESETS.map((preset) => {
+            const active = isLayoutPresetActive(preset, canvas)
+            return (
+              <LayoutPresetCard
+                key={preset.id}
+                preset={preset}
+                canvas={canvas}
+                aspect={aspect}
+                active={active}
+                onApply={applyLayoutPreset}
+              />
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function LayoutPresetCard({
+  preset,
+  canvas,
+  aspect,
+  active,
+  onApply,
+}: {
+  preset: LayoutPreset
+  canvas: CanvasState
+  aspect: AspectState
+  active: boolean
+  onApply: (preset: LayoutPreset) => void
+}) {
+  // Build a virtual canvas that looks like the preset applied, for the preview
+  const virtualCanvas = React.useMemo<CanvasState>(() => {
+    const virtualSlots: ScreenshotSlot[] = preset.slots.map((cfg, i) => ({
+      id: `_layout_preview_${i}`,
+      src: canvas.screenshotSlots[i]?.src ?? null,
+      xPct: cfg.xPct,
+      yPct: cfg.yPct,
+      widthPct: 60,
+      heightPct: 28,
+      rotation: cfg.rotation,
+      padding: canvas.padding,
+      tilt: cfg.tilt,
+      scale: cfg.scale,
+      frame: canvas.screenshotSlots[i]?.frame ?? { ...canvas.frame },
+      borderRadius: canvas.borderRadius,
+      zIndex: i + 1,
+      shadow: { ...canvas.shadow },
+      border: { ...canvas.border },
+      enhance: canvas.enhance,
+      filter: "none" as const,
+      opacity: 100,
+      blendMode: "normal" as const,
+      frameAddress: canvas.frameAddress,
+    }))
+    return {
+      ...canvas,
+      screenshotSlots: virtualSlots,
+      screenshotPosition: "center" as const,
+      screenshotOffset: { x: 0, y: 0 },
+    }
+  }, [canvas, preset])
+
+  const virtualPreset: PresentPreset = React.useMemo(
+    () => ({ id: preset.id, name: preset.name, tilt: preset.canvasTilt, scale: preset.canvasScale }),
+    [preset]
+  )
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={preset.name}
+      onClick={() => onApply(preset)}
+      onKeyDown={(e) => {
+        if (e.key !== "Enter" && e.key !== " ") return
+        e.preventDefault()
+        onApply(preset)
+      }}
+      className={cn(
+        "group w-full cursor-pointer overflow-hidden rounded-[8px] border bg-white/[0.045] p-2 text-left transition-colors",
+        active
+          ? "border-primary ring-1 ring-primary/40"
+          : "border-white/12 hover:border-primary/55"
+      )}
+    >
+      <div
+        aria-hidden
+        inert
+        className="relative isolate h-[176px] overflow-hidden rounded-[6px] [&_*]:pointer-events-none"
+      >
+        <PresentPresetPreview
+          aspect={aspect}
+          canvas={virtualCanvas}
+          preset={virtualPreset}
+          selectedSlot={null}
+        />
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <p className="truncate text-[12px] leading-tight font-medium">
+          {preset.name}
+        </p>
+        <span
+          className={cn(
+            "grid size-5 shrink-0 place-items-center rounded-full border text-white transition-opacity",
+            active
+              ? "border-primary/70 bg-primary/20 text-black dark:text-primary-foreground opacity-100"
+              : "border-white/25 opacity-0 group-hover:opacity-70"
+          )}
+          aria-hidden
+        >
+          <RiCheckLine className="size-3" />
+        </span>
+      </div>
     </div>
   )
 }
