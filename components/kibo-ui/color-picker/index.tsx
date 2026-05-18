@@ -131,7 +131,7 @@ export const ColorPicker = ({
 export type ColorPickerSelectionProps = HTMLAttributes<HTMLDivElement>;
 
 export const ColorPickerSelection = memo(
-  ({ className, ...props }: ColorPickerSelectionProps) => {
+  ({ className, style, ...props }: ColorPickerSelectionProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [positionX, setPositionX] = useState(0);
@@ -149,6 +149,7 @@ export const ColorPickerSelection = memo(
         if (!(isDragging && containerRef.current)) {
           return;
         }
+        event.preventDefault();
         const rect = containerRef.current.getBoundingClientRect();
         const x = Math.max(
           0,
@@ -188,17 +189,22 @@ export const ColorPickerSelection = memo(
         className={cn("relative size-full cursor-crosshair rounded", className)}
         onPointerDown={(e) => {
           e.preventDefault();
+          e.stopPropagation();
+          e.currentTarget.setPointerCapture(e.pointerId);
           setIsDragging(true);
           handlePointerMove(e.nativeEvent);
         }}
         ref={containerRef}
         style={{
           background: backgroundGradient,
+          touchAction: "none",
+          overscrollBehavior: "none",
+          ...style,
         }}
         {...props}
       >
         <div
-          className="-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute h-4 w-4 rounded-full border-2 border-white"
+          className="pointer-events-none absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white"
           style={{
             left: `${positionX * 100}%`,
             top: `${positionY * 100}%`,
@@ -216,23 +222,29 @@ export type ColorPickerHueProps = ComponentProps<typeof Slider.Root>;
 
 export const ColorPickerHue = ({
   className,
+  style,
   ...props
 }: ColorPickerHueProps) => {
   const { hue, setHue } = useColorPicker();
 
   return (
     <Slider.Root
-      className={cn("relative flex h-4 w-full touch-none", className)}
+      className={cn("relative flex h-4 w-full touch-none overscroll-none", className)}
       max={360}
       onValueChange={([hue]) => setHue(hue)}
       step={1}
+      style={{
+        touchAction: "none",
+        overscrollBehavior: "none",
+        ...style,
+      }}
       value={[hue]}
       {...props}
     >
       <Slider.Track className="relative my-0.5 h-3 w-full grow rounded-full bg-[linear-gradient(90deg,#FF0000,#FFFF00,#00FF00,#00FFFF,#0000FF,#FF00FF,#FF0000)]">
         <Slider.Range className="absolute h-full" />
       </Slider.Track>
-      <Slider.Thumb className="block h-4 w-4 rounded-full border border-primary/50 bg-background shadow transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50" />
+      <Slider.Thumb className="block h-4 w-4 rounded-full border border-primary/50 bg-background shadow transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50" />
     </Slider.Root>
   );
 };
@@ -241,16 +253,22 @@ export type ColorPickerAlphaProps = ComponentProps<typeof Slider.Root>;
 
 export const ColorPickerAlpha = ({
   className,
+  style,
   ...props
 }: ColorPickerAlphaProps) => {
   const { alpha, setAlpha } = useColorPicker();
 
   return (
     <Slider.Root
-      className={cn("relative flex h-4 w-full touch-none", className)}
+      className={cn("relative flex h-4 w-full touch-none overscroll-none", className)}
       max={100}
       onValueChange={([alpha]) => setAlpha(alpha)}
       step={1}
+      style={{
+        touchAction: "none",
+        overscrollBehavior: "none",
+        ...style,
+      }}
       value={[alpha]}
       {...props}
     >
@@ -258,7 +276,7 @@ export const ColorPickerAlpha = ({
         <div className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent to-black/50 dark:to-white/50" />
         <Slider.Range className="absolute h-full rounded-full bg-transparent" />
       </Slider.Track>
-      <Slider.Thumb className="block h-4 w-4 rounded-full border border-primary/50 bg-background shadow transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50" />
+      <Slider.Thumb className="block h-4 w-4 rounded-full border border-primary/50 bg-background shadow transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50" />
     </Slider.Root>
   );
 };
@@ -342,7 +360,7 @@ const PercentageInput = ({ className, ...props }: PercentageInputProps) => {
           className
         )}
       />
-      <span className="-translate-y-1/2 absolute top-1/2 right-2 text-muted-foreground text-xs">
+      <span className="absolute top-1/2 right-2 -translate-y-1/2 text-xs text-muted-foreground">
         %
       </span>
     </div>

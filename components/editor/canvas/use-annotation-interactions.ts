@@ -131,6 +131,16 @@ export function useAnnotationInteractions({
         if (element === layer) continue
         if (!canvas.contains(element)) continue
 
+        const shapeChromeElement = element.closest<HTMLElement>(
+          "[data-annotation-selection-chrome-id]"
+        )
+        if (shapeChromeElement && canvas.contains(shapeChromeElement)) {
+          return {
+            type: "annotation-shape",
+            id: shapeChromeElement.dataset.annotationSelectionChromeId ?? null,
+          }
+        }
+
         const shapeElement = element.closest<HTMLElement>(
           "[data-annotation-shape-id]"
         )

@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { headers } from "next/headers"
 import { notFound } from "next/navigation"
 
-import { getPublicShareImageUrl, isValidShareId } from "@/lib/share"
+import { getShareImageUrl, isValidShareId } from "@/lib/share"
 import { recordShareView } from "@/lib/share-db"
 import { ShareView } from "./share-view"
 
@@ -31,7 +31,7 @@ export default async function SharePage({
   return (
     <ShareView
       id={id}
-      imageUrl={share?.imageUrl ?? getPublicShareImageUrl(id)}
+      imageUrl={getShareImageUrl(id)}
       sharedBy={share?.userName ?? null}
       views={share?.uniqueViewCount ?? null}
     />

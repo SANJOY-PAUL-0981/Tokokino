@@ -234,6 +234,13 @@
       0 40px 80px -20px oklch(from var(--foreground) l c h / 0.28);
   }
 
+  [data-editor-canvas-surface],
+  [data-editor-canvas-surface] *,
+  .nopan {
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+
   /* Grouped tool cluster used in the top bar */
   .tool-cluster {
     @apply flex items-center gap-0.5 rounded-xl border border-border/60 bg-secondary/60 p-1;

@@ -435,6 +435,8 @@ function CanvasViewInner({
             borderRadius: `var(--canvas-bd-radius, ${canvasBorderRadius}px)`,
             width: widthPx,
             height: heightPx,
+            touchAction: "none",
+            overscrollBehavior: "none",
           }}
           className={cn(
             "relative flex items-center justify-center overflow-hidden transition-shadow",
@@ -1059,9 +1061,14 @@ export function Canvas() {
   return (
     <section
       ref={sectionRef}
-      style={{ containerType: "size" }}
+      data-editor-canvas-surface
+      style={{
+        containerType: "size",
+        touchAction: "none",
+        overscrollBehavior: "none",
+      }}
       className={cn(
-        "relative z-0 flex flex-1 overflow-hidden bg-background transition-all duration-300 dark:bg-black",
+        "relative z-0 flex flex-1 touch-none overflow-hidden overscroll-none bg-background transition-all duration-300 dark:bg-black",
         isPreviewMode
           ? "items-center justify-center p-0"
           : "border-b border-dashed border-border/70"

@@ -10,6 +10,12 @@ export function getShareObjectKey(id: string) {
   return `shares/${id}.png`
 }
 
+export function getShareImageUrl(id: string, baseUrl?: string | URL) {
+  const path = `/api/share/${id}/image`
+  if (!baseUrl) return path
+  return new URL(path, baseUrl).toString()
+}
+
 export function getPublicShareImageUrl(id: string) {
   const publicBase = env.NEXT_PUBLIC_R2_PUBLIC_BASE.replace(/\/$/, "")
   return `${publicBase}/${getShareObjectKey(id)}`

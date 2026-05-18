@@ -593,7 +593,7 @@ export function AnnotationShapeElement({
             width: `${shape.widthPct}%`,
             height: `${shape.heightPct}%`,
             transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
-            zIndex: 90 + shape.zIndex,
+            zIndex: 1001 + shape.zIndex,
             display: shape.hidden ? "none" : undefined,
           }}
         >

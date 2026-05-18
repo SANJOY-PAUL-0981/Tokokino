@@ -4,7 +4,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { createShareRecord, findShareByImageHashForUser } from "@/lib/share-db"
 import {
-  getPublicShareImageUrl,
+  getShareImageUrl,
   getShareObjectKey,
   isValidShareId,
 } from "@/lib/share"
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       id: existingShare.id,
       url: existingUrl.toString(),
-      imageUrl: existingShare.imageUrl,
+      imageUrl: getShareImageUrl(existingShare.id, request.url),
       views: existingShare.uniqueViewCount,
       reused: true,
     })
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
-  const imageUrl = getPublicShareImageUrl(id)
+  const imageUrl = getShareImageUrl(id, request.url)
   const key = getShareObjectKey(id)
 
   try {
