@@ -137,7 +137,16 @@ function lightingPatch(
   lighting: BackdropLighting,
   patch: Partial<BackdropLighting>
 ) {
-  return { ...lighting, ...patch }
+  const next = { ...lighting, ...patch }
+  if (
+    next.intensity === 0 &&
+    (patch.direction !== undefined ||
+      patch.target !== undefined ||
+      patch.color !== undefined)
+  ) {
+    next.intensity = 50
+  }
+  return next
 }
 
 function BackdropTile({
@@ -671,7 +680,7 @@ export function BackdropSection() {
           description="Cast directional light on the backdrop or the screenshot."
           onReset={() =>
             setBackdropLighting({
-              target: "outer",
+              target: "inner",
               intensity: 0,
               direction: "0-0",
               color: "#FFFFFF",
@@ -695,16 +704,16 @@ export function BackdropSection() {
                   className="flex w-full rounded-md bg-secondary/60 p-1"
                 >
                   <ToggleGroupItem
-                    value="outer"
-                    className="h-7 flex-1 cursor-pointer rounded-[4px] text-[10px] hover:bg-transparent hover:text-foreground data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-sm data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
-                  >
-                    Outer
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
                     value="inner"
                     className="h-7 flex-1 cursor-pointer rounded-[4px] text-[10px] hover:bg-transparent hover:text-foreground data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-sm data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
                   >
                     Inner
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="outer"
+                    className="h-7 flex-1 cursor-pointer rounded-[4px] text-[10px] hover:bg-transparent hover:text-foreground data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-sm data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+                  >
+                    Outer
                   </ToggleGroupItem>
                 </ToggleGroup>
               </div>
@@ -774,7 +783,8 @@ export function BackdropSection() {
         >
           <div className="grid grid-cols-3 gap-1.5 px-1 py-1">
             {LIGHTING_DIRECTIONS.map((direction) => {
-              const active = lighting.direction === direction.id
+              const active =
+                lightingActive && lighting.direction === direction.id
               return (
                 <button
                   key={direction.id}

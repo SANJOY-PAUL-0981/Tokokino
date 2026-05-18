@@ -112,7 +112,7 @@ const DEFAULT_CANVAS_BASE: Omit<CanvasState, "id" | "position"> = {
       color: "#FFFFFF",
     },
     lighting: {
-      target: "outer",
+      target: "inner",
       intensity: 0,
       direction: "0-0",
       color: "#FFFFFF",
