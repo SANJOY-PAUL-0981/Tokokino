@@ -67,7 +67,7 @@ export function ScreenshotMockup({
   screenshotOffset,
   screenshotAnchor,
   enhanceFilter,
-  objectFit = "contain",
+  objectFit = "cover",
   isScreenshotDragging,
   activeTool,
   placementDims,
@@ -134,7 +134,9 @@ export function ScreenshotMockup({
         data-editor-shadow-filter-target
         data-editor-shadow-filter-base={shadowFilter || ""}
         style={{
-          ...frameFitStyle(mockupSpec.aspectRatio, mockupRotation, { scopeToMinSide }),
+          ...frameFitStyle(mockupSpec.aspectRatio, mockupRotation, {
+            scopeToMinSide,
+          }),
           left: "50%",
           top: "50%",
           transform: framePositionTransform({
@@ -145,7 +147,9 @@ export function ScreenshotMockup({
           }),
           transformOrigin: "center",
           transformStyle: "preserve-3d",
-          filter: [shadowFilter, enhanceFilter].filter(Boolean).join(" ") || undefined,
+          filter:
+            [shadowFilter, enhanceFilter].filter(Boolean).join(" ") ||
+            undefined,
           opacity: screenshotLayer.hidden ? 0 : screenshotLayer.opacity / 100,
           mixBlendMode:
             screenshotLayer.blendMode && screenshotLayer.blendMode !== "normal"
@@ -214,7 +218,9 @@ export function ScreenshotMockup({
                     : "opacity-0 group-hover/mockup:opacity-100",
                   isScreenshotDragging && !editOpen && "!opacity-0"
                 )}
-                style={{ transform: `translate(-50%, -50%) scale(${1 / mockupSpec.screen.scale})` }}
+                style={{
+                  transform: `translate(-50%, -50%) scale(${1 / mockupSpec.screen.scale})`,
+                }}
               >
                 <ScreenshotEditMenu
                   open={editOpen}

@@ -94,7 +94,7 @@ export function ScreenshotBrowserFrame({
   screenshotOffset,
   screenshotAnchor,
   enhanceFilter,
-  objectFit = "contain",
+  objectFit = "cover",
   isScreenshotDragging,
   hoverActionsDisabled,
   activeTool,
@@ -206,9 +206,10 @@ export function ScreenshotBrowserFrame({
             className="h-full w-full"
           />
         )}
-
       </div>
-      {showHoverActions && activeTool === "pointer" && !screenshotLayer.hidden ? (
+      {showHoverActions &&
+      activeTool === "pointer" &&
+      !screenshotLayer.hidden ? (
         <div
           className="pointer-events-none absolute top-0 left-0 max-h-full max-w-full"
           style={{
@@ -480,11 +481,7 @@ function BrowserFrameCompactUpload({
           onPointerDown={stopPointer}
           className="w-[320px] rounded-2xl border border-white/10 bg-neutral-900 p-0 text-white shadow-2xl"
         >
-          <UploadCard
-            isDragOver={isDragOver}
-            onBrowse={onBrowse}
-            showHint
-          />
+          <UploadCard isDragOver={isDragOver} onBrowse={onBrowse} showHint />
         </PopoverContent>
       </Popover>
     </div>

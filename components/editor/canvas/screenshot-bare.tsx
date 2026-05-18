@@ -68,14 +68,17 @@ export function ScreenshotBare({
   onReplaceFile,
   onDelete,
   shadowBoxTarget = false,
-  objectFit = "contain",
+  objectFit = "cover",
 }: ScreenshotBareProps) {
   const [editOpen, setEditOpen] = React.useState(false)
 
   return (
     <div
       ref={stageRef}
-      className={cn("group/screenshot pointer-events-none relative h-full w-full", (objectFit === "cover" || objectFit === "fill") && "overflow-hidden")}
+      className={cn(
+        "group/screenshot pointer-events-none relative h-full w-full",
+        (objectFit === "cover" || objectFit === "fill") && "overflow-hidden"
+      )}
       onPointerDown={onContainerPointerDown}
     >
       <img

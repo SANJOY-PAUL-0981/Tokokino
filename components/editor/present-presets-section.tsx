@@ -248,120 +248,120 @@ function TabTriggerRow({
               transition={{ duration: 0.15, ease: "easeOut" }}
               className="w-[180px] rounded-lg bg-popover p-1.5 shadow-md ring-1 ring-foreground/10"
             >
-        <div className="flex gap-1.5">
-          {(["single", "multi"] as PresetTab[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => {
-                onTabChange(t)
-                setOpen(false)
-              }}
-              className={cn(
-                "flex flex-1 flex-col items-center gap-2 rounded-lg border p-2.5 transition-colors",
-                tab === t
-                  ? "border-primary bg-primary/10"
-                  : "border-border/50 bg-secondary/30 hover:bg-secondary/60"
-              )}
-            >
-              {t === "single" ? (
-                <svg
-                  width="44"
-                  height="30"
-                  viewBox="0 0 44 30"
-                  fill="none"
-                  className="shrink-0"
-                >
-                  <rect
-                    x="8"
-                    y="4"
-                    width="28"
-                    height="22"
-                    rx="3"
-                    fill="currentColor"
-                    className={
-                      tab === t ? "text-primary/40" : "text-foreground/20"
-                    }
-                  />
-                  <rect
-                    x="8"
-                    y="4"
-                    width="28"
-                    height="22"
-                    rx="3"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    className={
-                      tab === t ? "text-primary/70" : "text-foreground/30"
-                    }
-                  />
-                </svg>
-              ) : (
-                <svg
-                  width="44"
-                  height="30"
-                  viewBox="0 0 44 30"
-                  fill="none"
-                  className="shrink-0"
-                >
-                  <rect
-                    x="2"
-                    y="6"
-                    width="20"
-                    height="18"
-                    rx="2.5"
-                    fill="currentColor"
-                    className={
-                      tab === t ? "text-primary/40" : "text-foreground/20"
-                    }
-                  />
-                  <rect
-                    x="2"
-                    y="6"
-                    width="20"
-                    height="18"
-                    rx="2.5"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    className={
-                      tab === t ? "text-primary/70" : "text-foreground/30"
-                    }
-                  />
-                  <rect
-                    x="24"
-                    y="9"
-                    width="18"
-                    height="15"
-                    rx="2"
-                    fill="currentColor"
-                    className={
-                      tab === t ? "text-primary/30" : "text-foreground/15"
-                    }
-                  />
-                  <rect
-                    x="24"
-                    y="9"
-                    width="18"
-                    height="15"
-                    rx="2"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    className={
-                      tab === t ? "text-primary/60" : "text-foreground/25"
-                    }
-                  />
-                </svg>
-              )}
-              <span
-                className={cn(
-                  "text-[11px] font-medium",
-                  tab === t ? "text-primary" : "text-muted-foreground"
-                )}
-              >
-                {t === "single" ? "Single" : "Multi"}
-              </span>
-            </button>
-          ))}
-        </div>
+              <div className="flex gap-1.5">
+                {(["single", "multi"] as PresetTab[]).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => {
+                      onTabChange(t)
+                      setOpen(false)
+                    }}
+                    className={cn(
+                      "flex flex-1 flex-col items-center gap-2 rounded-lg border p-2.5 transition-colors",
+                      tab === t
+                        ? "border-primary bg-primary/10"
+                        : "border-border/50 bg-secondary/30 hover:bg-secondary/60"
+                    )}
+                  >
+                    {t === "single" ? (
+                      <svg
+                        width="44"
+                        height="30"
+                        viewBox="0 0 44 30"
+                        fill="none"
+                        className="shrink-0"
+                      >
+                        <rect
+                          x="8"
+                          y="4"
+                          width="28"
+                          height="22"
+                          rx="3"
+                          fill="currentColor"
+                          className={
+                            tab === t ? "text-primary/40" : "text-foreground/20"
+                          }
+                        />
+                        <rect
+                          x="8"
+                          y="4"
+                          width="28"
+                          height="22"
+                          rx="3"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          className={
+                            tab === t ? "text-primary/70" : "text-foreground/30"
+                          }
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        width="44"
+                        height="30"
+                        viewBox="0 0 44 30"
+                        fill="none"
+                        className="shrink-0"
+                      >
+                        <rect
+                          x="2"
+                          y="6"
+                          width="20"
+                          height="18"
+                          rx="2.5"
+                          fill="currentColor"
+                          className={
+                            tab === t ? "text-primary/40" : "text-foreground/20"
+                          }
+                        />
+                        <rect
+                          x="2"
+                          y="6"
+                          width="20"
+                          height="18"
+                          rx="2.5"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          className={
+                            tab === t ? "text-primary/70" : "text-foreground/30"
+                          }
+                        />
+                        <rect
+                          x="24"
+                          y="9"
+                          width="18"
+                          height="15"
+                          rx="2"
+                          fill="currentColor"
+                          className={
+                            tab === t ? "text-primary/30" : "text-foreground/15"
+                          }
+                        />
+                        <rect
+                          x="24"
+                          y="9"
+                          width="18"
+                          height="15"
+                          rx="2"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          className={
+                            tab === t ? "text-primary/60" : "text-foreground/25"
+                          }
+                        />
+                      </svg>
+                    )}
+                    <span
+                      className={cn(
+                        "text-[11px] font-medium",
+                        tab === t ? "text-primary" : "text-muted-foreground"
+                      )}
+                    >
+                      {t === "single" ? "Single" : "Multi"}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -612,9 +612,7 @@ const PresetCardShell = React.memo(function PresetCardShell({
         {visible ? children : null}
       </div>
       <div className="mt-2 flex items-center justify-between gap-2">
-        <p className="truncate text-[12px] leading-tight font-medium">
-          {name}
-        </p>
+        <p className="truncate text-[12px] leading-tight font-medium">{name}</p>
         <span
           className={cn(
             "grid size-5 shrink-0 place-items-center rounded-full border text-white transition-opacity",
@@ -649,7 +647,10 @@ const SinglePresetCard = React.memo(function SinglePresetCard({
   const aspectStyle: React.CSSProperties = {
     aspectRatio: `${aw} / ${ah}`,
   }
-  const handleApply = React.useCallback(() => onApply(preset), [onApply, preset])
+  const handleApply = React.useCallback(
+    () => onApply(preset),
+    [onApply, preset]
+  )
   return (
     <PresetCardShell
       active={active}
@@ -733,7 +734,10 @@ const LayoutPresetCard = React.memo(function LayoutPresetCard({
   const aspectStyle: React.CSSProperties = {
     aspectRatio: `${aw} / ${ah}`,
   }
-  const handleApply = React.useCallback(() => onApply(preset), [onApply, preset])
+  const handleApply = React.useCallback(
+    () => onApply(preset),
+    [onApply, preset]
+  )
 
   return (
     <PresetCardShell
@@ -851,6 +855,7 @@ const PresentPresetPreview = React.memo(function PresentPresetPreview({
             stageRef={stageRef}
             imageRef={imageRef}
             emptyCompact={
+              ah > aw ||
               preset.tilt.rx !== 0 ||
               preset.tilt.ry !== 0 ||
               preset.tilt.rz !== 0 ||
@@ -1005,9 +1010,7 @@ function PreviewMainScreenshot({
       ? `${mainRowLayout.xPct}%`
       : `${screenshotAnchor.x}%`
   const top =
-    canvas.screenshotPosition === "center"
-      ? "50%"
-      : `${screenshotAnchor.y}%`
+    canvas.screenshotPosition === "center" ? "50%" : `${screenshotAnchor.y}%`
   const style: React.CSSProperties = {
     position: "absolute",
     left,
@@ -1031,7 +1034,7 @@ function PreviewMainScreenshot({
       imgStyle={imgStyle}
       shadowFilter={shadowDropFilterCss(canvas.shadow)}
       filterChain={enhanceFilterCss(canvas.enhance)}
-      objectFit={canvas.objectFit ?? "contain"}
+      objectFit={canvas.objectFit ?? "cover"}
       stageRef={stageRef}
       imageRef={imageRef}
       isDragOver={false}
@@ -1126,7 +1129,7 @@ function PreviewSingleScreenshot({
           onDelete={noop}
           screenshotAnchor={screenshotAnchor}
           screenshotOffset={canvas.screenshotOffset}
-          objectFit={canvas.objectFit ?? "contain"}
+          objectFit={canvas.objectFit ?? "cover"}
           applyTransformWhenEmpty
           emptyCompact={emptyCompact}
           aspectW={aspectW}

@@ -470,9 +470,7 @@ function DefaultToolbarContents() {
   const hasDeviceFrame = activeFrame.id !== "none"
   const hasMainScreenshotTarget =
     Boolean(screenshot) || hasDeviceFrame || screenshotSlots.length > 0
-  const hasScalableContent = selectedSlot
-    ? true
-    : hasMainScreenshotTarget
+  const hasScalableContent = selectedSlot ? true : hasMainScreenshotTarget
   const hasAnyScreenshotContent =
     Boolean(screenshot) || hasDeviceFrame || screenshotSlots.length > 0
   const positionTarget: PositionTarget =
@@ -736,7 +734,10 @@ function DefaultToolbarContents() {
               ? `Maximum ${MAX_SCREENSHOT_SLOTS} screenshot boxes`
               : "Add screenshot box"
         }
-        disabled={presetTab === "multi" || screenshotSlots.length >= MAX_SCREENSHOT_SLOTS}
+        disabled={
+          presetTab === "multi" ||
+          screenshotSlots.length >= MAX_SCREENSHOT_SLOTS
+        }
         onClick={() => {
           const id = addScreenshotSlot()
           if (id) {
@@ -756,10 +757,12 @@ function DefaultToolbarContents() {
       </ToolbarButton>
 
       {(() => {
-        const fitHasScreenshot = selectedSlot ? Boolean(selectedSlot.src) : Boolean(screenshot)
+        const fitHasScreenshot = selectedSlot
+          ? Boolean(selectedSlot.src)
+          : Boolean(screenshot)
         const showImageFit = fitHasScreenshot
         if (!showImageFit) return null
-        const currentFit = selectedSlot?.objectFit ?? objectFit ?? "contain"
+        const currentFit = selectedSlot?.objectFit ?? objectFit ?? "cover"
         const FIT_OPTIONS: {
           value: "contain" | "cover" | "fill"
           label: string
@@ -770,9 +773,33 @@ function DefaultToolbarContents() {
             label: "Contain",
             icon: (
               <svg viewBox="0 0 32 32" className="size-full" fill="none">
-                <rect x="2" y="2" width="28" height="28" rx="3" className="stroke-current opacity-30" strokeWidth="1.5" strokeDasharray="3 2" />
-                <rect x="7" y="5" width="18" height="22" rx="2" className="fill-current opacity-25" />
-                <rect x="7" y="5" width="18" height="22" rx="2" className="stroke-current" strokeWidth="1.5" />
+                <rect
+                  x="2"
+                  y="2"
+                  width="28"
+                  height="28"
+                  rx="3"
+                  className="stroke-current opacity-30"
+                  strokeWidth="1.5"
+                  strokeDasharray="3 2"
+                />
+                <rect
+                  x="7"
+                  y="5"
+                  width="18"
+                  height="22"
+                  rx="2"
+                  className="fill-current opacity-25"
+                />
+                <rect
+                  x="7"
+                  y="5"
+                  width="18"
+                  height="22"
+                  rx="2"
+                  className="stroke-current"
+                  strokeWidth="1.5"
+                />
               </svg>
             ),
           },
@@ -781,9 +808,33 @@ function DefaultToolbarContents() {
             label: "Cover",
             icon: (
               <svg viewBox="0 0 32 32" className="size-full" fill="none">
-                <rect x="2" y="2" width="28" height="28" rx="3" className="stroke-current opacity-30" strokeWidth="1.5" strokeDasharray="3 2" />
-                <rect x="2" y="2" width="28" height="28" rx="3" className="fill-current opacity-25" />
-                <rect x="-2" y="4" width="36" height="24" rx="2" className="stroke-current" strokeWidth="1.5" />
+                <rect
+                  x="2"
+                  y="2"
+                  width="28"
+                  height="28"
+                  rx="3"
+                  className="stroke-current opacity-30"
+                  strokeWidth="1.5"
+                  strokeDasharray="3 2"
+                />
+                <rect
+                  x="2"
+                  y="2"
+                  width="28"
+                  height="28"
+                  rx="3"
+                  className="fill-current opacity-25"
+                />
+                <rect
+                  x="-2"
+                  y="4"
+                  width="36"
+                  height="24"
+                  rx="2"
+                  className="stroke-current"
+                  strokeWidth="1.5"
+                />
               </svg>
             ),
           },
@@ -792,9 +843,29 @@ function DefaultToolbarContents() {
             label: "Fill",
             icon: (
               <svg viewBox="0 0 32 32" className="size-full" fill="none">
-                <rect x="2" y="2" width="28" height="28" rx="3" className="fill-current opacity-25" />
-                <rect x="2" y="2" width="28" height="28" rx="3" className="stroke-current" strokeWidth="1.5" />
-                <path d="M8 8L5 5M24 8l3-3M8 24l-3 3M24 24l3 3" className="stroke-current opacity-50" strokeWidth="1.5" strokeLinecap="round" />
+                <rect
+                  x="2"
+                  y="2"
+                  width="28"
+                  height="28"
+                  rx="3"
+                  className="fill-current opacity-25"
+                />
+                <rect
+                  x="2"
+                  y="2"
+                  width="28"
+                  height="28"
+                  rx="3"
+                  className="stroke-current"
+                  strokeWidth="1.5"
+                />
+                <path
+                  d="M8 8L5 5M24 8l3-3M8 24l-3 3M24 24l3 3"
+                  className="stroke-current opacity-50"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
               </svg>
             ),
           },
@@ -819,7 +890,9 @@ function DefaultToolbarContents() {
                     key={value}
                     onClick={() => {
                       if (selectedSlot) {
-                        updateScreenshotSlot(selectedSlot.id, { objectFit: value })
+                        updateScreenshotSlot(selectedSlot.id, {
+                          objectFit: value,
+                        })
                       } else {
                         setObjectFit(value)
                       }
@@ -997,9 +1070,7 @@ function DefaultToolbarContents() {
                   {SCREENSHOT_POSITIONS.map((pos) => (
                     <button
                       key={pos.id}
-                      onClick={() =>
-                        handlePositionClick(pos.id)
-                      }
+                      onClick={() => handlePositionClick(pos.id)}
                       aria-label={`Move ${positionTargetLabel} to ${positionLabel(pos.id)}`}
                       className={cn(
                         "relative flex size-8 cursor-pointer items-center justify-center rounded-md border transition-all duration-200 ease-out active:scale-95",

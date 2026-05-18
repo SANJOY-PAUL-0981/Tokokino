@@ -694,6 +694,10 @@ export function TextElementView({ text, canvasRef, onCenterGuideChange, previewM
             height: "100%",
             boxSizing: "border-box",
             overflow: "hidden",
+            ...(text.strokeColor && text.strokeWidth
+              ? { WebkitTextStroke: `${text.strokeWidth}px ${text.strokeColor}`, paintOrder: "stroke fill" }
+              : {}),
+            ...(text.textShadow ? { textShadow: text.textShadow } : {}),
           }}
         />
       ) : (
@@ -720,6 +724,10 @@ export function TextElementView({ text, canvasRef, onCenterGuideChange, previewM
             height: "100%",
             boxSizing: "border-box",
             overflow: "hidden",
+            ...(text.strokeColor && text.strokeWidth
+              ? { WebkitTextStroke: `${text.strokeWidth}px ${text.strokeColor}`, paintOrder: "stroke fill" }
+              : {}),
+            ...(text.textShadow ? { textShadow: text.textShadow } : {}),
           }}
         >
           {text.content}

@@ -38,6 +38,54 @@ import {
 } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
 
+const TEXT_EFFECTS: {
+  id: string
+  label: string
+  previewStyle: React.CSSProperties
+  patch: Partial<TextElement>
+}[] = [
+  {
+    id: "sticker",
+    label: "Sticker",
+    previewStyle: {
+      color: "#1a237e",
+      WebkitTextStroke: "6px #ffffff",
+      paintOrder: "stroke fill",
+    },
+    patch: {
+      strokeColor: "#ffffff",
+      strokeWidth: 6,
+      textShadow: null,
+    },
+  },
+  {
+    id: "glow",
+    label: "Glow",
+    previewStyle: {
+      color: "#ffffff",
+      textShadow: "0 0 8px rgba(255,255,255,0.9), 0 0 20px rgba(255,255,255,0.6)",
+    },
+    patch: {
+      strokeColor: null,
+      strokeWidth: 0,
+      textShadow: "0 0 8px rgba(255,255,255,0.9), 0 0 20px rgba(255,255,255,0.6)",
+    },
+  },
+  {
+    id: "shadow",
+    label: "Shadow",
+    previewStyle: {
+      color: "#ffffff",
+      textShadow: "3px 3px 0px rgba(0,0,0,0.8)",
+    },
+    patch: {
+      strokeColor: null,
+      strokeWidth: 0,
+      textShadow: "3px 3px 0px rgba(0,0,0,0.8)",
+    },
+  },
+]
+
 const ALIGN_ORDER: TextAlign[] = ["left", "center", "right"]
 const ALIGN_ICONS: Record<
   TextAlign,
@@ -244,9 +292,12 @@ function TextToolbarBody({
                         fontWeight: 500,
                         lineHeight: 1.3,
                         letterSpacing: 0,
+                        strokeColor: null,
+                        strokeWidth: 0,
+                        textShadow: null,
                       })
                     }
-                    className="rounded-md border border-border/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer"
+                    className="cursor-pointer rounded-md border border-border/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                   >
                     Reset
                   </button>
@@ -291,6 +342,69 @@ function TextToolbarBody({
                   step={0.1}
                   onValueChange={([v]) => updateText(text.id, { letterSpacing: Number(v.toFixed(1)) })}
                 />
+
+                <div className="mt-3 mb-1.5 flex items-center justify-between">
+                  <span className="text-[10px] font-medium text-muted-foreground">Stroke Width</span>
+                  <span className="font-mono text-[10px] text-foreground">
+                    {(text.strokeWidth ?? 0).toFixed(1)}px
+                  </span>
+                </div>
+                <Slider
+                  value={[text.strokeWidth ?? 0]}
+                  min={0}
+                  max={10}
+                  step={0.5}
+                  onValueChange={([v]) => updateText(text.id, { strokeWidth: v, strokeColor: v > 0 ? (text.strokeColor || "#000000") : null })}
+                />
+
+                <div className="mt-3 mb-1.5 flex items-center justify-between">
+                  <span className="text-[10px] font-medium text-muted-foreground">Stroke Color</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ColorPickerPopover
+                    value={text.strokeColor || "#000000"}
+                    onChange={(hex) => updateText(text.id, { strokeColor: hex, strokeWidth: text.strokeWidth && text.strokeWidth > 0 ? text.strokeWidth : 1 })}
+                    side="top"
+                    align="center"
+                  >
+                    <button
+                      aria-label="Stroke color"
+                      className="flex size-7 cursor-pointer items-center justify-center rounded-md border border-border/60 transition-colors hover:bg-accent"
+                    >
+                      <span
+                        className="size-4 rounded-full border border-border/70"
+                        style={{ backgroundColor: text.strokeColor || "#000000" }}
+                      />
+                    </button>
+                  </ColorPickerPopover>
+                  <span className="font-mono text-[10px] text-muted-foreground">
+                    {text.strokeColor || "#000000"}
+                  </span>
+                </div>
+
+                <div className="mt-3 mb-1.5">
+                  <span className="text-[10px] font-medium text-muted-foreground">Quick Effects</span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {TEXT_EFFECTS.map((effect) => (
+                    <button
+                      key={effect.id}
+                      onClick={() => updateText(text.id, effect.patch)}
+                      className={cn(
+                        "flex flex-col items-center gap-1 rounded-md border p-1.5 transition-all cursor-pointer",
+                        "border-border/60 bg-secondary/20 hover:border-foreground/30"
+                      )}
+                    >
+                      <span
+                        className="text-[13px] leading-none font-black"
+                        style={effect.previewStyle}
+                      >
+                        Aa
+                      </span>
+                      <span className="text-[9px] font-medium text-muted-foreground">{effect.label}</span>
+                    </button>
+                  ))}
+                </div>
                 </div>
               ) : (
                 <div className="flex h-full flex-col gap-2">
@@ -331,7 +445,7 @@ function TextToolbarBody({
                         style={{ fontFamily: f.css }}
                       >
                         <span>{f.label}</span>
-                        <span className="text-[10px] uppercase text-muted-foreground">{f.category}</span>
+                        <span className="text-[10px] text-muted-foreground uppercase">{f.category}</span>
                       </button>
                     ))}
                     {visibleFonts.length === 0 ? (

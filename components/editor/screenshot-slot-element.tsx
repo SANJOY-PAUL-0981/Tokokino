@@ -28,7 +28,11 @@ import {
   ToolbarSurface,
 } from "@/components/editor/toolbar/primitives"
 import { slotBoxAspectRatio } from "@/lib/editor/screenshot-layout"
-import { shadowBoxShadowCss, shadowCss, shadowDropFilterCss } from "@/lib/editor/css-utils"
+import {
+  shadowBoxShadowCss,
+  shadowCss,
+  shadowDropFilterCss,
+} from "@/lib/editor/css-utils"
 import {
   assetFilterCss,
   enhanceFilterCss,
@@ -176,7 +180,9 @@ export function ScreenshotSlotRender({
       onPointerDown={previewMode ? undefined : onPointerDown}
       onPointerMove={previewMode ? undefined : onPointerMove}
       onPointerUp={previewMode ? undefined : onPointerUp}
-      onPointerCancel={previewMode ? undefined : onPointerCancel ?? onPointerUp}
+      onPointerCancel={
+        previewMode ? undefined : (onPointerCancel ?? onPointerUp)
+      }
       onClick={previewMode ? undefined : onSelect}
       onDragOver={previewMode ? undefined : onDragOver}
       onDragLeave={previewMode ? undefined : onDragLeave}
@@ -226,7 +232,7 @@ export function ScreenshotSlotRender({
               bareStyle={bareImgStyle}
               applyTransformWhenEmpty
               emptyCompact
-              objectFit={slot.objectFit ?? "contain"}
+              objectFit={slot.objectFit ?? "cover"}
               activeTool={activeTool}
               isDragging={false}
               stageRef={stageRef}
@@ -448,7 +454,7 @@ export function ScreenshotSlotView({
       lastYPct: slot.yPct,
       moved: false,
     }
-    ;(e.currentTarget).setPointerCapture(e.pointerId)
+    e.currentTarget.setPointerCapture(e.pointerId)
   }
 
   const moveDrag = (e: React.PointerEvent<Element>) => {
@@ -640,36 +646,155 @@ export function ScreenshotSlotView({
                             tooltip="Image fit"
                             contentClassName="w-44 p-2"
                             trigger={({ open }) => (
-                              <ToolbarButton aria-label="Image fit" active={open}>
+                              <ToolbarButton
+                                aria-label="Image fit"
+                                active={open}
+                              >
                                 <RiFullscreenLine className="size-4" />
                               </ToolbarButton>
                             )}
                           >
-                            <div className="flex flex-col gap-1">
-                              {(
-                                [
-                                  { value: "contain", label: "Contain" },
-                                  { value: "cover", label: "Cover" },
-                                  { value: "fill", label: "Fill" },
-                                ] as const
-                              ).map(({ value, label }) => (
-                                <button
-                                  key={value}
-                                  onClick={() =>
-                                    updateScreenshotSlot(slot.id, {
-                                      objectFit: value,
-                                    })
-                                  }
-                                  className={cn(
-                                    "rounded px-3 py-1.5 text-left text-sm transition-colors",
-                                    (slot.objectFit ?? "contain") === value
-                                      ? "bg-white/15 text-white"
-                                      : "text-white/60 hover:bg-white/10 hover:text-white"
-                                  )}
-                                >
-                                  {label}
-                                </button>
-                              ))}
+                            <div className="flex flex-col gap-2">
+                              <span className="px-1 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+                                Image Fit
+                              </span>
+                              <div className="grid grid-cols-3 gap-1.5">
+                                {(
+                                  [
+                                    {
+                                      value: "contain" as const,
+                                      label: "Contain",
+                                      icon: (
+                                        <svg
+                                          viewBox="0 0 32 32"
+                                          className="size-full"
+                                          fill="none"
+                                        >
+                                          <rect
+                                            x="2"
+                                            y="2"
+                                            width="28"
+                                            height="28"
+                                            rx="3"
+                                            className="stroke-current opacity-30"
+                                            strokeWidth="1.5"
+                                            strokeDasharray="3 2"
+                                          />
+                                          <rect
+                                            x="7"
+                                            y="5"
+                                            width="18"
+                                            height="22"
+                                            rx="2"
+                                            className="fill-current opacity-25"
+                                          />
+                                          <rect
+                                            x="7"
+                                            y="5"
+                                            width="18"
+                                            height="22"
+                                            rx="2"
+                                            className="stroke-current"
+                                            strokeWidth="1.5"
+                                          />
+                                        </svg>
+                                      ),
+                                    },
+                                    {
+                                      value: "cover" as const,
+                                      label: "Cover",
+                                      icon: (
+                                        <svg
+                                          viewBox="0 0 32 32"
+                                          className="size-full"
+                                          fill="none"
+                                        >
+                                          <rect
+                                            x="2"
+                                            y="2"
+                                            width="28"
+                                            height="28"
+                                            rx="3"
+                                            className="stroke-current opacity-30"
+                                            strokeWidth="1.5"
+                                            strokeDasharray="3 2"
+                                          />
+                                          <rect
+                                            x="2"
+                                            y="2"
+                                            width="28"
+                                            height="28"
+                                            rx="3"
+                                            className="fill-current opacity-25"
+                                          />
+                                          <rect
+                                            x="-2"
+                                            y="4"
+                                            width="36"
+                                            height="24"
+                                            rx="2"
+                                            className="stroke-current"
+                                            strokeWidth="1.5"
+                                          />
+                                        </svg>
+                                      ),
+                                    },
+                                    {
+                                      value: "fill" as const,
+                                      label: "Fill",
+                                      icon: (
+                                        <svg
+                                          viewBox="0 0 32 32"
+                                          className="size-full"
+                                          fill="none"
+                                        >
+                                          <rect
+                                            x="2"
+                                            y="2"
+                                            width="28"
+                                            height="28"
+                                            rx="3"
+                                            className="fill-current opacity-25"
+                                          />
+                                          <rect
+                                            x="2"
+                                            y="2"
+                                            width="28"
+                                            height="28"
+                                            rx="3"
+                                            className="stroke-current"
+                                            strokeWidth="1.5"
+                                          />
+                                          <path
+                                            d="M8 8L5 5M24 8l3-3M8 24l-3 3M24 24l3 3"
+                                            className="stroke-current opacity-50"
+                                            strokeWidth="1.5"
+                                            strokeLinecap="round"
+                                          />
+                                        </svg>
+                                      ),
+                                    },
+                                  ] as const
+                                ).map(({ value, label, icon }) => (
+                                  <button
+                                    key={value}
+                                    onClick={() =>
+                                      updateScreenshotSlot(slot.id, {
+                                        objectFit: value,
+                                      })
+                                    }
+                                    className={cn(
+                                      "flex cursor-pointer flex-col items-center gap-1.5 rounded-md border px-2 py-2.5 text-[11px] transition-all",
+                                      (slot.objectFit ?? "cover") === value
+                                        ? "border-primary/40 bg-primary/10 text-foreground ring-1 ring-primary/20"
+                                        : "border-border/60 bg-secondary/30 text-muted-foreground hover:border-foreground/30"
+                                    )}
+                                  >
+                                    <span className="size-7">{icon}</span>
+                                    <span className="font-medium">{label}</span>
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           </ToolbarPopover>
                         </>

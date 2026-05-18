@@ -421,7 +421,7 @@ function CanvasViewInner({
             isPreviewMode
               ? "ring-0"
               : bulkEditMode && isActive
-                ? "ring-2 ring-primary/70 shadow-[0_0_0_4px_rgba(120,90,255,0.12)]"
+                ? "shadow-[0_0_0_4px_rgba(120,90,255,0.12)] ring-2 ring-primary/70"
                 : "ring-1 ring-border/40"
           )}
           onClick={() => {
@@ -495,7 +495,7 @@ function CanvasViewInner({
               onBringToFront={() => bringScreenshotToFront()}
               onSendToBack={() => sendScreenshotToBack()}
               onFrameChange={setFrame}
-              objectFit={objectFit ?? "contain"}
+              objectFit={objectFit ?? "cover"}
               onObjectFitChange={setObjectFit}
               stageRef={stageRef}
               imageRef={imageRef}
@@ -532,7 +532,7 @@ function CanvasViewInner({
                     screenshotOffset={effectiveOffset}
                     screenshotAnchor={screenshotAnchor}
                     enhanceFilter={enhanceFilter}
-                    objectFit={objectFit ?? "contain"}
+                    objectFit={objectFit ?? "cover"}
                     isScreenshotDragging={isScreenshotDragging}
                     hoverActionsDisabled={
                       bulkCanvasDragging || isScreenshotDragging
@@ -574,7 +574,7 @@ function CanvasViewInner({
                     screenshotOffset={effectiveOffset}
                     screenshotAnchor={screenshotAnchor}
                     enhanceFilter={enhanceFilter}
-                    objectFit={objectFit ?? "contain"}
+                    objectFit={objectFit ?? "cover"}
                     isScreenshotDragging={isScreenshotDragging}
                     activeTool={activeTool}
                     placementDims={placementDims}
@@ -616,7 +616,7 @@ function CanvasViewInner({
                     stageRef={stageRef}
                     imageRef={imageRef}
                     shadowBoxTarget={frame.id === "none"}
-                    objectFit={objectFit ?? "contain"}
+                    objectFit={objectFit ?? "cover"}
                     onContainerPointerDown={(e) => {
                       if (e.target === e.currentTarget) {
                         setIsScreenshotSelected(false)
@@ -658,6 +658,7 @@ function CanvasViewInner({
                   addressValue={frameAddress}
                   onAddressChange={setFrameAddress}
                   compact={
+                    isPortraitCanvas ||
                     tilt.rx !== 0 ||
                     tilt.ry !== 0 ||
                     tilt.rz !== 0 ||
@@ -960,7 +961,9 @@ export function Canvas() {
       if (canvasId) setActiveCanvasId(canvasId)
     }
     carouselApi.on("select", onSelect)
-    return () => { carouselApi.off("select", onSelect) }
+    return () => {
+      carouselApi.off("select", onSelect)
+    }
   }, [carouselApi, canvasIds, setActiveCanvasId])
 
   React.useEffect(() => {
@@ -970,9 +973,18 @@ export function Canvas() {
       return () => clearInterval(id)
     }
     if (!carouselApi) return
-    const id = setInterval(() => carouselApi.scrollNext(), previewAutoScrollDelay)
+    const id = setInterval(
+      () => carouselApi.scrollNext(),
+      previewAutoScrollDelay
+    )
     return () => clearInterval(id)
-  }, [isPreviewAutoScroll, carouselApi, previewAutoScrollDelay, useCustomAnim, goNext])
+  }, [
+    isPreviewAutoScroll,
+    carouselApi,
+    previewAutoScrollDelay,
+    useCustomAnim,
+    goNext,
+  ])
 
   const animVariants = React.useMemo(() => {
     if (previewAnimation === "fade") {
@@ -1021,7 +1033,10 @@ export function Canvas() {
       {isBulkScroll ? (
         <BulkCanvasFlow widthPx={widthPx} heightPx={heightPx} />
       ) : useCustomAnim ? (
-        <div className="relative flex h-full w-full items-center justify-center overflow-hidden" style={{ perspective: 1400 }}>
+        <div
+          className="relative flex h-full w-full items-center justify-center overflow-hidden"
+          style={{ perspective: 1400 }}
+        >
           <AnimatePresence mode="wait" custom={animDirection}>
             {canvasIds[boundedAnimIndex] && (
               <motion.div
@@ -1062,7 +1077,18 @@ export function Canvas() {
             className="absolute left-4 z-10 flex size-12 cursor-pointer items-center justify-center rounded-full border border-border/50 bg-background/80 shadow-lg backdrop-blur-sm transition-colors hover:bg-background"
             aria-label="Previous"
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
           </button>
           <button
             type="button"
@@ -1070,7 +1096,18 @@ export function Canvas() {
             className="absolute right-4 z-10 flex size-12 cursor-pointer items-center justify-center rounded-full border border-border/50 bg-background/80 shadow-lg backdrop-blur-sm transition-colors hover:bg-background"
             aria-label="Next"
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
           </button>
         </div>
       ) : isPreviewCarousel ? (

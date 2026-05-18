@@ -116,6 +116,7 @@ const DEFAULT_CANVAS_BASE: Omit<CanvasState, "id" | "position"> = {
   scale: 100,
   screenshotPosition: "center",
   screenshotOffset: { x: 0, y: 0 },
+  objectFit: "cover",
   screenshotLayer: {
     zIndex: 1,
     opacity: 100,
@@ -566,6 +567,7 @@ const createScreenshotSlot = (
   opacity: 100,
   blendMode: "normal",
   frameAddress: "",
+  objectFit: "cover",
   ...base,
 })
 
@@ -739,6 +741,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
           screenshot,
           originalScreenshot: screenshot,
           lastCropRegion: null,
+          objectFit: canvas.objectFit ?? "cover",
           screenshotPosition: "center",
           screenshotOffset: presetOffset,
           screenshotLayer: {
@@ -1466,7 +1469,9 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         canvasId,
         (canvas) => {
           const updatedSlots = canvas.screenshotSlots.map((slot) =>
-            slot.id === id ? { ...slot, src } : slot
+            slot.id === id
+              ? { ...slot, src, objectFit: slot.objectFit ?? "cover" }
+              : slot
           )
           if (
             !activeLayoutPreset ||

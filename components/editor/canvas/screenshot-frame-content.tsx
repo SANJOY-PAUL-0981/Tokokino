@@ -103,7 +103,7 @@ export function ScreenshotFrameContent({
   screenshotAnchor = CENTER_ANCHOR,
   applyTransformWhenEmpty = false,
   emptyCompact = false,
-  objectFit = "contain",
+  objectFit = "cover",
   aspectW,
   aspectH,
   mockupScopeToMinSide = false,
@@ -300,7 +300,7 @@ export function ScreenshotFrameContent({
       data-editor-shadow-box-target={frame.id === "none" ? "" : undefined}
       className={`relative h-full w-full overflow-hidden${
         applyTransformWhenEmpty
-          ? " transition-transform duration-300 ease-out"
+          ? "transition-transform duration-300 ease-out"
           : ""
       }`}
       style={hasAspect ? undefined : emptyPreviewStyle}

@@ -169,6 +169,9 @@ export type TextElement = {
   widthPx: number | null
   heightPx: number | null
   autoColor: boolean
+  strokeColor?: string | null
+  strokeWidth?: number
+  textShadow?: string | null
   opacity?: number
   blendMode?: AssetBlendMode
   hidden?: boolean
