@@ -197,6 +197,7 @@ type EditorActions = {
   setActiveTool: (t: EditorTool) => void
   setPresetTab: (tab: "single" | "multi") => void
   setActiveLayoutPresetId: (id: string | null) => void
+  setActiveSinglePresetId: (id: string | null) => void
   setScreenshot: (s: string | null, canvasId?: string) => void
   applyCroppedScreenshot: (
     s: string,
@@ -358,6 +359,7 @@ type EditorStore = {
   isScreenshotSelected: boolean
   presetTab: "single" | "multi"
   activeLayoutPresetId: string | null
+  activeSinglePresetId: string | null
 } & EditorActions
 
 const computeNextZ = (items: { zIndex: number }[]) => {
@@ -716,10 +718,12 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     isScreenshotSelected: false,
     presetTab: "single" as const,
     activeLayoutPresetId: null,
+    activeSinglePresetId: null,
 
     setActiveTool: (t) => commit({ activeTool: t }, null),
     setPresetTab: (tab) => set({ presetTab: tab }),
     setActiveLayoutPresetId: (id) => set({ activeLayoutPresetId: id }),
+    setActiveSinglePresetId: (id) => set({ activeSinglePresetId: id }),
     setScreenshot: (screenshot, canvasId) => {
       const state = get()
       const activeLayoutPreset = LAYOUT_PRESETS.find(
@@ -1613,6 +1617,32 @@ export const useEditorStore = create<EditorStore>((set, get) => {
 
 const CanvasIdContext = React.createContext<string | null>(null)
 
+const CanvasOverrideContext = React.createContext<Partial<CanvasState> | null>(
+  null
+)
+
+const CanvasPreviewModeContext = React.createContext<boolean>(false)
+
+export function CanvasPreviewScope({
+  override,
+  children,
+}: {
+  override: Partial<CanvasState> | null
+  children: React.ReactNode
+}) {
+  return (
+    <CanvasPreviewModeContext.Provider value={true}>
+      <CanvasOverrideContext.Provider value={override}>
+        {children}
+      </CanvasOverrideContext.Provider>
+    </CanvasPreviewModeContext.Provider>
+  )
+}
+
+export function useCanvasPreviewMode() {
+  return React.useContext(CanvasPreviewModeContext)
+}
+
 export function CanvasScope({
   id,
   children,
@@ -1660,14 +1690,17 @@ export function useActiveCanvasField<T>(
   selector: (canvas: CanvasState) => T
 ): T {
   const scopeId = React.useContext(CanvasIdContext)
-  return useEditorStore((s) => {
+  const override = React.useContext(CanvasOverrideContext)
+  const base = useEditorStore((s) => {
     const id = scopeId ?? s.present.activeCanvasId
-    const canvas =
+    return (
       s.present.canvases.find((c) => c.id === id) ??
       s.present.canvases[0] ??
       FALLBACK_CANVAS
-    return selector(canvas)
+    )
   })
+  const canvas = override ? { ...base, ...override } : base
+  return selector(canvas)
 }
 
 export type EditorContext = Omit<EditorState, "canvases"> &
@@ -1783,6 +1816,7 @@ export function useEditor(): EditorContext {
     setActiveTool: store.setActiveTool,
     setPresetTab: store.setPresetTab,
     setActiveLayoutPresetId: store.setActiveLayoutPresetId,
+    setActiveSinglePresetId: store.setActiveSinglePresetId,
     setScreenshot: (s, canvasId) =>
       store.setScreenshot(s, canvasId ?? targetId),
     applyCroppedScreenshot: (s, region, canvasId) =>

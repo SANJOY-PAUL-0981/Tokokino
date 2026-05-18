@@ -3,15 +3,8 @@
 import * as React from "react"
 import { animate, AnimatePresence, motion } from "motion/react"
 
-import { AnnotationShapeElement } from "@/components/editor/annotation-shape-element"
-import { AssetElementView } from "@/components/editor/asset-element"
-import { TextElementView } from "@/components/editor/text-element"
-import { CanvasBackdrop } from "@/components/editor/canvas/canvas-backdrop"
+import { CanvasView } from "@/components/editor/canvas"
 import { BASE_CANVAS_WIDTH } from "@/components/editor/canvas/constants"
-import { annotationPath } from "@/components/editor/canvas/helpers"
-import { MainScreenshotRender } from "@/components/editor/canvas/main-screenshot-row-item"
-import { ScreenshotFrameContent } from "@/components/editor/canvas/screenshot-frame-content"
-import { ScreenshotSlotRender } from "@/components/editor/screenshot-slot-element"
 import {
   LAYOUT_PRESETS,
   PRESENT_PRESETS,
@@ -30,19 +23,6 @@ import {
   RiLayoutGridLine,
 } from "@remixicon/react"
 import {
-  computeRowLayout,
-  slotBoxAspectRatio,
-} from "@/lib/editor/screenshot-layout"
-import {
-  shadowBoxShadowCss,
-  shadowCss,
-  shadowDropFilterCss,
-} from "@/lib/editor/css-utils"
-import {
-  effectsFilterCss,
-  enhanceFilterCss,
-  overlayUrl,
-  screenshotPositionAnchor,
   useActiveCanvasField,
   useActiveCanvasId,
   useEditorStore,
@@ -53,22 +33,6 @@ import {
   type Tilt,
 } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
-
-const noop = () => undefined
-
-function isSameTilt(a: Tilt, b: Tilt) {
-  return a.rx === b.rx && a.ry === b.ry && a.rz === b.rz
-}
-
-function transformFromTiltAndScale(tilt: Tilt, scale: number) {
-  return [
-    "perspective(1400px)",
-    `rotateX(${tilt.rx}deg)`,
-    `rotateY(${tilt.ry}deg)`,
-    `rotateZ(${tilt.rz}deg)`,
-    `scale(${scale / 100})`,
-  ].join(" ")
-}
 
 type PresetMotionKind = "canvas" | "slot"
 
@@ -389,6 +353,10 @@ export function PresentPresetsSection() {
   const setActiveLayoutPresetId = useEditorStore(
     (s) => s.setActiveLayoutPresetId
   )
+  const activeSinglePresetId = useEditorStore((s) => s.activeSinglePresetId)
+  const setActiveSinglePresetId = useEditorStore(
+    (s) => s.setActiveSinglePresetId
+  )
 
   const applyPreset = React.useCallback(
     (preset: PresentPreset) => {
@@ -415,6 +383,7 @@ export function PresentPresetsSection() {
         const slotScale = resolvePresentPresetScale(preset, slot.frame)
         updateScreenshotSlot(slot.id, { tilt: preset.tilt, scale: slotScale })
       }
+      setActiveSinglePresetId(preset.id)
     },
     [
       activeCanvasId,
@@ -422,6 +391,7 @@ export function PresentPresetsSection() {
       activeScale,
       activeTilt,
       canvas.screenshotSlots,
+      setActiveSinglePresetId,
       setTiltAndScale,
       updateScreenshotSlot,
     ]
@@ -489,9 +459,7 @@ export function PresentPresetsSection() {
       {tab === "single" && (
         <div className="space-y-2">
           {PRESENT_PRESETS.map((preset) => {
-            const scale = resolvePresentPresetScale(preset, activeFrame)
-            const active =
-              activeScale === scale && isSameTilt(activeTilt, preset.tilt)
+            const active = activeSinglePresetId === preset.id
 
             return (
               <SinglePresetCard
@@ -651,6 +619,19 @@ const SinglePresetCard = React.memo(function SinglePresetCard({
     () => onApply(preset),
     [onApply, preset]
   )
+  const virtualCanvas = React.useMemo<CanvasState>(() => {
+    const presetScale = resolvePresentPresetScale(preset, canvas.frame)
+    return {
+      ...canvas,
+      tilt: preset.tilt,
+      scale: presetScale,
+      screenshotSlots: canvas.screenshotSlots.map((slot) => ({
+        ...slot,
+        tilt: preset.tilt,
+        scale: resolvePresentPresetScale(preset, slot.frame),
+      })),
+    }
+  }, [canvas, preset])
   return (
     <PresetCardShell
       active={active}
@@ -660,7 +641,11 @@ const SinglePresetCard = React.memo(function SinglePresetCard({
       intrinsicSize="auto 220px"
       name={preset.name}
     >
-      <PresentPresetPreview aspect={aspect} canvas={canvas} preset={preset} />
+      <CanvasPresetPreview
+        aspect={aspect}
+        virtualCanvas={virtualCanvas}
+        previewId={`_preset_preview_single_${preset.id}`}
+      />
     </PresetCardShell>
   )
 })
@@ -713,21 +698,13 @@ const LayoutPresetCard = React.memo(function LayoutPresetCard({
       : { x: 0, y: 0 }
     return {
       ...canvas,
+      tilt: preset.canvasTilt,
+      scale: preset.canvasScale,
       screenshotSlots: virtualSlots,
       screenshotPosition: "center" as const,
       screenshotOffset: offsetPx,
     }
   }, [aspect, canvas, preset])
-
-  const virtualPreset: PresentPreset = React.useMemo(
-    () => ({
-      id: preset.id,
-      name: preset.name,
-      tilt: preset.canvasTilt,
-      scale: preset.canvasScale,
-    }),
-    [preset]
-  )
 
   const aw = aspect.w || 16
   const ah = aspect.h || 10
@@ -748,437 +725,49 @@ const LayoutPresetCard = React.memo(function LayoutPresetCard({
       intrinsicSize="auto 220px"
       name={preset.name}
     >
-      <PresentPresetPreview
+      <CanvasPresetPreview
         aspect={aspect}
-        canvas={virtualCanvas}
-        preset={virtualPreset}
-        useSlotOwnTilt
+        virtualCanvas={virtualCanvas}
+        previewId={`_preset_preview_layout_${preset.id}`}
       />
     </PresetCardShell>
   )
 })
 
-const PresentPresetPreview = React.memo(function PresentPresetPreview({
+const CanvasPresetPreview = React.memo(function CanvasPresetPreview({
   aspect,
-  canvas,
-  preset,
-  useSlotOwnTilt = false,
+  virtualCanvas,
+  previewId,
 }: {
   aspect: AspectState
-  canvas: CanvasState
-  preset: PresentPreset
-  useSlotOwnTilt?: boolean
+  virtualCanvas: CanvasState
+  previewId: string
 }) {
   const previewRef = React.useRef<HTMLDivElement>(null)
-  const stageRef = React.useRef<HTMLDivElement>(null)
-  const imageRef = React.useRef<HTMLImageElement>(null)
-  const nullCanvasRef = React.useRef<HTMLDivElement>(null)
-  const effectsFilter = effectsFilterCss(canvas.backdrop.effects)
-  const noiseEnabled = canvas.backdrop.effects.noise > 0
-  const noiseOpacity = noiseEnabled ? canvas.backdrop.effects.noise / 100 : 0
   const aw = aspect.w || 16
   const ah = aspect.h || 10
-  const canvasAspectRatio = aw / ah
   const stageWidth = BASE_CANVAS_WIDTH
   const stageHeight = (BASE_CANVAS_WIDTH * ah) / aw
   const previewScale = useContainScale(previewRef, stageWidth, stageHeight)
-  const inRowMode = canvas.screenshotSlots.length > 0
-  const rowLayoutItems = React.useMemo(
-    () =>
-      inRowMode
-        ? computeRowLayout(
-            [
-              { id: "__main__", frame: canvas.frame },
-              ...canvas.screenshotSlots.map((slot) => ({
-                id: slot.id,
-                frame: slot.frame,
-              })),
-            ],
-            canvasAspectRatio
-          )
-        : null,
-    [canvas.frame, canvas.screenshotSlots, canvasAspectRatio, inRowMode]
-  )
-  const mainRowLayout = rowLayoutItems ? rowLayoutItems[0] : null
-  const screenshotAnchor = screenshotPositionAnchor(canvas.screenshotPosition)
-  const slotRowLayoutById = React.useMemo(() => {
-    if (!rowLayoutItems) return null
-    const map = new Map<string, { widthPct: number; xPct: number }>()
-    for (const item of rowLayoutItems.slice(1)) {
-      map.set(item.id, { widthPct: item.widthPct, xPct: item.xPct })
-    }
-    return map
-  }, [rowLayoutItems])
-  const canvasTransform = transformFromTiltAndScale(
-    preset.tilt,
-    resolvePresentPresetScale(preset, canvas.frame)
-  )
-
   return (
     <div ref={previewRef} className="pointer-events-none absolute inset-0">
       <div
-        className="absolute top-1/2 left-1/2 overflow-hidden ring-1 ring-white/10 [contain:paint]"
+        className="absolute top-1/2 left-1/2 origin-center"
         style={{
-          width: stageWidth,
-          height: stageHeight,
-          borderRadius: canvas.canvasBorderRadius,
           transform: `translate(-50%, -50%) scale(${previewScale})`,
-          transformOrigin: "center",
         }}
       >
-        <CanvasBackdrop
-          background={canvas.background}
-          backdrop={canvas.backdrop}
-          effectsFilter={effectsFilter}
-          noiseEnabled={noiseEnabled}
-          noiseOpacity={noiseOpacity}
-          portrait={canvas.portrait}
-          overlay={canvas.overlay}
+        <CanvasView
+          canvasId={previewId}
+          isActive={false}
+          widthPx={stageWidth}
+          heightPx={stageHeight}
+          effectiveScale={previewScale}
+          onActivate={() => undefined}
+          previewMode
+          canvasOverride={virtualCanvas}
         />
-        {mainRowLayout ? (
-          <PreviewMainScreenshot
-            canvas={canvas}
-            canvasTransform={canvasTransform}
-            screenshotAnchor={screenshotAnchor}
-            canvasAspectRatio={canvasAspectRatio}
-            mainRowLayout={mainRowLayout}
-            stageRef={stageRef}
-            imageRef={imageRef}
-          />
-        ) : (
-          <PreviewSingleScreenshot
-            canvas={canvas}
-            canvasTransform={canvasTransform}
-            screenshotAnchor={screenshotAnchor}
-            aspectW={aw}
-            aspectH={ah}
-            stageRef={stageRef}
-            imageRef={imageRef}
-            emptyCompact={
-              ah > aw ||
-              preset.tilt.rx !== 0 ||
-              preset.tilt.ry !== 0 ||
-              preset.tilt.rz !== 0 ||
-              resolvePresentPresetScale(preset, canvas.frame) !== 100 ||
-              canvas.screenshotSlots.length > 0
-            }
-          />
-        )}
-        {canvas.screenshotSlots.map((slot) => {
-          const overrideTilt = useSlotOwnTilt ? undefined : preset.tilt
-          const overrideScale = useSlotOwnTilt
-            ? undefined
-            : resolvePresentPresetScale(preset, slot.frame)
-          const effectiveSlot: ScreenshotSlot =
-            overrideTilt || overrideScale != null
-              ? {
-                  ...slot,
-                  tilt: overrideTilt ?? slot.tilt,
-                  scale: overrideScale ?? slot.scale,
-                }
-              : slot
-          return (
-            <PreviewSlot
-              key={slot.id}
-              slot={effectiveSlot}
-              canvasAspectRatio={canvasAspectRatio}
-              rowLayout={slotRowLayoutById?.get(slot.id) ?? null}
-            />
-          )
-        })}
-        {canvas.assets.map((a) => (
-          <AssetElementView
-            key={a.id}
-            asset={a}
-            canvasRef={nullCanvasRef}
-            previewMode
-          />
-        ))}
-        {canvas.texts.map((t) => (
-          <TextElementView
-            key={t.id}
-            text={t}
-            canvasRef={nullCanvasRef}
-            previewMode
-          />
-        ))}
-        {canvas.annotationShapes
-          .toSorted((a, b) => a.zIndex - b.zIndex)
-          .map((shape) => (
-            <AnnotationShapeElement
-              key={shape.id}
-              shape={shape}
-              canvasRef={nullCanvasRef}
-              previewMode
-            />
-          ))}
-        {canvas.annotations
-          .filter((s) => s.mode !== "eraser" && !s.hidden)
-          .map((stroke) => (
-            <svg
-              key={stroke.id}
-              aria-hidden
-              className="pointer-events-none absolute inset-0 h-full w-full"
-              style={{
-                zIndex: 60 + (stroke.zIndex ?? 0),
-                mixBlendMode:
-                  stroke.blendMode ??
-                  (stroke.mode === "highlight" ? "multiply" : "normal"),
-              }}
-            >
-              <path
-                d={annotationPath(stroke.points)}
-                fill="none"
-                stroke={stroke.color}
-                strokeWidth={stroke.strokeWidth}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity={
-                  ((stroke.opacity ?? 100) / 100) *
-                  (stroke.mode === "highlight" ? 0.42 : 1)
-                }
-              />
-            </svg>
-          ))}
-        {canvas.overlay.id !== null && canvas.overlay.position === "overlay" ? (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage: `url("${overlayUrl(canvas.overlay.id)}")`,
-              opacity: canvas.overlay.opacity / 100,
-            }}
-          />
-        ) : null}
       </div>
     </div>
   )
 })
-
-/**
- * Builds the same bareStyle used by the interactive canvas's MainScreenshot.
- * Kept in this file so the preview path uses identical visual primitives
- * (border, shadow, transform) as the live canvas.
- */
-function buildMainImgStyle(
-  canvas: CanvasState,
-  canvasTransform: string
-): React.CSSProperties {
-  const enhanceFilter = enhanceFilterCss(canvas.enhance)
-  const style: React.CSSProperties = {
-    borderRadius: canvas.borderRadius,
-    transform: canvasTransform,
-    transformStyle: "preserve-3d",
-    boxShadow: shadowBoxShadowCss(shadowCss(canvas.shadow)),
-    filter: enhanceFilter,
-    opacity: canvas.screenshotLayer.hidden
-      ? 0
-      : canvas.screenshotLayer.opacity / 100,
-  }
-  if (
-    canvas.screenshotLayer.blendMode &&
-    canvas.screenshotLayer.blendMode !== "normal"
-  ) {
-    style.mixBlendMode = canvas.screenshotLayer.blendMode
-  }
-  if (canvas.border.color && canvas.border.width > 0) {
-    style.outline = `${canvas.border.width}px ${canvas.border.style || "solid"} ${canvas.border.color}`
-    style.outlineOffset = `${canvas.border.padding || 0}px`
-  }
-  return style
-}
-
-function PreviewMainScreenshot({
-  canvas,
-  canvasTransform,
-  screenshotAnchor,
-  canvasAspectRatio,
-  mainRowLayout,
-  stageRef,
-  imageRef,
-}: {
-  canvas: CanvasState
-  canvasTransform: string
-  screenshotAnchor: { x: number; y: number }
-  canvasAspectRatio: number
-  mainRowLayout: { widthPct: number; xPct: number }
-  stageRef: React.RefObject<HTMLDivElement | null>
-  imageRef: React.RefObject<HTMLImageElement | null>
-}) {
-  const left =
-    canvas.screenshotPosition === "center"
-      ? `${mainRowLayout.xPct}%`
-      : `${screenshotAnchor.x}%`
-  const top =
-    canvas.screenshotPosition === "center" ? "50%" : `${screenshotAnchor.y}%`
-  const style: React.CSSProperties = {
-    position: "absolute",
-    left,
-    top,
-    width: `${mainRowLayout.widthPct}%`,
-    aspectRatio: slotBoxAspectRatio(canvas.frame, canvasAspectRatio),
-    transform: "translate(-50%, -50%)",
-    zIndex: 60 + canvas.screenshotLayer.zIndex,
-  }
-  const imgStyle = buildMainImgStyle(canvas, canvasTransform)
-  return (
-    <MainScreenshotRender
-      style={style}
-      offset={canvas.screenshotOffset}
-      padding={canvas.padding}
-      transform={canvasTransform}
-      screenshot={canvas.screenshot}
-      frame={canvas.frame}
-      addressValue={canvas.frameAddress}
-      onAddressChange={noop}
-      imgStyle={imgStyle}
-      shadowFilter={shadowDropFilterCss(canvas.shadow)}
-      filterChain={enhanceFilterCss(canvas.enhance)}
-      objectFit={canvas.objectFit ?? "cover"}
-      stageRef={stageRef}
-      imageRef={imageRef}
-      isDragOver={false}
-      isSelected={false}
-      isScreenshotDragging={false}
-      bulkCanvasDragging={false}
-      activeTool="pointer"
-      editOpen={false}
-      onEditOpenChange={noop}
-      onSelect={(e) => e.stopPropagation()}
-      onBrowse={noop}
-      onCropClick={noop}
-      onReplaceFile={noop}
-      onDelete={noop}
-      onPointerDown={noop}
-      onPointerMove={noop}
-      onPointerUp={noop}
-      onImageLoad={noop}
-      previewMode
-    />
-  )
-}
-
-/**
- * Single-canvas preview (no slots). Renders directly through
- * ScreenshotFrameContent — same path as the live canvas's empty/single
- * screenshot branch.
- */
-function PreviewSingleScreenshot({
-  canvas,
-  canvasTransform,
-  screenshotAnchor,
-  aspectW,
-  aspectH,
-  stageRef,
-  imageRef,
-  emptyCompact,
-}: {
-  canvas: CanvasState
-  canvasTransform: string
-  screenshotAnchor: { x: number; y: number }
-  aspectW: number
-  aspectH: number
-  stageRef: React.RefObject<HTMLDivElement | null>
-  imageRef: React.RefObject<HTMLImageElement | null>
-  emptyCompact: boolean
-}) {
-  const enhanceFilter = enhanceFilterCss(canvas.enhance)
-  const bareStyle: React.CSSProperties = {
-    borderRadius: canvas.borderRadius,
-    boxShadow: shadowCss(canvas.shadow),
-    filter: enhanceFilter,
-    transform: canvasTransform,
-    transformStyle: "preserve-3d",
-  }
-  if (canvas.border.color && canvas.border.width > 0) {
-    bareStyle.outline = `${canvas.border.width}px ${canvas.border.style || "solid"} ${canvas.border.color}`
-    bareStyle.outlineOffset = `${canvas.border.padding || 0}px`
-  }
-  return (
-    <div
-      data-editor-shadow-preview-scope="canvas"
-      className="pointer-events-none absolute inset-0 flex h-full w-full items-center justify-center"
-      style={{
-        padding: `${(canvas.padding / 1200) * 100}%`,
-        zIndex: 60 + canvas.screenshotLayer.zIndex,
-      }}
-    >
-      <div className="relative flex h-full w-full items-center justify-center">
-        <ScreenshotFrameContent
-          src={canvas.screenshot}
-          frame={canvas.frame}
-          isDragOver={false}
-          onBrowse={noop}
-          imageFilter={enhanceFilter}
-          shadowFilter={shadowDropFilterCss(canvas.shadow)}
-          contentTransform={canvasTransform}
-          bareStyle={bareStyle}
-          activeTool="pointer"
-          isDragging={false}
-          stageRef={stageRef}
-          imageRef={imageRef}
-          addressValue={canvas.frameAddress}
-          onAddressChange={noop}
-          onSelect={(e: { stopPropagation: () => void }) => e.stopPropagation()}
-          onPointerDown={noop}
-          onPointerMove={noop}
-          onPointerUp={noop}
-          onImageLoad={noop}
-          onCrop={noop}
-          onReplaceFile={noop}
-          onDelete={noop}
-          screenshotAnchor={screenshotAnchor}
-          screenshotOffset={canvas.screenshotOffset}
-          objectFit={canvas.objectFit ?? "cover"}
-          applyTransformWhenEmpty
-          emptyCompact={emptyCompact}
-          aspectW={aspectW}
-          aspectH={aspectH}
-          mockupScopeToMinSide={
-            canvas.screenshotSlots.length === 0 && aspectH > aspectW
-          }
-        />
-      </div>
-    </div>
-  )
-}
-
-function PreviewSlot({
-  slot,
-  canvasAspectRatio,
-  rowLayout,
-}: {
-  slot: ScreenshotSlot
-  canvasAspectRatio: number
-  rowLayout: { widthPct: number; xPct: number } | null
-}) {
-  const stageRef = React.useRef<HTMLDivElement>(null)
-  const imageRef = React.useRef<HTMLImageElement>(null)
-  return (
-    <ScreenshotSlotRender
-      slot={slot}
-      canvasAspectRatio={canvasAspectRatio}
-      rowLayout={rowLayout}
-      stageRef={stageRef}
-      imageRef={imageRef}
-      isSelected={false}
-      isDragOver={false}
-      isBeingDragged={false}
-      activeTool="pointer"
-      editOpen={false}
-      onEditOpenChange={noop}
-      bulkCanvasDragging={false}
-      canDeleteSlot={false}
-      onSelect={(e) => e.stopPropagation()}
-      onBrowse={noop}
-      onCropClick={noop}
-      onReplaceFile={noop}
-      onDeleteFromMenu={noop}
-      onAddressChange={noop}
-      onPointerDown={noop}
-      onPointerMove={noop}
-      onPointerUp={noop}
-      previewMode
-    />
-  )
-}

@@ -4,13 +4,12 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 import { useEditor } from "@/lib/editor/store"
-import { EmptyStateBackdrop } from "./empty-state-backdrop"
-import { type CaptureSettings, UploadCard } from "./upload-card"
+import { BoxEmptyState } from "./box-empty-state"
 
 type CanvasEmptyStateProps = {
   isDragOver: boolean
   onBrowse: () => void
-  onCapture?: (url: string, settings: CaptureSettings) => void
+  onCapture?: () => void
   isActive?: boolean
   previewStyle?: React.CSSProperties
   compact?: boolean
@@ -37,8 +36,19 @@ export function CanvasEmptyState({
   const ah = aspectH ?? aspect.h ?? 10
   const effectiveAw = aw || 16
   const effectiveAh = ah || 10
-  const isPortrait = effectiveAh > effectiveAw
-  const forcePortraitCompact = isPortrait
+  // Square (1:1) is treated like portrait — both get the 85% inset so the
+  // empty-state box doesn't fill the entire canvas. Landscape uses the full area.
+  const isPortrait = effectiveAh >= effectiveAw
+  const rootRef = React.useRef<HTMLDivElement>(null)
+
+  const handleAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement
+    if (target.closest("[data-upload-compact-trigger]")) return
+    const trigger = rootRef.current?.querySelector<HTMLButtonElement>(
+      "[data-upload-compact-trigger]"
+    )
+    trigger?.click()
+  }
 
   return (
     <div
@@ -50,30 +60,30 @@ export function CanvasEmptyState({
         "data-[drag-over=true]:scale-[1.005]"
       )}
     >
-      <EmptyStateBackdrop
+      <div
+        ref={rootRef}
+        onClick={handleAreaClick}
         style={{
           ...(previewStyle ? { transition: "none", ...previewStyle } : null),
-          ...(forcePortraitCompact ? { aspectRatio: `${effectiveAw} / ${effectiveAh}` } : null),
+          ...(isPortrait
+            ? { aspectRatio: `${effectiveAw} / ${effectiveAh}` }
+            : null),
         }}
         data-drag-over={isDragOver}
         data-active={isActive}
         className={cn(
-          "flex items-center justify-center rounded-3xl border border-border/30 dark:border-white/8",
+          "cursor-pointer overflow-hidden rounded-3xl border border-border/30 dark:border-white/8",
           "data-[drag-over=true]:border-primary/60 data-[drag-over=true]:ring-2 data-[drag-over=true]:ring-primary/35",
-          forcePortraitCompact
-            ? "h-auto max-h-[85%] w-[85%]"
-            : "h-full w-full"
+          isPortrait ? "h-auto max-h-[85%] w-[85%]" : "h-full w-full"
         )}
       >
-        <UploadCard
-          compact={compact || forcePortraitCompact}
+        <BoxEmptyState
           isDragOver={isDragOver}
           onBrowse={onBrowse}
           onCapture={onCapture}
-          showHint
-          className={compact || forcePortraitCompact ? undefined : "w-full max-w-[400px]"}
+          compact={compact || isPortrait}
         />
-      </EmptyStateBackdrop>
+      </div>
     </div>
   )
 }

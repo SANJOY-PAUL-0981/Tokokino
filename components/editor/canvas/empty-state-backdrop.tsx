@@ -4,14 +4,14 @@ import { cn } from "@/lib/utils"
 
 type EmptyStateBackdropProps = React.HTMLAttributes<HTMLDivElement>
 
-export function EmptyStateBackdrop({
-  className,
-  children,
-  ...rest
-}: EmptyStateBackdropProps) {
+export const EmptyStateBackdrop = React.forwardRef<
+  HTMLDivElement,
+  EmptyStateBackdropProps
+>(function EmptyStateBackdrop({ className, children, ...rest }, ref) {
   return (
     <div
       {...rest}
+      ref={ref}
       className={cn(
         "relative size-full overflow-hidden bg-[#fafafa] dark:bg-[#0a0a0a]",
         className
@@ -28,4 +28,4 @@ export function EmptyStateBackdrop({
       {children}
     </div>
   )
-}
+})

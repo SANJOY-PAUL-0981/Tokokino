@@ -19,11 +19,13 @@ import {
   shadowDropFilterCss,
 } from "@/lib/editor/css-utils"
 import {
+  CanvasPreviewScope,
   CanvasScope,
   effectsFilterCss,
   enhanceFilterCss,
   overlayUrl,
   screenshotPositionAnchor,
+  useCanvasPreviewMode,
   useCanvasScopeId,
   useEditor,
   useEditorStore,
@@ -71,6 +73,8 @@ type CanvasViewProps = {
   heightPx: number
   effectiveScale: number
   onActivate: () => void
+  previewMode?: boolean
+  canvasOverride?: Partial<import("@/lib/editor/store").CanvasState> | null
 }
 
 function CanvasViewInner({
@@ -137,6 +141,7 @@ function CanvasViewInner({
     setObjectFit,
   } = useEditor()
   const scopeId = useCanvasScopeId()
+  const isCanvasPreview = useCanvasPreviewMode()
   const bulkEditMode = useEditorStore((s) => s.bulkEditMode)
   const isPreviewMode = useEditorStore((s) => s.isPreviewMode)
   const bulkCanvasDragging = useEditorStore((s) => s.bulkCanvasDragging)
@@ -150,13 +155,14 @@ function CanvasViewInner({
   )
 
   React.useEffect(() => {
+    if (isCanvasPreview) return
     if (!selectedTextId) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setSelectedTextId(null)
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [selectedTextId, setSelectedTextId])
+  }, [isCanvasPreview, selectedTextId, setSelectedTextId])
 
   const [naturalDims, setNaturalDims] = React.useState<{
     w: number
@@ -198,7 +204,9 @@ function CanvasViewInner({
   // Only scope the device frame to 80% on portrait canvases. Landscape and
   // square should fill normally — they already fit by height without extra
   // empty space.
-  const isPortraitCanvas = ah > aw
+  // Treat square (1:1) the same as portrait — both should scope the frame/mockup
+  // to 80% so it doesn't fill the entire canvas edge-to-edge.
+  const isPortraitCanvas = ah >= aw
   const shouldScopeFrame = isPortraitCanvas && screenshotSlots.length === 0
   const screenshotBoxAspect = slotBoxAspectRatio(
     frame,
@@ -407,8 +415,8 @@ function CanvasViewInner({
         <motion.div
           ref={canvasRef}
           data-canvas-id={scopeId ?? undefined}
-          initial={{ opacity: 0, scale: 0.985, y: 6 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
+          initial={isCanvasPreview ? false : { opacity: 0, scale: 0.985, y: 6 }}
+          animate={isCanvasPreview ? undefined : { opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           style={{
             aspectRatio,
@@ -418,11 +426,13 @@ function CanvasViewInner({
           }}
           className={cn(
             "relative flex items-center justify-center overflow-hidden transition-shadow",
-            isPreviewMode
+            isCanvasPreview
               ? "ring-0"
-              : bulkEditMode && isActive
-                ? "shadow-[0_0_0_4px_rgba(120,90,255,0.12)] ring-2 ring-primary/70"
-                : "ring-1 ring-border/40"
+              : isPreviewMode
+                ? "ring-0"
+                : bulkEditMode && isActive
+                  ? "shadow-[0_0_0_4px_rgba(120,90,255,0.12)] ring-2 ring-primary/70"
+                  : "ring-1 ring-border/40"
           )}
           onClick={() => {
             if (!isActive) {
@@ -735,7 +745,12 @@ function CanvasViewInner({
           ) : null}
 
           {assets.map((a) => (
-            <AssetElementView key={a.id} asset={a} canvasRef={canvasRef} />
+            <AssetElementView
+              key={a.id}
+              asset={a}
+              canvasRef={canvasRef}
+              previewMode={isCanvasPreview}
+            />
           ))}
 
           <AnimatePresence>
@@ -748,6 +763,7 @@ function CanvasViewInner({
                 rowLayout={slotRowLayoutById?.get(slot.id) ?? null}
                 onCropRequest={(id) => setCroppingSlotId(id)}
                 onCenterGuideChange={updateCenterGuides}
+                previewMode={isCanvasPreview}
               />
             ))}
           </AnimatePresence>
@@ -758,6 +774,7 @@ function CanvasViewInner({
               text={t}
               canvasRef={canvasRef}
               onCenterGuideChange={updateTextCenterGuides}
+              previewMode={isCanvasPreview}
             />
           ))}
 
@@ -767,6 +784,7 @@ function CanvasViewInner({
               shape={shape}
               canvasRef={canvasRef}
               onCenterGuideChange={updateTextCenterGuides}
+              previewMode={isCanvasPreview}
             />
           ))}
 
@@ -807,14 +825,17 @@ function CanvasViewInner({
         </motion.div>
       </div>
 
-      <CropModal
-        open={isCropModalOpen}
-        onOpenChange={setIsCropModalOpen}
-        screenshotUrl={originalScreenshot ?? screenshot}
-        initialRegion={lastCropRegion}
-        onCrop={applyCroppedScreenshot}
-      />
+      {!isCanvasPreview && (
+        <CropModal
+          open={isCropModalOpen}
+          onOpenChange={setIsCropModalOpen}
+          screenshotUrl={originalScreenshot ?? screenshot}
+          initialRegion={lastCropRegion}
+          onCrop={applyCroppedScreenshot}
+        />
+      )}
 
+      {!isCanvasPreview && (
       <CropModal
         open={croppingSlotId !== null}
         onOpenChange={(open) => {
@@ -833,20 +854,30 @@ function CanvasViewInner({
           }
         }}
       />
+      )}
     </>
   )
 }
 
 export function CanvasView(props: CanvasViewProps) {
+  const inner = (
+    <CanvasViewInner
+      isActive={props.isActive}
+      widthPx={props.widthPx}
+      heightPx={props.heightPx}
+      effectiveScale={props.effectiveScale}
+      onActivate={props.onActivate}
+    />
+  )
   return (
     <CanvasScope id={props.canvasId}>
-      <CanvasViewInner
-        isActive={props.isActive}
-        widthPx={props.widthPx}
-        heightPx={props.heightPx}
-        effectiveScale={props.effectiveScale}
-        onActivate={props.onActivate}
-      />
+      {props.previewMode ? (
+        <CanvasPreviewScope override={props.canvasOverride ?? null}>
+          {inner}
+        </CanvasPreviewScope>
+      ) : (
+        inner
+      )}
     </CanvasScope>
   )
 }

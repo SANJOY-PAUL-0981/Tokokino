@@ -316,6 +316,7 @@ export function ScreenshotSlotView({
   rowLayout,
   onCropRequest,
   onCenterGuideChange,
+  previewMode = false,
 }: {
   slot: ScreenshotSlot
   canvasRef: React.RefObject<HTMLDivElement | null>
@@ -323,6 +324,7 @@ export function ScreenshotSlotView({
   rowLayout?: { widthPct: number; xPct: number } | null
   onCropRequest: (slotId: string) => void
   onCenterGuideChange?: (guides: { x: boolean; y: boolean }) => void
+  previewMode?: boolean
 }) {
   const {
     activeTool,
@@ -543,7 +545,8 @@ export function ScreenshotSlotView({
         containerRef={elRef}
         stageRef={stageRef}
         imageRef={imageRef}
-        isSelected={isSelected}
+        previewMode={previewMode}
+        isSelected={isSelected && !previewMode}
         isDragOver={isDragOver}
         isBeingDragged={isBeingDragged}
         activeTool={activeTool}
@@ -577,7 +580,8 @@ export function ScreenshotSlotView({
         }}
       />
 
-      {!bulkCanvasDragging &&
+      {!previewMode &&
+      !bulkCanvasDragging &&
       isSelected &&
       !hideFloatingToolbar &&
       toolbarRect &&
