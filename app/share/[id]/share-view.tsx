@@ -39,7 +39,13 @@ export function ShareView({
                 canvas.height = img.naturalHeight
                 const ctx = canvas.getContext("2d")!
                 ctx.drawImage(img, 0, 0)
-                canvas.toBlob((b) => (b ? resolve(b) : reject()), "image/png")
+                canvas.toBlob(
+                  (b) =>
+                    b
+                      ? resolve(b)
+                      : reject(new Error("Could not convert image to PNG")),
+                  "image/png"
+                )
               }
               img.onerror = reject
               img.src = URL.createObjectURL(blob)
@@ -54,7 +60,7 @@ export function ShareView({
       console.error(error)
       toast.error("Could not copy image")
     }
-  }, [imageUrl])
+  }, [id])
 
   return (
     <main className="min-h-svh bg-background text-foreground">
@@ -69,11 +75,16 @@ export function ShareView({
             </p>
           </div>
           <div className="flex items-center gap-2">
-<Button variant="outline" size="lg" onClick={() => void handleCopyImage()}>
+            <Button
+              className="w-44"
+              variant="outline"
+              size="lg"
+              onClick={() => void handleCopyImage()}
+            >
               {imageCopied ? <RiCheckLine /> : <RiImageLine />}
               <span>{imageCopied ? "Copied" : "Copy"}</span>
             </Button>
-            <Button asChild size="lg">
+            <Button className="w-44" asChild size="lg">
               <a href={`/api/share/${id}/download`}>
                 <RiDownloadLine />
                 <span>Download</span>
