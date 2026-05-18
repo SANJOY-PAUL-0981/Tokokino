@@ -39,8 +39,8 @@ export function LoginForm({
       <div
         className={cn(
           variant === "dialog" ? "space-y-3" : "space-y-5",
-          "[&>*]:animate-in [&>*]:fade-in-0 [&>*]:slide-in-from-bottom-2",
-          "[&>*]:duration-700 [&>*]:fill-mode-both"
+          "*:animate-in *:fade-in-0 *:slide-in-from-bottom-2",
+          "*:duration-700 *:fill-mode-both"
         )}
       >
         <span className="flex items-center gap-2.5 font-mono text-[10px] tracking-[0.28em] text-muted-foreground uppercase">
@@ -90,7 +90,7 @@ export function LoginForm({
             "focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none"
           )}
         >
-          <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-primary/[0.07] to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+          <span className="pointer-events-none absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-primary/[0.07] to-transparent transition-transform duration-700 group-hover:translate-x-full" />
 
           <span className="relative flex items-center gap-3">
             <GoogleMark />

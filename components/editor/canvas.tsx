@@ -181,7 +181,11 @@ function CanvasViewInner({
   const stageRef = React.useRef<HTMLDivElement>(null)
   const imageRef = React.useRef<HTMLImageElement>(null)
   const annotationLayerRef = React.useRef<SVGSVGElement>(null)
-  const suppressTransition = useSuppressTransitionOnChange(padding)
+  const suppressTransitionPadding = useSuppressTransitionOnChange(padding)
+  const suppressTransitionSlots = useSuppressTransitionOnChange(
+    screenshotSlots.length
+  )
+  const suppressTransition = suppressTransitionPadding || suppressTransitionSlots
   const inRowMode = screenshotSlots.length > 0
   const { placementDims, measurePlacement } = usePlacementMeasurement({
     enabled: Boolean(screenshot),

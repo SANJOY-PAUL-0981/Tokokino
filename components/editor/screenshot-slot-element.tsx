@@ -150,7 +150,8 @@ export function ScreenshotSlotRender({
   previewMode = false,
 }: ScreenshotSlotRenderProps) {
   const shared = useCanvasSharedStyle()
-  const computedShadowFilter = shadowDropFilterCss(shared.shadow)
+  const effectiveShadow = slot.shadow ?? shared.shadow
+  const computedShadowFilter = shadowDropFilterCss(effectiveShadow)
   const enhanceFilter = enhanceFilterCss(shared.enhance)
   const innerLightingStyle =
     shared.lighting.target === "inner"
@@ -200,7 +201,7 @@ export function ScreenshotSlotRender({
   }
   const bareImgStyle: React.CSSProperties = {
     borderRadius: bareBorderRadius,
-    boxShadow: shadowBoxShadowCss(shadowCss(shared.shadow)),
+    boxShadow: shadowBoxShadowCss(shadowCss(effectiveShadow)),
     filter: filterChain || undefined,
     transform: contentTransform,
     transformStyle: "preserve-3d" as const,

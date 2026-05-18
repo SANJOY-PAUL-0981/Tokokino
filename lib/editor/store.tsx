@@ -1239,7 +1239,17 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         }),
         "screenshotLayer"
       ),
-    setShadow: (s, canvasId) => commitCanvas(canvasId, { shadow: s }, "shadow"),
+    setShadow: (s, canvasId) =>
+      commitCanvas(
+        canvasId,
+        (canvas) => ({
+          shadow: s,
+          screenshotSlots: canvas.screenshotSlots.map((slot) =>
+            slot.shadow !== undefined ? { ...slot, shadow: s } : slot
+          ),
+        }),
+        "shadow"
+      ),
     setOverlay: (o, canvasId) =>
       commitCanvas(canvasId, { overlay: o }, "overlay"),
     setFrame: (f, canvasId) =>

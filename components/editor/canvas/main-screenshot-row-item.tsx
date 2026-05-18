@@ -111,10 +111,6 @@ export function MainScreenshotRender({
     ...style,
     transform:
       `${baseTransform} translate(${offset.x}px, ${offset.y}px)`.trim(),
-    transition:
-      previewMode || isScreenshotDragging
-        ? undefined
-        : "left 300ms ease-out, top 300ms ease-out",
   }
   const selectionRadius = frameSelectionRadius(
     frame.id,
