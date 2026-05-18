@@ -298,6 +298,7 @@ export function TopBar() {
           <TopBarButton
             label="Preview"
             icon={RiEyeLine}
+            tooltip="Preview screenshot"
             onClick={() => setIsPreviewMode(true)}
           />
           <TopBarButton
@@ -323,12 +324,17 @@ export function TopBar() {
 
         <div className="tool-cluster hidden lg:flex">
           <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" size="lg">
-                <RiRefreshLine />
-                <span>Reset</span>
-              </Button>
-            </AlertDialogTrigger>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="lg">
+                    <RiRefreshLine />
+                    <span>Reset</span>
+                  </Button>
+                </AlertDialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Reset to defaults</TooltipContent>
+            </Tooltip>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Reset to defaults?</AlertDialogTitle>
@@ -495,41 +501,51 @@ function ExportControls() {
   return (
     <div className="flex h-8 items-stretch overflow-hidden rounded-md bg-primary text-white shadow-sm transition-all hover:shadow-md">
       {/* Export Zone */}
-      <button
-        className="flex items-center gap-2 px-3.5 transition-colors hover:bg-white/10"
-        onClick={() => void handleExport()}
-      >
-        <RiArrowUpCircleLine className="size-4 shrink-0" />
-        <span className="relative inline-grid text-[12px] font-medium tracking-tight [&>span]:col-start-1 [&>span]:row-start-1">
-          <span className="invisible pr-0.5 whitespace-nowrap" aria-hidden>
-            {EXPORT_BUTTON_MAX_LABEL}
-          </span>
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.span
-              key={isExporting ? "exporting" : "export"}
-              className="whitespace-nowrap"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.18 }}
-            >
-              {isExporting
-                ? "Exporting…"
-                : `Export ${EXPORT_RESOLUTION_LABELS[resolution]} • ${EXPORT_FORMAT_LABELS[format]}`}
-            </motion.span>
-          </AnimatePresence>
-        </span>
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            className="flex items-center gap-2 px-3.5 transition-colors hover:bg-white/10"
+            onClick={() => void handleExport()}
+          >
+            <RiArrowUpCircleLine className="size-4 shrink-0" />
+            <span className="relative inline-grid text-[12px] font-medium tracking-tight [&>span]:col-start-1 [&>span]:row-start-1">
+              <span className="invisible pr-0.5 whitespace-nowrap" aria-hidden>
+                {EXPORT_BUTTON_MAX_LABEL}
+              </span>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={isExporting ? "exporting" : "export"}
+                  className="whitespace-nowrap"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.18 }}
+                >
+                  {isExporting
+                    ? "Exporting…"
+                    : `Export ${EXPORT_RESOLUTION_LABELS[resolution]} • ${EXPORT_FORMAT_LABELS[format]}`}
+                </motion.span>
+              </AnimatePresence>
+            </span>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Export screenshot</TooltipContent>
+      </Tooltip>
 
       <div className="w-px bg-white/20" />
 
       {/* Settings Zone */}
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <button className="flex items-center px-2.5 transition-colors hover:bg-white/10">
-            <RiEqualizerLine className="size-4" />
-          </button>
-        </PopoverTrigger>
+        <Tooltip open={open ? false : undefined}>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <button className="flex items-center px-2.5 transition-colors hover:bg-white/10">
+                <RiEqualizerLine className="size-4" />
+              </button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Export settings</TooltipContent>
+        </Tooltip>
         <PopoverContent
           align="end"
           sideOffset={8}
@@ -634,12 +650,17 @@ function ShareControls({
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="lg" onClick={onShare}>
-          <RiShareForwardLine />
-          <span className="hidden lg:inline">Share</span>
-        </Button>
-      </PopoverTrigger>
+      <Tooltip open={open ? false : undefined}>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="lg" onClick={onShare}>
+              <RiShareForwardLine />
+              <span className="hidden lg:inline">Share</span>
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Share screenshot</TooltipContent>
+      </Tooltip>
       <PopoverContent
         align="center"
         sideOffset={12}
