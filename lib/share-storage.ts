@@ -31,10 +31,12 @@ export async function uploadShareImage({
   id,
   image,
   userId,
+  contentType = "image/png",
 }: {
   id: string
   image: Uint8Array
   userId: string
+  contentType?: string
 }) {
   if (image.byteLength > MAX_SHARE_IMAGE_BYTES) {
     throw new Error("Share image is too large")
@@ -46,7 +48,7 @@ export async function uploadShareImage({
       Bucket: bucket,
       Key: getShareObjectKey(id),
       Body: image,
-      ContentType: "image/png",
+      ContentType: contentType,
       CacheControl: "public, max-age=31536000, immutable",
       Metadata: {
         userId,

@@ -22,9 +22,13 @@ export async function POST(request: Request) {
   }
 
   const contentType = request.headers.get("content-type") ?? ""
-  if (!contentType.toLowerCase().startsWith("image/png")) {
+  const normalizedType = contentType.toLowerCase()
+  if (
+    !normalizedType.startsWith("image/png") &&
+    !normalizedType.startsWith("image/jpeg")
+  ) {
     return NextResponse.json(
-      { error: "Share upload must be a PNG image" },
+      { error: "Share upload must be a PNG or JPEG image" },
       { status: 415 }
     )
   }
@@ -74,6 +78,7 @@ export async function POST(request: Request) {
       id,
       image,
       userId: session.user.id,
+      contentType,
     })
     await createShareRecord({
       id,

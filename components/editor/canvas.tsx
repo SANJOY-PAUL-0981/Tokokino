@@ -238,7 +238,7 @@ function CanvasViewInner({
               { id: "__main__", frame },
               ...screenshotSlots.map((slot) => ({
                 id: slot.id,
-                frame: slot.frame,
+                frame,
               })),
             ],
             canvasAspectRatio

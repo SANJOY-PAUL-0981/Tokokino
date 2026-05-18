@@ -35,10 +35,16 @@ import {
 } from "@/lib/editor/css-utils"
 import {
   assetFilterCss,
-  enhanceFilterCss,
+  type AssetBlendMode,
+  type Border,
+  type DeviceFrame,
   type EditorTool,
+  type EnhancePreset,
+  enhanceFilterCss,
   MAX_SCREENSHOT_SLOTS,
   type ScreenshotSlot,
+  type Shadow,
+  useActiveCanvasField,
   useEditor,
   useEditorStore,
 } from "@/lib/editor/store"
@@ -84,6 +90,32 @@ type ScreenshotSlotRenderProps = {
   previewMode?: boolean
 }
 
+type CanvasSharedStyle = {
+  frame: DeviceFrame
+  frameAddress: string
+  padding: number
+  borderRadius: number
+  shadow: Shadow
+  border: Border
+  enhance: EnhancePreset
+  opacity: number
+  blendMode: AssetBlendMode
+}
+
+function useCanvasSharedStyle(): CanvasSharedStyle {
+  return useActiveCanvasField((canvas) => ({
+    frame: canvas.frame,
+    frameAddress: canvas.frameAddress,
+    padding: canvas.padding,
+    borderRadius: canvas.borderRadius,
+    shadow: canvas.shadow,
+    border: canvas.border,
+    enhance: canvas.enhance,
+    opacity: canvas.screenshotLayer.opacity,
+    blendMode: canvas.screenshotLayer.blendMode,
+  }))
+}
+
 export function ScreenshotSlotRender({
   slot,
   canvasAspectRatio,
@@ -113,8 +145,9 @@ export function ScreenshotSlotRender({
   onDrop,
   previewMode = false,
 }: ScreenshotSlotRenderProps) {
-  const computedShadowFilter = shadowDropFilterCss(slot.shadow)
-  const enhanceFilter = enhanceFilterCss(slot.enhance)
+  const shared = useCanvasSharedStyle()
+  const computedShadowFilter = shadowDropFilterCss(shared.shadow)
+  const enhanceFilter = enhanceFilterCss(shared.enhance)
   const filterChain = [enhanceFilter, assetFilterCss(slot.filter)]
     .filter(Boolean)
     .join(" ")
@@ -126,7 +159,7 @@ export function ScreenshotSlotRender({
     `rotateZ(var(--slot-ts-rz, ${slot.tilt.rz}deg))`,
     `scale(var(--slot-ts-scale, ${slot.scale / 100}))`,
   ].join(" ")
-  const boxAspectRatio = slotBoxAspectRatio(slot.frame, canvasAspectRatio)
+  const boxAspectRatio = slotBoxAspectRatio(shared.frame, canvasAspectRatio)
   const effectiveWidthPct = rowLayout?.widthPct ?? slot.widthPct
 
   const containerStyle: React.CSSProperties = {
@@ -142,24 +175,24 @@ export function ScreenshotSlotRender({
         ? undefined
         : "left 300ms ease-out, top 300ms ease-out",
   }
-  if (slot.blendMode && slot.blendMode !== "normal") {
-    containerStyle.mixBlendMode = slot.blendMode
+  if (shared.blendMode && shared.blendMode !== "normal") {
+    containerStyle.mixBlendMode = shared.blendMode
   }
 
   const contentStyle: React.CSSProperties = {
-    padding: `${Math.max(0, Math.min(240, slot.padding)) / 12}%`,
+    padding: `${Math.max(0, Math.min(240, shared.padding)) / 12}%`,
   }
 
-  const imageBoxOutline = slot.border
-  const bareBorderRadius = slot.borderRadius
-  const selectionRadius = frameSelectionRadius(slot.frame.id, bareBorderRadius)
+  const imageBoxOutline = shared.border
+  const bareBorderRadius = shared.borderRadius
+  const selectionRadius = frameSelectionRadius(shared.frame.id, bareBorderRadius)
   const transformedStyle: React.CSSProperties = {
-    opacity: slot.opacity / 100,
+    opacity: shared.opacity / 100,
     borderRadius: selectionRadius,
   }
   const bareImgStyle: React.CSSProperties = {
     borderRadius: bareBorderRadius,
-    boxShadow: shadowBoxShadowCss(shadowCss(slot.shadow)),
+    boxShadow: shadowBoxShadowCss(shadowCss(shared.shadow)),
     filter: filterChain || undefined,
     transform: contentTransform,
     transformStyle: "preserve-3d" as const,
@@ -223,7 +256,7 @@ export function ScreenshotSlotRender({
             ) : null}
             <ScreenshotFrameContent
               src={slot.src}
-              frame={slot.frame}
+              frame={shared.frame}
               isDragOver={isDragOver}
               onBrowse={onBrowse}
               imageFilter={filterChain || undefined}
@@ -237,7 +270,7 @@ export function ScreenshotSlotRender({
               isDragging={false}
               stageRef={stageRef}
               imageRef={imageRef}
-              addressValue={slot.frameAddress}
+              addressValue={shared.frameAddress}
               onAddressChange={onAddressChange}
               onSelect={onSelect}
               onPointerDown={onPointerDown}
@@ -340,6 +373,9 @@ export function ScreenshotSlotView({
     bringScreenshotSlotToFront,
     sendScreenshotSlotToBack,
     setIsScreenshotSelected,
+    setFrame,
+    setFrameAddress,
+    frame: canvasFrame,
     bulkEditMode,
     bulkCanvasDragging,
     bulkViewportZoom,
@@ -559,9 +595,7 @@ export function ScreenshotSlotView({
         onCropClick={() => onCropRequest(slot.id)}
         onReplaceFile={(file) => void handleFiles([file])}
         onDeleteFromMenu={handleDeleteFromMenu}
-        onAddressChange={(value) =>
-          updateScreenshotSlot(slot.id, { frameAddress: value })
-        }
+        onAddressChange={(value) => setFrameAddress(value)}
         onPointerDown={startDrag}
         onPointerMove={moveDrag}
         onPointerUp={endDrag}
@@ -637,10 +671,8 @@ export function ScreenshotSlotView({
                         )}
                       >
                         <ScreenshotFrameSettings
-                          frame={slot.frame}
-                          onFrameChange={(frame) =>
-                            updateScreenshotSlot(slot.id, { frame })
-                          }
+                          frame={canvasFrame}
+                          onFrameChange={(frame) => setFrame(frame)}
                         />
                       </ToolbarPopover>
                       {slot.src && (

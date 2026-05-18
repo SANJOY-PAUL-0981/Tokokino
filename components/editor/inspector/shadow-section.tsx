@@ -12,11 +12,7 @@ import "@xyflow/react/dist/style.css"
 import { ColorPickerPopover } from "@/components/editor/color-picker-popover"
 import { EditableValue } from "@/components/editor/editable-value"
 import { Slider } from "@/components/ui/slider"
-import {
-  useActiveCanvasField,
-  useEditorStore,
-  useSelectedScreenshotSlot,
-} from "@/lib/editor/store"
+import { useActiveCanvasField, useEditorStore } from "@/lib/editor/store"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 
@@ -340,18 +336,9 @@ function ColorRail({
 }
 
 export function ShadowSection() {
-  const canvasShadow = useActiveCanvasField((c) => c.shadow)
-  const selectedSlot = useSelectedScreenshotSlot()
-  const shadow = selectedSlot?.shadow ?? canvasShadow
+  const shadow = useActiveCanvasField((c) => c.shadow)
   const setShadow = useEditorStore((s) => s.setShadow)
-  const updateScreenshotSlot = useEditorStore((s) => s.updateScreenshotSlot)
-  const applyShadow = (nextShadow: typeof shadow) => {
-    if (selectedSlot) {
-      updateScreenshotSlot(selectedSlot.id, { shadow: nextShadow })
-      return
-    }
-    setShadow(nextShadow)
-  }
+  const applyShadow = (nextShadow: typeof shadow) => setShadow(nextShadow)
   const { resolvedTheme } = useTheme()
   const { type, intensity, lightSource, color = "#050505" } = shadow
 

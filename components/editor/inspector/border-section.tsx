@@ -9,7 +9,6 @@ import {
   sampleImageColorsRaw,
   useActiveCanvasField,
   useEditorStore,
-  useSelectedScreenshotSlot,
 } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
 
@@ -27,31 +26,14 @@ const BORDER_PRESETS = [
 const DEFAULT_BORDER_COLOR = BORDER_PRESETS[0]
 
 export function BorderSection() {
-  const canvasBorder = useActiveCanvasField((c) => c.border)
-  const canvasBorderRadius = useActiveCanvasField((c) => c.borderRadius)
+  const border = useActiveCanvasField((c) => c.border)
+  const borderRadius = useActiveCanvasField((c) => c.borderRadius)
   const background = useActiveCanvasField((c) => c.background)
-  const canvasScreenshot = useActiveCanvasField((c) => c.screenshot)
-  const selectedSlot = useSelectedScreenshotSlot()
-  const border = selectedSlot?.border ?? canvasBorder
-  const borderRadius = selectedSlot?.borderRadius ?? canvasBorderRadius
-  const screenshot = selectedSlot?.src ?? canvasScreenshot
+  const screenshot = useActiveCanvasField((c) => c.screenshot)
   const setBorder = useEditorStore((s) => s.setBorder)
   const setBorderRadius = useEditorStore((s) => s.setBorderRadius)
-  const updateScreenshotSlot = useEditorStore((s) => s.updateScreenshotSlot)
-  const applyBorder = (nextBorder: typeof border) => {
-    if (selectedSlot) {
-      updateScreenshotSlot(selectedSlot.id, { border: nextBorder })
-      return
-    }
-    setBorder(nextBorder)
-  }
-  const applyBorderRadius = (nextRadius: number) => {
-    if (selectedSlot) {
-      updateScreenshotSlot(selectedSlot.id, { borderRadius: nextRadius })
-      return
-    }
-    setBorderRadius(nextRadius)
-  }
+  const applyBorder = (nextBorder: typeof border) => setBorder(nextBorder)
+  const applyBorderRadius = (nextRadius: number) => setBorderRadius(nextRadius)
   const enabled = border.color !== null
   const currentColor = border.color || DEFAULT_BORDER_COLOR
 

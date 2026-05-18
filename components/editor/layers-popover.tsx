@@ -189,13 +189,13 @@ export function LayersPanelContent() {
         type: "slot",
         name: `Screenshot box ${index + 1}`,
         meta:
-          slot.frame.id === "none"
+          frame.id === "none"
             ? "Screenshot box"
-            : `Frame · ${slot.frame.id.replace(/_/g, " ")}`,
+            : `Frame · ${frame.id.replace(/_/g, " ")}`,
         zIndex: slot.zIndex,
         hidden: Boolean(slot.hidden),
-        opacity: slot.opacity,
-        blendMode: slot.blendMode,
+        opacity: screenshotLayer.opacity,
+        blendMode: screenshotLayer.blendMode,
         thumbnail: slot.src ?? undefined,
       })
     }
@@ -289,7 +289,29 @@ export function LayersPanelContent() {
     }
 
     if (layer.type === "screenshot") updateScreenshotLayer(layerPatch)
-    if (layer.type === "slot") updateScreenshotSlot(layer.id, layerPatch)
+    if (layer.type === "slot") {
+      // Slot rows show the canvas-shared opacity/blendMode; edits to those
+      // route to the canvas layer. zIndex/hidden remain per-slot.
+      const sharedPatch = {
+        ...(layerPatch.opacity !== undefined
+          ? { opacity: layerPatch.opacity }
+          : {}),
+        ...(layerPatch.blendMode !== undefined
+          ? { blendMode: layerPatch.blendMode }
+          : {}),
+      }
+      if (Object.keys(sharedPatch).length > 0) updateScreenshotLayer(sharedPatch)
+      const slotPatch = {
+        ...(layerPatch.zIndex !== undefined
+          ? { zIndex: layerPatch.zIndex }
+          : {}),
+        ...(layerPatch.hidden !== undefined
+          ? { hidden: layerPatch.hidden }
+          : {}),
+      }
+      if (Object.keys(slotPatch).length > 0)
+        updateScreenshotSlot(layer.id, slotPatch)
+    }
     if (layer.type === "asset") updateAsset(layer.id, layerPatch)
     if (layer.type === "text") updateText(layer.id, layerPatch)
     if (layer.source === "annotation-stroke")

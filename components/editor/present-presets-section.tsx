@@ -428,7 +428,7 @@ export function PresentPresetsSection() {
   const addScreenshotSlot = useEditorStore((s) => s.addScreenshotSlot)
   const activeTilt = selectedSlot?.tilt ?? canvas.tilt
   const activeScale = selectedSlot?.scale ?? canvas.scale
-  const activeFrame = selectedSlot?.frame ?? canvas.frame
+  const activeFrame = canvas.frame
   const presetMotionCleanupRef = React.useRef<(() => void) | null>(null)
   const tab = useEditorStore((s) => s.presetTab)
   const setTab = useEditorStore((s) => s.setPresetTab)
@@ -476,8 +476,10 @@ export function PresentPresetsSection() {
         toScale: scale,
       })
       setTiltAndScale(preset.tilt, scale)
+      // Slots share the canvas frame now, so the slot scale is just the
+      // canvas scale resolved against that frame.
+      const slotScale = resolvePresentPresetScale(preset, canvas.frame)
       for (const slot of canvas.screenshotSlots) {
-        const slotScale = resolvePresentPresetScale(preset, slot.frame)
         updateScreenshotSlot(slot.id, { tilt: preset.tilt, scale: slotScale })
       }
       setActiveSinglePresetId(preset.id)
@@ -487,6 +489,7 @@ export function PresentPresetsSection() {
       activeFrame,
       activeScale,
       activeTilt,
+      canvas.frame,
       canvas.screenshotSlots,
       setActiveSinglePresetId,
       setTiltAndScale,
@@ -753,7 +756,7 @@ const SinglePresetCard = React.memo(function SinglePresetCard({
       screenshotSlots: canvas.screenshotSlots.map((slot) => ({
         ...slot,
         tilt: preset.tilt,
-        scale: resolvePresentPresetScale(preset, slot.frame),
+        scale: presetScale,
       })),
     }
   }, [canvas, preset])
@@ -800,7 +803,7 @@ const LayoutPresetCard = React.memo(function LayoutPresetCard({
         { id: "__main__", frame: canvas.frame },
         ...geometry.slots.map((_, i) => ({
           id: `_layout_preview_${i}`,
-          frame: canvas.screenshotSlots[i]?.frame ?? canvas.frame,
+          frame: canvas.frame,
         })),
       ],
       canvasAspect
@@ -812,27 +815,19 @@ const LayoutPresetCard = React.memo(function LayoutPresetCard({
         : cfg.xPct
       const yPct = geometry.relativeSlotPositions ? 50 + cfg.yPct : cfg.yPct
       return {
-      id: `_layout_preview_${i}`,
-      src: canvas.screenshotSlots[i]?.src ?? null,
-      xPct,
-      yPct,
-      widthPct: 60,
-      heightPct: 28,
-      rotation: cfg.rotation,
-      padding: canvas.padding,
-      tilt: cfg.tilt,
-      scale: cfg.scale,
-      frame: canvas.screenshotSlots[i]?.frame ?? { ...canvas.frame },
-      borderRadius: canvas.borderRadius,
-      zIndex: i + 1,
-      shadow: { ...canvas.shadow },
-      border: { ...canvas.border },
-      enhance: canvas.enhance,
-      filter: "none" as const,
-      opacity: 100,
-      blendMode: "normal" as const,
-      frameAddress: canvas.frameAddress,
-    }})
+        id: `_layout_preview_${i}`,
+        src: canvas.screenshotSlots[i]?.src ?? null,
+        xPct,
+        yPct,
+        widthPct: 60,
+        heightPct: 28,
+        rotation: cfg.rotation,
+        tilt: cfg.tilt,
+        scale: cfg.scale,
+        zIndex: i + 1,
+        filter: "none" as const,
+      }
+    })
     const PRESET_DESIGN_HEIGHT = BASE_CANVAS_WIDTH * (10 / 16)
     const offsetPx = geometry.mainOffset
       ? {

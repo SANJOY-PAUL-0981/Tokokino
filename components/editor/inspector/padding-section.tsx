@@ -4,26 +4,13 @@ import * as React from "react"
 
 import { EditableValue } from "@/components/editor/editable-value"
 import { Slider } from "@/components/ui/slider"
-import {
-  useActiveCanvasField,
-  useEditorStore,
-  useSelectedScreenshotSlot,
-} from "@/lib/editor/store"
+import { useActiveCanvasField, useEditorStore } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
 
 export function PaddingSection() {
-  const canvasPadding = useActiveCanvasField((c) => c.padding)
-  const selectedSlot = useSelectedScreenshotSlot()
-  const padding = selectedSlot?.padding ?? canvasPadding
+  const padding = useActiveCanvasField((c) => c.padding)
   const setPadding = useEditorStore((s) => s.setPadding)
-  const updateScreenshotSlot = useEditorStore((s) => s.updateScreenshotSlot)
-  const applyPadding = (value: number) => {
-    if (selectedSlot) {
-      updateScreenshotSlot(selectedSlot.id, { padding: value })
-      return
-    }
-    setPadding(value)
-  }
+  const applyPadding = (value: number) => setPadding(value)
   const quick = [16, 40, 80, 120]
   return (
     <>

@@ -48,7 +48,7 @@ import {
 } from "@/components/ui/dialog"
 import {
   copyCanvasAsPng,
-  captureCanvasAsPngBlob,
+  captureCanvasForShare,
   EXPORT_FORMAT_EXTENSION,
   EXPORT_FORMAT_LABELS,
   EXPORT_RESOLUTION_LABELS,
@@ -141,11 +141,11 @@ export function TopBar() {
     })
 
     try {
-      const blob = await captureCanvasAsPngBlob(activeCanvasId)
+      const { blob, contentType } = await captureCanvasForShare(activeCanvasId)
       const response = await fetch("/api/share", {
         method: "POST",
         headers: {
-          "Content-Type": "image/png",
+          "Content-Type": contentType,
         },
         body: blob,
       })

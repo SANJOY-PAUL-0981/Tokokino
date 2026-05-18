@@ -151,7 +151,7 @@ function mainScreenshotRowPositionPct({
   const rowLayout = computeRowLayout(
     [
       { id: "__main__", frame },
-      ...slots.map((slot) => ({ id: slot.id, frame: slot.frame })),
+      ...slots.map((slot) => ({ id: slot.id, frame })),
     ],
     dims.ratio
   )
@@ -464,9 +464,10 @@ function DefaultToolbarContents() {
     | "canvas"
     | "allScreenshots"
     | null
-  const activeFrame = selectedSlot?.frame ?? frame
+  // Frame and enhance are canvas-shared now; scale is still per-slot.
+  const activeFrame = frame
   const activeScale = selectedSlot?.scale ?? scale
-  const activeEnhance = selectedSlot?.enhance ?? enhance
+  const activeEnhance = enhance
   const hasDeviceFrame = activeFrame.id !== "none"
   const hasMainScreenshotTarget =
     Boolean(screenshot) || hasDeviceFrame || screenshotSlots.length > 0
@@ -974,15 +975,7 @@ function DefaultToolbarContents() {
                   {ENHANCE_PRESETS.map((p) => (
                     <button
                       key={p.id}
-                      onClick={() => {
-                        if (selectedSlot) {
-                          updateScreenshotSlot(selectedSlot.id, {
-                            enhance: p.id,
-                          })
-                          return
-                        }
-                        setEnhance(p.id)
-                      }}
+                      onClick={() => setEnhance(p.id)}
                       className={cn(
                         "flex cursor-pointer flex-col items-center gap-1 rounded-md border px-2 py-2 text-[11px] transition-all",
                         activeEnhance === p.id

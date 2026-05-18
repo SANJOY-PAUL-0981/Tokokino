@@ -11,10 +11,7 @@ import {
 } from "@remixicon/react"
 
 import { ScrollArea } from "@/components/ui/scroll-area"
-import {
-  useActiveCanvasField,
-  useSelectedScreenshotSlot,
-} from "@/lib/editor/store"
+import { useActiveCanvasField } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
 
 import { BackdropSection } from "./inspector/backdrop-section"
@@ -30,9 +27,7 @@ export function Inspector({ className }: { className?: string }) {
   const screenshotBoxCount = useActiveCanvasField(
     (c) => (c.screenshot ? 1 : 0) + c.screenshotSlots.length
   )
-  const selectedSlot = useSelectedScreenshotSlot()
-  const activeFrameId = selectedSlot?.frame.id ?? frameId
-  const hasDeviceFrame = activeFrameId !== "none"
+  const hasDeviceFrame = frameId !== "none"
   const showPadding = screenshotBoxCount <= 1
 
   return (

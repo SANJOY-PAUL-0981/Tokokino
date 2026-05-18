@@ -317,6 +317,10 @@ export type GradientCategory = {
   items: string[]
 }
 
+// Shared canvas-level styling (padding, frame, shadow, border, enhance, etc.)
+// is read directly from CanvasState. Slots only carry per-instance data:
+// position/size, per-slot tilt/scale/rotation (used by layout presets),
+// image source, filter, fit, and stacking.
 export type ScreenshotSlot = {
   id: string
   src: string | null
@@ -325,20 +329,11 @@ export type ScreenshotSlot = {
   widthPct: number
   heightPct: number
   rotation: number
-  padding: number
   tilt: Tilt
   scale: number
-  frame: DeviceFrame
-  borderRadius: number
   zIndex: number
-  shadow: Shadow
-  border: Border
-  enhance: EnhancePreset
   filter: AssetFilter
-  opacity: number
-  blendMode: AssetBlendMode
   hidden?: boolean
-  frameAddress: string
   objectFit?: "contain" | "cover" | "fill"
 }
 

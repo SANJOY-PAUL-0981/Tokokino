@@ -443,13 +443,12 @@ function normalizeCanvasState(
       ? source.annotationShapes
       : fallback.annotationShapes,
     screenshotSlots: Array.isArray(source.screenshotSlots)
-      ? source.screenshotSlots.map((slot) => ({
-          ...createScreenshotSlot({}, 1),
-          ...slot,
-          frame: { ...fallback.frame, ...(slot.frame ?? {}) },
-          shadow: { ...fallback.shadow, ...(slot.shadow ?? {}) },
-          border: { ...fallback.border, ...(slot.border ?? {}) },
-        }))
+      ? source.screenshotSlots.map((slot) =>
+          // Legacy slot drafts may carry padding/frame/shadow/border/enhance/
+          // opacity/blendMode/frameAddress/borderRadius — those moved to the
+          // canvas, so we re-pick only the fields a slot still owns.
+          migrateLegacySlot(slot)
+        )
       : fallback.screenshotSlots,
   }
 }
@@ -715,7 +714,7 @@ const layoutSlotsInRow = (
   const layout = computeRowLayout(
     [
       { id: "__main__", frame: canvasFrame },
-      ...slots.map((slot) => ({ id: slot.id, frame: slot.frame })),
+      ...slots.map((slot) => ({ id: slot.id, frame: canvasFrame })),
     ],
     canvasAspect
   )
@@ -759,15 +758,10 @@ function applySharedFrameToCanvas(
   options: { preservePositions?: boolean } = { preservePositions: true }
 ): Pick<CanvasState, "frame" | "screenshotSlots"> {
   const sharedFrame = { ...frame }
-  const slots = canvas.screenshotSlots.map((slot) => ({
-    ...slot,
-    frame: { ...sharedFrame },
-  }))
-
   return {
     frame: sharedFrame,
     screenshotSlots: layoutSlotsInRow(
-      slots,
+      canvas.screenshotSlots,
       sharedFrame,
       stateCanvasAspect(state),
       options
@@ -786,31 +780,40 @@ const createScreenshotSlot = (
   widthPct: SLOT_DEFAULT_FALLBACK_WIDTH,
   heightPct: SLOT_DEFAULT_HEIGHT_PCT,
   rotation: 0,
-  padding: 16,
   tilt: { rx: 0, ry: 0, rz: 0 },
   scale: 100,
-  frame: {
-    id: "none",
-    color: "black",
-    orientation: "vertical",
-  },
-  borderRadius: 7,
   zIndex,
-  shadow: {
-    type: "drop",
-    intensity: 35,
-    lightSource: "center",
-    color: "#050505",
-  },
-  border: { color: null, width: 1, style: "solid", padding: 0 },
-  enhance: "off",
   filter: "none",
-  opacity: 100,
-  blendMode: "normal",
-  frameAddress: "",
   objectFit: "cover",
   ...base,
 })
+
+function migrateLegacySlot(raw: unknown): ScreenshotSlot {
+  const slot = (raw ?? {}) as Partial<ScreenshotSlot> & {
+    tilt?: Partial<{ rx: number; ry: number; rz: number }>
+  }
+  const base: Partial<ScreenshotSlot> = {}
+  if (typeof slot.id === "string") base.id = slot.id
+  if (slot.src === null || typeof slot.src === "string") base.src = slot.src
+  if (typeof slot.xPct === "number") base.xPct = slot.xPct
+  if (typeof slot.yPct === "number") base.yPct = slot.yPct
+  if (typeof slot.widthPct === "number") base.widthPct = slot.widthPct
+  if (typeof slot.heightPct === "number") base.heightPct = slot.heightPct
+  if (typeof slot.rotation === "number") base.rotation = slot.rotation
+  if (slot.tilt) {
+    base.tilt = {
+      rx: slot.tilt.rx ?? 0,
+      ry: slot.tilt.ry ?? 0,
+      rz: slot.tilt.rz ?? 0,
+    }
+  }
+  if (typeof slot.scale === "number") base.scale = slot.scale
+  if (typeof slot.zIndex === "number") base.zIndex = slot.zIndex
+  if (typeof slot.filter === "string") base.filter = slot.filter
+  if (typeof slot.hidden === "boolean") base.hidden = slot.hidden
+  if (slot.objectFit) base.objectFit = slot.objectFit
+  return createScreenshotSlot(base, slot.zIndex ?? 1)
+}
 
 const CANVAS_BASE_W = 1100
 const CANVAS_GAP = 80
@@ -1659,27 +1662,14 @@ export const useEditorStore = create<EditorStore>((set, get) => {
           const next = createScreenshotSlot(
             {
               id,
-              frame: { ...canvas.frame },
-              frameAddress: canvas.frameAddress,
-              padding: canvas.padding,
               tilt: { ...canvas.tilt },
               scale: canvas.scale,
-              borderRadius: canvas.borderRadius,
-              shadow: { ...canvas.shadow },
-              border: { ...canvas.border },
-              enhance: canvas.enhance,
-              opacity: canvas.screenshotLayer.opacity,
-              blendMode: canvas.screenshotLayer.blendMode,
             },
             computeNextLayerZ(canvas)
           )
-          const syncedSlots = canvas.screenshotSlots.map((slot) => ({
-            ...slot,
-            frame: { ...canvas.frame },
-          }))
           return {
             screenshotSlots: layoutSlotsInRow(
-              [...syncedSlots, next],
+              [...canvas.screenshotSlots, next],
               canvas.frame,
               stateCanvasAspect(state)
             ),
@@ -1692,29 +1682,11 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     updateScreenshotSlot: (id, patch, canvasId) =>
       commitCanvas(
         canvasId,
-        (canvas, state) => {
-          if (patch.frame) {
-            const sharedFrame = { ...patch.frame }
-            const updated = canvas.screenshotSlots.map((slot) =>
-              slot.id === id
-                ? { ...slot, ...patch, frame: { ...sharedFrame } }
-                : { ...slot, frame: { ...sharedFrame } }
-            )
-            return {
-              frame: sharedFrame,
-              screenshotSlots: layoutSlotsInRow(
-                updated,
-                sharedFrame,
-                stateCanvasAspect(state),
-                { preservePositions: true }
-              ),
-            }
-          }
-          const updated = canvas.screenshotSlots.map((slot) =>
+        (canvas) => ({
+          screenshotSlots: canvas.screenshotSlots.map((slot) =>
             slot.id === id ? { ...slot, ...patch } : slot
-          )
-          return { screenshotSlots: updated }
-        },
+          ),
+        }),
         `screenshot-slot-${id}`
       ),
     setScreenshotSlotImage: (id, src, canvasId) => {
@@ -1787,16 +1759,11 @@ export const useEditorStore = create<EditorStore>((set, get) => {
           const copy: ScreenshotSlot = {
             ...src,
             id: copyId,
-            frame: { ...canvas.frame },
             zIndex: computeNextLayerZ(canvas),
           }
-          const syncedSlots = canvas.screenshotSlots.map((slot) => ({
-            ...slot,
-            frame: { ...canvas.frame },
-          }))
           return {
             screenshotSlots: layoutSlotsInRow(
-              [...syncedSlots, copy],
+              [...canvas.screenshotSlots, copy],
               canvas.frame,
               stateCanvasAspect(state)
             ),

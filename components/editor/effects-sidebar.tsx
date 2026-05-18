@@ -45,9 +45,8 @@ export function EffectsSidebar({
   const setFrameForMatchingScreenshots = useEditorStore(
     (s) => s.setFrameForMatchingScreenshots
   )
-  const updateScreenshotSlot = useEditorStore((s) => s.updateScreenshotSlot)
   const selectedSlot = useSelectedScreenshotSlot()
-  const activeFrame = selectedSlot?.frame ?? frame
+  const activeFrame = frame
 
   const [customSize, setCustomSize] = React.useState<{
     w: number
@@ -120,10 +119,6 @@ export function EffectsSidebar({
               value={activeFrame}
               previewImage={selectedSlot ? selectedSlot.src : undefined}
               onChange={(nextFrame) => {
-                if (selectedSlot) {
-                  updateScreenshotSlot(selectedSlot.id, { frame: nextFrame })
-                  return
-                }
                 setFrameForMatchingScreenshots(nextFrame)
                 showCompatibilityWarning(
                   aspect,
