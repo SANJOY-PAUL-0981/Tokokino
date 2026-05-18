@@ -75,10 +75,7 @@ export function ScreenshotBare({
   return (
     <div
       ref={stageRef}
-      className={cn(
-        "group/screenshot pointer-events-none relative h-full w-full",
-        (objectFit === "cover" || objectFit === "fill") && "overflow-hidden"
-      )}
+      className="group/screenshot pointer-events-none relative h-full w-full overflow-visible"
       onPointerDown={onContainerPointerDown}
     >
       <img

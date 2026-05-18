@@ -16,7 +16,6 @@ import {
   RiEqualizerLine,
   RiSaveLine,
   RiShareForwardLine,
-  RiLoader4Line,
   RiLink,
 } from "@remixicon/react"
 import { toast } from "sonner"
@@ -40,6 +39,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Dialog,
   DialogContent,
@@ -84,6 +84,25 @@ type ShareDialogState = {
   status: "idle" | "preparing" | "ready" | "error"
   url: string | null
   error: string | null
+}
+
+const SHARE_SKELETON_MIN_MS = 700
+
+function waitForShareSkeleton(startedAt: number) {
+  const elapsed = performance.now() - startedAt
+  const remaining = Math.max(0, SHARE_SKELETON_MIN_MS - elapsed)
+
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, remaining)
+  })
+}
+
+function waitForNextPaint() {
+  return new Promise<void>((resolve) => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => resolve())
+    })
+  })
 }
 
 export function TopBar() {
@@ -132,6 +151,8 @@ export function TopBar() {
   const handleShare = React.useCallback(async () => {
     if (shareDialog.status === "preparing") return
 
+    const skeletonStartedAt = performance.now()
+
     setIsShareLinkCopied(false)
     setShareDialog({
       open: true,
@@ -141,6 +162,7 @@ export function TopBar() {
     })
 
     try {
+      await waitForNextPaint()
       const { blob, contentType } = await captureCanvasForShare(activeCanvasId)
       const response = await fetch("/api/share", {
         method: "POST",
@@ -158,6 +180,7 @@ export function TopBar() {
         throw new Error(result?.error ?? "Could not prepare share link")
       }
 
+      await waitForShareSkeleton(skeletonStartedAt)
       setShareDialog({
         open: true,
         status: "ready",
@@ -168,6 +191,7 @@ export function TopBar() {
       const message =
         err instanceof Error ? err.message : "Could not prepare share link"
       console.error(err)
+      await waitForShareSkeleton(skeletonStartedAt)
       setShareDialog({
         open: true,
         status: "error",
@@ -611,20 +635,9 @@ function ShareControls({
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="lg"
-          disabled={isPreparing}
-          onClick={onShare}
-        >
-          {isPreparing ? (
-            <RiLoader4Line className="animate-spin" />
-          ) : (
-            <RiShareForwardLine />
-          )}
-          <span className="hidden lg:inline">
-            {isPreparing ? "Preparing" : "Share"}
-          </span>
+        <Button variant="outline" size="lg" onClick={onShare}>
+          <RiShareForwardLine />
+          <span className="hidden lg:inline">Share</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -634,23 +647,31 @@ function ShareControls({
       >
         <div className="px-1">
           <p className="text-sm font-medium">Share screenshot</p>
-          <p className="mt-1 text-xs/relaxed text-muted-foreground">
-            {status === "ready"
-              ? "Copy the public link or open the share page."
-              : status === "error"
-                ? "The link could not be prepared."
-                : "Preparing a public link for this canvas."}
-          </p>
+          {isPreparing ? (
+            <div className="mt-2 space-y-1.5">
+              <Skeleton className="h-3 w-56 max-w-full" />
+              <Skeleton className="h-3 w-40 max-w-[80%]" />
+            </div>
+          ) : (
+            <p className="mt-1 text-xs/relaxed text-muted-foreground">
+              {status === "ready"
+                ? "Copy the public link or open the share page."
+                : status === "error"
+                  ? "The link could not be prepared."
+                  : "Create a public link for this canvas."}
+            </p>
+          )}
         </div>
 
         {status === "preparing" ? (
-          <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-secondary/40 p-3">
-            <RiLoader4Line className="size-5 animate-spin text-primary" />
-            <div className="min-w-0">
-              <p className="text-xs font-medium">Preparing...</p>
-              <p className="text-[11px] text-muted-foreground">
-                Capturing and uploading the canvas.
-              </p>
+          <div className="space-y-3">
+            <div className="flex min-w-0 items-center gap-2 overflow-hidden rounded-lg border border-border/70 bg-secondary/40 p-2">
+              <Skeleton className="size-4 shrink-0 rounded-full" />
+              <Skeleton className="h-4 flex-1" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Skeleton className="h-8 rounded-md" />
+              <Skeleton className="h-8 rounded-md" />
             </div>
           </div>
         ) : null}
@@ -839,7 +860,7 @@ function MobileOverflowMenu({
             disabled={isPreparingShare}
           >
             <RiShareForwardLine />
-            {isPreparingShare ? "Preparing share..." : "Share"}
+            Share
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={(e) => {

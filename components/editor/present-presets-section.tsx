@@ -458,29 +458,67 @@ export function PresentPresetsSection() {
   const applyPreset = React.useCallback(
     (preset: PresentPreset) => {
       const scale = resolvePresentPresetScale(preset, activeFrame)
+      const aw = aspect.w || 16
+      const ah = aspect.h || 10
+      const naturalLayout = computeRowLayout(
+        [
+          { id: "__main__", frame: canvas.frame },
+          ...canvas.screenshotSlots.map((slot) => ({
+            id: slot.id,
+            frame: canvas.frame,
+          })),
+        ],
+        aw / ah
+      )
       presetMotionCleanupRef.current?.()
       const target =
         typeof document === "undefined"
           ? null
-          : activeCanvasId
+          : selectedSlot
+            ? document.querySelector<HTMLElement>(
+                `[data-screenshot-slot-id="${selectedSlot.id}"]`
+              )
+            : activeCanvasId
             ? document.querySelector<HTMLElement>(
                 `[data-canvas-id="${activeCanvasId}"]`
               )
             : null
       presetMotionCleanupRef.current = startPresetMotion({
         target,
-        kind: "canvas",
+        kind: selectedSlot ? "slot" : "canvas",
         fromTilt: activeTilt,
         fromScale: activeScale,
         toTilt: preset.tilt,
         toScale: scale,
       })
+      if (selectedSlot) {
+        const slotIndex = canvas.screenshotSlots.findIndex(
+          (slot) => slot.id === selectedSlot.id
+        )
+        const naturalSlot = naturalLayout[slotIndex + 1]
+        updateScreenshotSlot(selectedSlot.id, {
+          xPct: naturalSlot?.xPct ?? selectedSlot.xPct,
+          yPct: 50,
+          widthPct: naturalSlot?.widthPct ?? selectedSlot.widthPct,
+          rotation: 0,
+          tilt: preset.tilt,
+          scale,
+        })
+        setActiveSinglePresetId(preset.id)
+        return
+      }
+      setScreenshotPosition("center")
       setTiltAndScale(preset.tilt, scale)
-      // Slots share the canvas frame now, so the slot scale is just the
-      // canvas scale resolved against that frame.
-      const slotScale = resolvePresentPresetScale(preset, canvas.frame)
-      for (const slot of canvas.screenshotSlots) {
-        updateScreenshotSlot(slot.id, { tilt: preset.tilt, scale: slotScale })
+      for (const [index, slot] of canvas.screenshotSlots.entries()) {
+        const naturalSlot = naturalLayout[index + 1]
+        updateScreenshotSlot(slot.id, {
+          xPct: naturalSlot?.xPct ?? slot.xPct,
+          yPct: 50,
+          widthPct: naturalSlot?.widthPct ?? slot.widthPct,
+          rotation: 0,
+          tilt: preset.tilt,
+          scale,
+        })
       }
       setActiveSinglePresetId(preset.id)
     },
@@ -489,9 +527,13 @@ export function PresentPresetsSection() {
       activeFrame,
       activeScale,
       activeTilt,
+      aspect.h,
+      aspect.w,
       canvas.frame,
       canvas.screenshotSlots,
+      selectedSlot,
       setActiveSinglePresetId,
+      setScreenshotPosition,
       setTiltAndScale,
       updateScreenshotSlot,
     ]
@@ -749,17 +791,34 @@ const SinglePresetCard = React.memo(function SinglePresetCard({
   )
   const virtualCanvas = React.useMemo<CanvasState>(() => {
     const presetScale = resolvePresentPresetScale(preset, canvas.frame)
+    const canvasAspect = aw / ah
+    const naturalLayout = computeRowLayout(
+      [
+        { id: "__main__", frame: canvas.frame },
+        ...canvas.screenshotSlots.map((slot) => ({
+          id: slot.id,
+          frame: canvas.frame,
+        })),
+      ],
+      canvasAspect
+    )
     return {
       ...canvas,
       tilt: preset.tilt,
       scale: presetScale,
-      screenshotSlots: canvas.screenshotSlots.map((slot) => ({
+      screenshotPosition: "center",
+      screenshotOffset: { x: 0, y: 0 },
+      screenshotSlots: canvas.screenshotSlots.map((slot, index) => ({
         ...slot,
+        xPct: naturalLayout[index + 1]?.xPct ?? slot.xPct,
+        yPct: 50,
+        widthPct: naturalLayout[index + 1]?.widthPct ?? slot.widthPct,
+        rotation: 0,
         tilt: preset.tilt,
         scale: presetScale,
       })),
     }
-  }, [canvas, preset])
+  }, [ah, aw, canvas, preset])
   return (
     <PresetCardShell
       active={active}

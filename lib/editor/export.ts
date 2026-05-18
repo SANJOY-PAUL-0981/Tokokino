@@ -203,20 +203,51 @@ async function waitForExportAssets(urls: string[]) {
   )
 }
 
-function makeExportStyle() {
+function makeExportStyle(scopeId: string) {
   const exportStyle = document.createElement("style")
   exportStyle.id = "__export-override"
+  const scope = `[data-export-scope="${scopeId}"]`
   exportStyle.textContent = `
-    * {
+    ${scope}, ${scope} * {
       outline: none !important;
       caret-color: transparent !important;
       --tw-ring-shadow: 0 0 #0000 !important;
       --tw-ring-offset-shadow: 0 0 #0000 !important;
+      animation: none !important;
+      transition: none !important;
     }
-    [data-export-hidden="true"] { display: none !important; }
-    [data-selection-border="true"] { border: none !important; }
+    ${scope} [data-export-hidden="true"] { display: none !important; }
+    ${scope} [data-selection-border="true"] { border: none !important; }
   `
   return exportStyle
+}
+
+function prepareExportNode(source: HTMLElement, width: number, height: number) {
+  const node = source.cloneNode(true) as HTMLElement
+  const scopeId = `export-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2)}`
+  const exportStyle = makeExportStyle(scopeId)
+
+  node.setAttribute("data-export-scope", scopeId)
+  node.style.position = "fixed"
+  node.style.left = "-100000px"
+  node.style.top = "0"
+  node.style.width = `${width}px`
+  node.style.height = `${height}px`
+  node.style.pointerEvents = "none"
+  node.style.transform = "none"
+
+  document.head.appendChild(exportStyle)
+  document.body.appendChild(node)
+
+  return {
+    node,
+    cleanup: () => {
+      node.remove()
+      exportStyle.remove()
+    },
+  }
 }
 
 function filterExportHidden(node: Node) {
@@ -236,14 +267,14 @@ export async function exportCanvas(
 
   const rect = node.getBoundingClientRect()
   const renderedWidth = rect.width || node.offsetWidth
+  const renderedHeight = rect.height || node.offsetHeight
   if (!renderedWidth) throw new Error("Canvas has zero width")
 
   const targetWidth = EXPORT_RESOLUTION_WIDTHS[resolution]
   const pixelRatio = targetWidth / renderedWidth
 
-  const exportStyle = makeExportStyle()
-  document.head.appendChild(exportStyle)
-  const { rewrites, preloadUrls } = rewriteExportAssets(node)
+  const exportTarget = prepareExportNode(node, renderedWidth, renderedHeight)
+  const { rewrites, preloadUrls } = rewriteExportAssets(exportTarget.node)
 
   const baseOptions = {
     pixelRatio,
@@ -262,12 +293,12 @@ export async function exportCanvas(
     await waitForExportAssets(preloadUrls)
 
     if (format === "png") {
-      const url = await toPng(node, baseOptions)
+      const url = await toPng(exportTarget.node, baseOptions)
       triggerDownload(url, filename)
       return filename
     }
     if (format === "jpeg") {
-      const url = await toJpeg(node, {
+      const url = await toJpeg(exportTarget.node, {
         ...baseOptions,
         backgroundColor: "#ffffff",
         quality: 0.95,
@@ -276,7 +307,7 @@ export async function exportCanvas(
       return filename
     }
     // webp — html-to-image doesn't have a direct toWebp, so render to canvas via toBlob (PNG) and re-encode
-    const pngBlob = await toBlob(node, baseOptions)
+    const pngBlob = await toBlob(exportTarget.node, baseOptions)
     if (!pngBlob) throw new Error("Could not capture canvas")
     const bitmap = await createImageBitmap(pngBlob)
     const offscreen = document.createElement("canvas")
@@ -300,7 +331,7 @@ export async function exportCanvas(
     for (const rewrite of rewrites.reverse()) {
       rewrite.restore()
     }
-    exportStyle.remove()
+    exportTarget.cleanup()
   }
 }
 
@@ -333,18 +364,18 @@ export async function captureCanvasAsPngBlob(
 
   const rect = node.getBoundingClientRect()
   const renderedWidth = rect.width || node.offsetWidth
+  const renderedHeight = rect.height || node.offsetHeight
   if (!renderedWidth) throw new Error("Canvas has zero width")
 
   const pixelRatio = targetWidth / renderedWidth
 
-  const exportStyle = makeExportStyle()
-  document.head.appendChild(exportStyle)
-  const { rewrites, preloadUrls } = rewriteExportAssets(node)
+  const exportTarget = prepareExportNode(node, renderedWidth, renderedHeight)
+  const { rewrites, preloadUrls } = rewriteExportAssets(exportTarget.node)
 
   try {
     await waitForExportAssets(preloadUrls)
 
-    const blob = await toBlob(node, {
+    const blob = await toBlob(exportTarget.node, {
       pixelRatio,
       cacheBust: true,
       filter: filterExportHidden,
@@ -355,7 +386,7 @@ export async function captureCanvasAsPngBlob(
     for (const rewrite of rewrites.reverse()) {
       rewrite.restore()
     }
-    exportStyle.remove()
+    exportTarget.cleanup()
   }
 }
 

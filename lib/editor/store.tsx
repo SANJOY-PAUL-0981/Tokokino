@@ -1037,9 +1037,12 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     setActiveSinglePresetId: (id) => set({ activeSinglePresetId: id }),
     setScreenshot: (screenshot, canvasId) => {
       const state = get()
-      const activeLayoutPreset = LAYOUT_PRESETS.find(
-        (preset) => preset.id === state.activeLayoutPresetId
-      )
+      const activeLayoutPreset =
+        state.presetTab === "multi"
+          ? LAYOUT_PRESETS.find(
+              (preset) => preset.id === state.activeLayoutPresetId
+            )
+          : null
       const targetCanvasId = canvasId ?? state.present.activeCanvasId
       const targetCanvas = state.present.canvases.find(
         (canvas) => canvas.id === targetCanvasId
@@ -1770,9 +1773,13 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         `screenshot-slot-${id}`
       ),
     setScreenshotSlotImage: (id, src, canvasId) => {
-      const activeLayoutPreset = LAYOUT_PRESETS.find(
-        (preset) => preset.id === get().activeLayoutPresetId
-      )
+      const state = get()
+      const activeLayoutPreset =
+        state.presetTab === "multi"
+          ? LAYOUT_PRESETS.find(
+              (preset) => preset.id === state.activeLayoutPresetId
+            )
+          : null
       commitCanvas(
         canvasId,
         (canvas, state) => {
