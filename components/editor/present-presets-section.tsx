@@ -31,7 +31,6 @@ import {
   useActiveCanvasField,
   useActiveCanvasId,
   useEditorStore,
-  useSelectedScreenshotSlot,
   type AspectState,
   type CanvasState,
   type ScreenshotSlot,
@@ -421,13 +420,10 @@ export function PresentPresetsSection() {
   const canvas = useActiveCanvasField((c) => c)
   const activeCanvasId = useActiveCanvasId()
   const aspect = useEditorStore((s) => s.present.aspect)
-  const selectedSlot = useSelectedScreenshotSlot()
   const setTiltAndScale = useEditorStore((s) => s.setTiltAndScale)
   const setScreenshotPosition = useEditorStore((s) => s.setScreenshotPosition)
   const updateScreenshotSlot = useEditorStore((s) => s.updateScreenshotSlot)
   const addScreenshotSlot = useEditorStore((s) => s.addScreenshotSlot)
-  const activeTilt = selectedSlot?.tilt ?? canvas.tilt
-  const activeScale = selectedSlot?.scale ?? canvas.scale
   const activeFrame = canvas.frame
   const presetMotionCleanupRef = React.useRef<(() => void) | null>(null)
   const tab = useEditorStore((s) => s.presetTab)
@@ -474,39 +470,19 @@ export function PresentPresetsSection() {
       const target =
         typeof document === "undefined"
           ? null
-          : selectedSlot
-            ? document.querySelector<HTMLElement>(
-                `[data-screenshot-slot-id="${selectedSlot.id}"]`
-              )
-            : activeCanvasId
+          : activeCanvasId
             ? document.querySelector<HTMLElement>(
                 `[data-canvas-id="${activeCanvasId}"]`
               )
             : null
       presetMotionCleanupRef.current = startPresetMotion({
         target,
-        kind: selectedSlot ? "slot" : "canvas",
-        fromTilt: activeTilt,
-        fromScale: activeScale,
+        kind: "canvas",
+        fromTilt: canvas.tilt,
+        fromScale: canvas.scale,
         toTilt: preset.tilt,
         toScale: scale,
       })
-      if (selectedSlot) {
-        const slotIndex = canvas.screenshotSlots.findIndex(
-          (slot) => slot.id === selectedSlot.id
-        )
-        const naturalSlot = naturalLayout[slotIndex + 1]
-        updateScreenshotSlot(selectedSlot.id, {
-          xPct: naturalSlot?.xPct ?? selectedSlot.xPct,
-          yPct: 50,
-          widthPct: naturalSlot?.widthPct ?? selectedSlot.widthPct,
-          rotation: 0,
-          tilt: preset.tilt,
-          scale,
-        })
-        setActiveSinglePresetId(preset.id)
-        return
-      }
       setScreenshotPosition("center")
       setTiltAndScale(preset.tilt, scale)
       for (const [index, slot] of canvas.screenshotSlots.entries()) {
@@ -525,13 +501,12 @@ export function PresentPresetsSection() {
     [
       activeCanvasId,
       activeFrame,
-      activeScale,
-      activeTilt,
       aspect.h,
       aspect.w,
       canvas.frame,
       canvas.screenshotSlots,
-      selectedSlot,
+      canvas.scale,
+      canvas.tilt,
       setActiveSinglePresetId,
       setScreenshotPosition,
       setTiltAndScale,
