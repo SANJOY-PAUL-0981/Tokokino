@@ -443,12 +443,7 @@ function normalizeCanvasState(
       ? source.annotationShapes
       : fallback.annotationShapes,
     screenshotSlots: Array.isArray(source.screenshotSlots)
-      ? source.screenshotSlots.map((slot) =>
-          // Legacy slot drafts may carry padding/frame/shadow/border/enhance/
-          // opacity/blendMode/frameAddress/borderRadius — those moved to the
-          // canvas, so we re-pick only the fields a slot still owns.
-          migrateLegacySlot(slot)
-        )
+      ? source.screenshotSlots.map((slot) => migrateLegacySlot(slot))
       : fallback.screenshotSlots,
   }
 }
@@ -461,10 +456,13 @@ function normalizeEditorState(state: Partial<EditorState>): EditorState {
       ? rawCanvases.map((canvas, index) =>
           normalizeCanvasState(
             canvas,
-            createCanvas(canvas?.id ?? makeId(), canvas?.position ?? {
-              x: index * (CANVAS_BASE_W + CANVAS_GAP),
-              y: 0,
-            })
+            createCanvas(
+              canvas?.id ?? makeId(),
+              canvas?.position ?? {
+                x: index * (CANVAS_BASE_W + CANVAS_GAP),
+                y: 0,
+              }
+            )
           )
         )
       : fallback.canvases
@@ -751,13 +749,81 @@ const aspectRatioFromState = (aspect: AspectState): number => {
 const stateCanvasAspect = (state: EditorState): number =>
   aspectRatioFromState(state.aspect)
 
+function applyLayoutPresetGeometryToCanvas(
+  canvas: CanvasState,
+  state: EditorState,
+  frame: DeviceFrame,
+  activeLayoutPresetId: string | null
+): Partial<CanvasState> | null {
+  if (!activeLayoutPresetId) return null
+  const preset = LAYOUT_PRESETS.find((p) => p.id === activeLayoutPresetId)
+  if (!preset) return null
+  if (canvas.screenshotSlots.length === 0) return null
+  const geometry = resolveLayoutPresetGeometry(preset, frame)
+  if (canvas.screenshotSlots.length !== geometry.slots.length) return null
+
+  const aspect = stateCanvasAspect(state)
+  const naturalLayout = computeRowLayout(
+    [
+      { id: "__main__", frame },
+      ...canvas.screenshotSlots.map((slot) => ({ id: slot.id, frame })),
+    ],
+    aspect
+  )
+
+  const screenshotSlots = canvas.screenshotSlots.map((slot, i) => {
+    const config = geometry.slots[i]
+    const entry = naturalLayout[i + 1]
+    if (!config || !entry) return slot
+    const naturalSlotX = entry.xPct
+    const xPct = geometry.relativeSlotPositions
+      ? naturalSlotX + config.xPct
+      : config.xPct
+    const yPct = geometry.relativeSlotPositions ? 50 + config.yPct : config.yPct
+    return {
+      ...slot,
+      xPct,
+      yPct,
+      rotation: config.rotation,
+      tilt: { ...config.tilt },
+      scale: config.scale,
+      widthPct: entry.widthPct,
+      heightPct: SLOT_DEFAULT_HEIGHT_PCT,
+    }
+  })
+
+  const patch: Partial<CanvasState> = {
+    screenshotSlots,
+    tilt: { ...geometry.canvasTilt },
+    scale: geometry.canvasScale,
+  }
+  if (geometry.mainOffset) {
+    const PRESET_DESIGN_HEIGHT = CANVAS_BASE_W * (10 / 16)
+    patch.screenshotOffset = {
+      x: (geometry.mainOffset.xPct / 100) * CANVAS_BASE_W,
+      y: (geometry.mainOffset.yPct / 100) * PRESET_DESIGN_HEIGHT,
+    }
+  }
+  return patch
+}
+
 function applySharedFrameToCanvas(
   canvas: CanvasState,
   state: EditorState,
   frame: DeviceFrame,
+  activeLayoutPresetId: string | null,
   options: { preservePositions?: boolean } = { preservePositions: true }
-): Pick<CanvasState, "frame" | "screenshotSlots"> {
+): Partial<CanvasState> {
   const sharedFrame = { ...frame }
+  const presetPatch = applyLayoutPresetGeometryToCanvas(
+    canvas,
+    state,
+    sharedFrame,
+    activeLayoutPresetId
+  )
+  if (presetPatch) {
+    return { frame: sharedFrame, ...presetPatch }
+  }
   return {
     frame: sharedFrame,
     screenshotSlots: layoutSlotsInRow(
@@ -982,13 +1048,14 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         activeLayoutPreset && targetCanvas
           ? resolveLayoutPresetGeometry(activeLayoutPreset, targetCanvas.frame)
           : null
-      const presetOffset =
-        activeLayoutGeometry?.mainOffset
-          ? {
-              x: (activeLayoutGeometry.mainOffset.xPct / 100) * CANVAS_BASE_W,
-              y: (activeLayoutGeometry.mainOffset.yPct / 100) * PRESET_DESIGN_HEIGHT,
-            }
-          : { x: 0, y: 0 }
+      const presetOffset = activeLayoutGeometry?.mainOffset
+        ? {
+            x: (activeLayoutGeometry.mainOffset.xPct / 100) * CANVAS_BASE_W,
+            y:
+              (activeLayoutGeometry.mainOffset.yPct / 100) *
+              PRESET_DESIGN_HEIGHT,
+          }
+        : { x: 0, y: 0 }
       commitCanvas(
         canvasId,
         (canvas) => ({
@@ -1033,7 +1100,8 @@ export const useEditorStore = create<EditorStore>((set, get) => {
             const shouldReapplyActivePreset =
               activeLayoutGeometry &&
               canvas.id === state.activeCanvasId &&
-              canvas.screenshotSlots.length === activeLayoutGeometry.slots.length
+              canvas.screenshotSlots.length ===
+                activeLayoutGeometry.slots.length
             let screenshotSlots = layoutSlotsInRow(
               canvas.screenshotSlots,
               canvas.frame,
@@ -1153,13 +1221,25 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     setFrame: (f, canvasId) =>
       commitCanvas(
         canvasId,
-        (canvas, state) => applySharedFrameToCanvas(canvas, state, f),
+        (canvas, state) =>
+          applySharedFrameToCanvas(
+            canvas,
+            state,
+            f,
+            get().activeLayoutPresetId
+          ),
         "frame"
       ),
     setFrameForMatchingScreenshots: (f, canvasId) =>
       commitCanvas(
         canvasId,
-        (canvas, state) => applySharedFrameToCanvas(canvas, state, f),
+        (canvas, state) =>
+          applySharedFrameToCanvas(
+            canvas,
+            state,
+            f,
+            get().activeLayoutPresetId
+          ),
         "frame"
       ),
     setFrameAddress: (address, canvasId) =>
@@ -1695,7 +1775,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       )
       commitCanvas(
         canvasId,
-        (canvas) => {
+        (canvas, state) => {
           const activeLayoutGeometry = activeLayoutPreset
             ? resolveLayoutPresetGeometry(activeLayoutPreset, canvas.frame)
             : null
@@ -1710,14 +1790,36 @@ export const useEditorStore = create<EditorStore>((set, get) => {
           ) {
             return { screenshotSlots: updatedSlots }
           }
+          // When the active layout preset uses relative slot positions, the
+          // preset's xPct/yPct are offsets from each slot's natural row-layout
+          // position — not absolute values. Mirror the same resolution
+          // applyLayoutPreset does so uploading an image doesn't snap the box
+          // to (0, 0).
+          const naturalLayout = computeRowLayout(
+            [
+              { id: "__main__", frame: canvas.frame },
+              ...updatedSlots.map((slot) => ({
+                id: slot.id,
+                frame: canvas.frame,
+              })),
+            ],
+            stateCanvasAspect(state)
+          )
           return {
             screenshotSlots: updatedSlots.map((slot, index) => {
               const config = activeLayoutGeometry.slots[index]
               if (!config) return slot
+              const naturalSlotX = naturalLayout[index + 1]?.xPct ?? slot.xPct
+              const xPct = activeLayoutGeometry.relativeSlotPositions
+                ? naturalSlotX + config.xPct
+                : config.xPct
+              const yPct = activeLayoutGeometry.relativeSlotPositions
+                ? 50 + config.yPct
+                : config.yPct
               return {
                 ...slot,
-                xPct: config.xPct,
-                yPct: config.yPct,
+                xPct,
+                yPct,
                 rotation: config.rotation,
                 tilt: config.tilt,
                 scale: config.scale,
@@ -2187,10 +2289,11 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
         window.clearTimeout(saveTimer)
         saveTimer = null
       }
-      void writeEditorDraft(createEditorDraftSnapshot(useEditorStore.getState()))
-        .catch((error) => {
-          console.warn("Unable to save editor draft", error)
-        })
+      void writeEditorDraft(
+        createEditorDraftSnapshot(useEditorStore.getState())
+      ).catch((error) => {
+        console.warn("Unable to save editor draft", error)
+      })
     }
 
     const scheduleSave = () => {
