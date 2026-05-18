@@ -192,6 +192,7 @@ export function TopBar() {
       if (isAuthPending) return
 
       if (!session) {
+        setShareDialog((current) => ({ ...current, open: false }))
         setAuthDialog({ open: true, action })
         return
       }
@@ -290,12 +291,18 @@ export function TopBar() {
             onClick={() => handleProtectedAction("save")}
             tooltip="Save screenshot"
           />
-          <TopBarButton
-            label="Share"
-            icon={RiShareForwardLine}
-            onClick={() => handleProtectedAction("share")}
-            disabled={shareDialog.status === "preparing"}
-            tooltip="Share screenshot"
+          <ShareControls
+            open={shareDialog.open}
+            status={shareDialog.status}
+            url={shareDialog.url}
+            error={shareDialog.error}
+            copied={isShareLinkCopied}
+            onOpenChange={(open) => {
+              setShareDialog((current) => ({ ...current, open }))
+            }}
+            onShare={() => handleProtectedAction("share")}
+            onCopyLink={handleCopyShareLink}
+            onRetry={handleShare}
           />
         </div>
 
@@ -437,80 +444,6 @@ export function TopBar() {
         {/* Export (always visible) */}
         <ExportControls />
       </div>
-
-      <Dialog
-        open={shareDialog.open}
-        onOpenChange={(open) =>
-          setShareDialog((current) => ({ ...current, open }))
-        }
-      >
-        <DialogContent className="w-[min(calc(100vw-2rem),460px)] max-w-[calc(100vw-2rem)] gap-5 overflow-hidden p-5">
-          <div className="space-y-2 pr-8">
-            <DialogTitle>Share screenshot</DialogTitle>
-            <DialogDescription>
-              {shareDialog.status === "preparing"
-                ? "Preparing your image and creating a public link."
-                : shareDialog.status === "ready"
-                  ? "Anyone with this link can view the image."
-                  : shareDialog.status === "error"
-                    ? "The share link could not be created."
-                    : "Create a public link for this canvas."}
-            </DialogDescription>
-          </div>
-
-          {shareDialog.status === "preparing" ? (
-            <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-secondary/40 p-3">
-              <RiLoader4Line className="size-5 animate-spin text-primary" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium">Preparing...</p>
-                <p className="text-xs text-muted-foreground">
-                  Capturing the canvas and uploading it securely.
-                </p>
-              </div>
-            </div>
-          ) : null}
-
-          {shareDialog.status === "ready" && shareDialog.url ? (
-            <div className="w-full min-w-0 space-y-3">
-              <div className="flex w-full min-w-0 items-center gap-2 overflow-hidden rounded-lg border border-border/70 bg-secondary/40 p-2">
-                <RiLink className="size-4 shrink-0 text-muted-foreground" />
-                <p className="min-w-0 flex-1 truncate font-mono text-[11px] text-foreground">
-                  {shareDialog.url}
-                </p>
-              </div>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="min-w-0"
-                  onClick={() => void handleCopyShareLink(shareDialog.url!)}
-                >
-                  {isShareLinkCopied ? <RiCheckLine /> : <RiFileCopyLine />}
-                  <span>{isShareLinkCopied ? "Copied" : "Copy link"}</span>
-                </Button>
-                <Button asChild size="lg" className="min-w-0">
-                  <a href={shareDialog.url} target="_blank" rel="noreferrer">
-                    <RiExternalLinkLine />
-                    <span>Open</span>
-                  </a>
-                </Button>
-              </div>
-            </div>
-          ) : null}
-
-          {shareDialog.status === "error" ? (
-            <div className="space-y-3">
-              <p className="rounded-lg border border-destructive/25 bg-destructive/10 p-3 text-xs/relaxed text-destructive">
-                {shareDialog.error ?? "Something went wrong."}
-              </p>
-              <Button size="lg" onClick={() => void handleShare()}>
-                <RiShareForwardLine />
-                <span>Try again</span>
-              </Button>
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
     </header>
   )
 }
@@ -658,6 +591,120 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
         {value}
       </span>
     </div>
+  )
+}
+
+function ShareControls({
+  open,
+  status,
+  url,
+  error,
+  copied,
+  onOpenChange,
+  onShare,
+  onCopyLink,
+  onRetry,
+}: {
+  open: boolean
+  status: ShareDialogState["status"]
+  url: string | null
+  error: string | null
+  copied: boolean
+  onOpenChange: (open: boolean) => void
+  onShare: () => void
+  onCopyLink: (url: string) => Promise<void>
+  onRetry: () => Promise<void>
+}) {
+  const isPreparing = status === "preparing"
+
+  return (
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="lg"
+          disabled={isPreparing}
+          onClick={onShare}
+        >
+          {isPreparing ? (
+            <RiLoader4Line className="animate-spin" />
+          ) : (
+            <RiShareForwardLine />
+          )}
+          <span className="hidden lg:inline">
+            {isPreparing ? "Preparing" : "Share"}
+          </span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="center"
+        sideOffset={12}
+        className="w-[min(calc(100vw-2rem),360px)] gap-3 rounded-2xl border border-border/60 bg-popover/95 p-3 shadow-2xl backdrop-blur-md data-open:zoom-in-95 data-closed:zoom-out-95"
+      >
+        <div className="px-1">
+          <p className="text-sm font-medium">Share screenshot</p>
+          <p className="mt-1 text-xs/relaxed text-muted-foreground">
+            {status === "ready"
+              ? "Copy the public link or open the share page."
+              : status === "error"
+                ? "The link could not be prepared."
+                : "Preparing a public link for this canvas."}
+          </p>
+        </div>
+
+        {status === "preparing" ? (
+          <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-secondary/40 p-3">
+            <RiLoader4Line className="size-5 animate-spin text-primary" />
+            <div className="min-w-0">
+              <p className="text-xs font-medium">Preparing...</p>
+              <p className="text-[11px] text-muted-foreground">
+                Capturing and uploading the canvas.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        {status === "ready" && url ? (
+          <div className="min-w-0 space-y-3">
+            <div className="flex min-w-0 items-center gap-2 overflow-hidden rounded-lg border border-border/70 bg-secondary/40 p-2">
+              <RiLink className="size-4 shrink-0 text-muted-foreground" />
+              <p className="min-w-0 flex-1 truncate font-mono text-[11px] text-foreground">
+                {url}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="lg"
+                className="min-w-0"
+                onClick={() => void onCopyLink(url)}
+              >
+                {copied ? <RiCheckLine /> : <RiFileCopyLine />}
+                <span>{copied ? "Copied" : "Copy"}</span>
+              </Button>
+              <Button asChild size="lg" className="min-w-0">
+                <a href={url} target="_blank" rel="noreferrer">
+                  <RiExternalLinkLine />
+                  <span>Open</span>
+                </a>
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {status === "error" ? (
+          <div className="space-y-3">
+            <p className="rounded-lg border border-destructive/25 bg-destructive/10 p-3 text-xs/relaxed text-destructive">
+              {error ?? "Something went wrong."}
+            </p>
+            <Button size="lg" className="w-full" onClick={() => void onRetry()}>
+              <RiShareForwardLine />
+              <span>Try again</span>
+            </Button>
+          </div>
+        ) : null}
+      </PopoverContent>
+    </Popover>
   )
 }
 

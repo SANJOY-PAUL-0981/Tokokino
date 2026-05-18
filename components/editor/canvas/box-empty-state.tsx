@@ -77,7 +77,7 @@ export function BoxEmptyState({
         <>
           {/* Wide containers (desktop, browser, iPad horizontal) — full card */}
           <div
-            className="@container hidden w-full max-w-[420px] @md:block"
+            className="@container hidden w-full max-w-[400px] @md:block"
             style={{ containerType: "inline-size", ...rotationStyle }}
           >
             <UploadCard
