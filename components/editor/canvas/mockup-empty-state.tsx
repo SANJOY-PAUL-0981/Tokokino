@@ -35,6 +35,7 @@ type MockupEmptyStateProps = {
   compact?: boolean
   /** Cap frame size to min(cqw, cqh) so it stays consistent across canvas aspect ratios. */
   scopeToMinSide?: boolean
+  innerLightingStyle?: React.CSSProperties | null
 }
 
 export function MockupEmptyState({
@@ -55,6 +56,7 @@ export function MockupEmptyState({
   onPointerUp,
   compact = false,
   scopeToMinSide = false,
+  innerLightingStyle,
 }: MockupEmptyStateProps) {
   const screenRef = React.useRef<HTMLDivElement | null>(null)
   const [stageWidth, setStageWidth] = React.useState<number | undefined>(
@@ -126,6 +128,13 @@ export function MockupEmptyState({
               compact={compact || !desktopFrame}
               plainWideCard={desktopFrame}
             />
+            {innerLightingStyle ? (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 z-10"
+                style={innerLightingStyle}
+              />
+            ) : null}
           </div>
         </div>
         <img
@@ -135,6 +144,7 @@ export function MockupEmptyState({
           data-editor-enhance-filter=""
           className="pointer-events-none absolute inset-0 z-10 h-full w-full object-contain select-none"
         />
+
       </div>
     </div>
   )

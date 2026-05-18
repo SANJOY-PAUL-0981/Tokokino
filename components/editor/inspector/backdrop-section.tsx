@@ -34,6 +34,7 @@ import {
   useActiveCanvasId,
   useEditorStore,
   type AssetFilter,
+  type BackdropLighting,
   type PortraitMode,
 } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
@@ -50,6 +51,26 @@ const PORTRAIT_MODES: { id: PortraitMode; label: string }[] = [
   { id: "iris", label: "Iris" },
   { id: "blur", label: "Blur" },
   { id: "stage", label: "Stage" },
+]
+
+const LIGHTING_COLOR_PRESETS = [
+  "#FFFFFF",
+  "#DDF5FF",
+  "#D8FFE4",
+  "#FFE8BD",
+  "#FFC7D6",
+]
+
+const LIGHTING_DIRECTIONS = [
+  { id: "0-0", label: "Top left" },
+  { id: "0-2", label: "Top" },
+  { id: "0-4", label: "Top right" },
+  { id: "2-0", label: "Left" },
+  { id: "center", label: "Center" },
+  { id: "2-4", label: "Right" },
+  { id: "4-0", label: "Bottom left" },
+  { id: "4-2", label: "Bottom" },
+  { id: "4-4", label: "Bottom right" },
 ]
 
 function portraitPreviewCss(mode: PortraitMode): React.CSSProperties {
@@ -96,6 +117,27 @@ function portraitPreviewCss(mode: PortraitMode): React.CSSProperties {
     default:
       return {}
   }
+}
+
+function lightingDirectionPreview(
+  direction: string,
+  color: string
+): React.CSSProperties {
+  const [rowRaw, colRaw] = direction === "center" ? [2, 2] : direction.split("-")
+  const row = Number(rowRaw)
+  const col = Number(colRaw)
+  const x = Number.isFinite(col) ? Math.max(0, Math.min(4, col)) * 25 : 50
+  const y = Number.isFinite(row) ? Math.max(0, Math.min(4, row)) * 25 : 50
+  return {
+    background: `radial-gradient(circle at ${x}% ${y}%, ${color} 0%, ${color}99 22%, transparent 62%), #111`,
+  }
+}
+
+function lightingPatch(
+  lighting: BackdropLighting,
+  patch: Partial<BackdropLighting>
+) {
+  return { ...lighting, ...patch }
 }
 
 function BackdropTile({
@@ -434,11 +476,17 @@ export function BackdropSection() {
   const activeCanvasId = useActiveCanvasId()
   const setBackdropEffects = useEditorStore((s) => s.setBackdropEffects)
   const setBackdropPattern = useEditorStore((s) => s.setBackdropPattern)
+  const setBackdropLighting = useEditorStore((s) => s.setBackdropLighting)
   const setBackdropFilter = useEditorStore((s) => s.setBackdropFilter)
   const setOverlay = useEditorStore((s) => s.setOverlay)
   const setPortrait = useEditorStore((s) => s.setPortrait)
   const setCanvasBorderRadius = useEditorStore((s) => s.setCanvasBorderRadius)
-  const { effects, pattern, filter: backdropFilter = "none" } = backdrop
+  const {
+    effects,
+    pattern,
+    lighting,
+    filter: backdropFilter = "none",
+  } = backdrop
 
   // Live-preview CSS vars on the active canvas: dragging sliders writes to
   // these vars directly so the canvas updates without re-rendering the store
@@ -501,6 +549,8 @@ export function BackdropSection() {
   }
   const setPattern = (patch: Partial<typeof pattern>) =>
     setBackdropPattern({ ...pattern, ...patch })
+  const setLighting = (patch: Partial<typeof lighting>) =>
+    setBackdropLighting(lightingPatch(lighting, patch))
   const setOverlayPatch = (patch: Partial<typeof overlay>) =>
     setOverlay({ ...overlay, ...patch })
 
@@ -530,6 +580,7 @@ export function BackdropSection() {
   const overlayActive = overlay.id !== null
   const patternActive = pattern.ids.length > 0
   const portraitActive = portrait.mode !== "off"
+  const lightingActive = lighting.intensity > 0
 
   return (
     <div className="flex flex-col gap-4">
@@ -610,6 +661,150 @@ export function BackdropSection() {
             selectedId={overlay.id}
             onSelect={(id) => setOverlayPatch({ id })}
           />
+        </BackdropControlPopover>
+
+        <BackdropControlPopover
+          icon={RiSunLine}
+          label="Lighting"
+          active={lightingActive}
+          title="Lighting"
+          description="Cast directional light on the backdrop or the screenshot."
+          onReset={() =>
+            setBackdropLighting({
+              target: "outer",
+              intensity: 0,
+              direction: "0-0",
+              color: "#FFFFFF",
+            })
+          }
+          resetTitle="Reset lighting"
+          contentClassName="w-[240px]"
+          bodyClassName="pr-1"
+          footer={
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <span className="text-[11px] text-muted-foreground">
+                  Target
+                </span>
+                <ToggleGroup
+                  type="single"
+                  value={lighting.target}
+                  onValueChange={(v) =>
+                    v && setLighting({ target: v as "outer" | "inner" })
+                  }
+                  className="flex w-full rounded-md bg-secondary/60 p-1"
+                >
+                  <ToggleGroupItem
+                    value="outer"
+                    className="h-7 flex-1 cursor-pointer rounded-[4px] text-[10px] hover:bg-transparent hover:text-foreground data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-sm data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+                  >
+                    Outer
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="inner"
+                    className="h-7 flex-1 cursor-pointer rounded-[4px] text-[10px] hover:bg-transparent hover:text-foreground data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-sm data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+                  >
+                    Inner
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+
+              <EffectSlider
+                label="Intensity"
+                value={lighting.intensity}
+                onChange={(v) => setLighting({ intensity: v })}
+              />
+
+              <div>
+                <span className="mb-2 block text-[11px] text-muted-foreground">
+                  Colour
+                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {LIGHTING_COLOR_PRESETS.map((c) => {
+                    const isActive =
+                      lighting.color.trim().toLowerCase() ===
+                      c.trim().toLowerCase()
+                    return (
+                      <button
+                        key={c}
+                        onClick={() => setLighting({ color: c })}
+                        className={cn(
+                          "size-8 cursor-pointer rounded-full border border-border/60 transition-transform hover:scale-110",
+                          isActive &&
+                            "ring-2 ring-primary ring-offset-1 ring-offset-popover"
+                        )}
+                        style={{ background: c }}
+                      />
+                    )
+                  })}
+                  <ColorPickerPopover
+                    value={lighting.color}
+                    onChange={(hex) => setLighting({ color: hex })}
+                  >
+                    <button
+                      aria-label="Custom lighting color"
+                      className={cn(
+                        "relative size-8 cursor-pointer rounded-full border border-border/60 transition-transform hover:scale-110",
+                        !LIGHTING_COLOR_PRESETS.some(
+                          (c) =>
+                            c.trim().toLowerCase() ===
+                            lighting.color.trim().toLowerCase()
+                        ) &&
+                          "ring-2 ring-primary ring-offset-1 ring-offset-popover"
+                      )}
+                      style={{
+                        background: LIGHTING_COLOR_PRESETS.some(
+                          (c) =>
+                            c.trim().toLowerCase() ===
+                            lighting.color.trim().toLowerCase()
+                        )
+                          ? "conic-gradient(from 180deg at 50% 50%, #f87171, #fbbf24, #34d399, #60a5fa, #a78bfa, #f472b6, #f87171)"
+                          : lighting.color,
+                      }}
+                    >
+                      <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/30 text-white">
+                        <RiGradienterLine className="size-3.5" />
+                      </span>
+                    </button>
+                  </ColorPickerPopover>
+                </div>
+              </div>
+            </div>
+          }
+        >
+          <div className="grid grid-cols-3 gap-1.5 px-1 py-1">
+            {LIGHTING_DIRECTIONS.map((direction) => {
+              const active = lighting.direction === direction.id
+              return (
+                <button
+                  key={direction.id}
+                  onClick={() => setLighting({ direction: direction.id })}
+                  className={cn(
+                    "flex cursor-pointer flex-col items-center gap-1 rounded-md border bg-secondary/20 p-1 transition-all",
+                    active
+                      ? "border-primary/40 bg-primary/10 ring-1 ring-primary/20"
+                      : "border-border/60 hover:border-foreground/30"
+                  )}
+                  title={direction.label}
+                >
+                  <div
+                    className="relative aspect-square w-full overflow-hidden rounded-sm bg-neutral-950"
+                    style={lightingDirectionPreview(
+                      direction.id,
+                      lighting.color
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "absolute inset-0 m-auto size-1.5 rounded-full bg-white/70 shadow-[0_0_10px_rgba(255,255,255,0.8)]",
+                        active && "bg-primary"
+                      )}
+                    />
+                  </div>
+                </button>
+              )
+            })}
+          </div>
         </BackdropControlPopover>
 
         <BackdropControlPopover

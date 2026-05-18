@@ -388,7 +388,7 @@ Stored in state as `activeSinglePresetId`. Setting a preset calls `setTiltAndSca
 
 Defines how multiple screenshot slots are arranged:
 
-- **Side by Side, Depth Duo, Cascade, Fan Out, Scatter** — 2-slot compositions
+- **Side by Side, Depth Duo, Fan Out, Scatter** — 2-slot compositions
 - **Perspective, Drift, Step, Stacked** — 2-slot with 3D effects
 
 Each preset has:

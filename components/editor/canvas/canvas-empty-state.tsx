@@ -18,6 +18,7 @@ type CanvasEmptyStateProps = {
   aspectH?: number
   /** Disable the outer padding wrapper (used when caller already provides one). */
   noOuterPadding?: boolean
+  innerLightingStyle?: React.CSSProperties | null
 }
 
 export function CanvasEmptyState({
@@ -30,6 +31,7 @@ export function CanvasEmptyState({
   aspectW,
   aspectH,
   noOuterPadding = false,
+  innerLightingStyle,
 }: CanvasEmptyStateProps) {
   const { aspect } = useEditor()
   const aw = aspectW ?? aspect.w ?? 16
@@ -79,6 +81,13 @@ export function CanvasEmptyState({
           isPortrait ? "h-auto max-h-[85%] w-[85%]" : "h-full w-full"
         )}
       >
+        {innerLightingStyle ? (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-10"
+            style={innerLightingStyle}
+          />
+        ) : null}
         <BoxEmptyState
           isDragOver={isDragOver}
           onBrowse={onBrowse}

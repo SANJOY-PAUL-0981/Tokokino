@@ -17,6 +17,7 @@ import type {
   AssetFilter,
   Background,
   BackdropEffects,
+  BackdropLighting,
   BackdropPattern,
   Border,
   CanvasState,
@@ -108,6 +109,12 @@ const DEFAULT_CANVAS_BASE: Omit<CanvasState, "id" | "position"> = {
       ids: [],
       intensity: 50,
       thickness: 1,
+      color: "#FFFFFF",
+    },
+    lighting: {
+      target: "outer",
+      intensity: 0,
+      direction: "0-0",
       color: "#FFFFFF",
     },
     filter: "none",
@@ -212,6 +219,7 @@ type EditorActions = {
   setBorder: (b: Border, canvasId?: string) => void
   setBackdropEffects: (e: BackdropEffects, canvasId?: string) => void
   setBackdropPattern: (p: BackdropPattern, canvasId?: string) => void
+  setBackdropLighting: (l: BackdropLighting, canvasId?: string) => void
   setBackdropFilter: (f: AssetFilter, canvasId?: string) => void
   setTilt: (t: Tilt, canvasId?: string) => void
   setScale: (n: number, canvasId?: string) => void
@@ -419,6 +427,10 @@ function normalizeCanvasState(
       pattern: {
         ...fallbackBackdrop.pattern,
         ...(sourceBackdrop?.pattern ?? {}),
+      },
+      lighting: {
+        ...fallbackBackdrop.lighting,
+        ...(sourceBackdrop?.lighting ?? {}),
       },
     },
     tilt: { ...fallback.tilt, ...(source.tilt ?? {}) },
@@ -1184,6 +1196,12 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         canvasId,
         (canvas) => ({ backdrop: { ...canvas.backdrop, pattern: p } }),
         "backdrop-pattern"
+      ),
+    setBackdropLighting: (l, canvasId) =>
+      commitCanvas(
+        canvasId,
+        (canvas) => ({ backdrop: { ...canvas.backdrop, lighting: l } }),
+        "backdrop-lighting"
       ),
     setBackdropFilter: (f, canvasId) =>
       commitCanvas(
@@ -2165,6 +2183,8 @@ export function useEditor(): EditorContext {
       store.setBackdropEffects(e, canvasId ?? targetId),
     setBackdropPattern: (p, canvasId) =>
       store.setBackdropPattern(p, canvasId ?? targetId),
+    setBackdropLighting: (l, canvasId) =>
+      store.setBackdropLighting(l, canvasId ?? targetId),
     setBackdropFilter: (f, canvasId) =>
       store.setBackdropFilter(f, canvasId ?? targetId),
     setTilt: (t, canvasId) => store.setTilt(t, canvasId ?? targetId),

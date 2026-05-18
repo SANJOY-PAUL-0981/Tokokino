@@ -57,6 +57,7 @@ type ScreenshotFrameContentProps = {
   aspectH?: number
   /** Cap the mockup empty frame to the smaller canvas dimension (canvas-level only). */
   mockupScopeToMinSide?: boolean
+  innerLightingStyle?: React.CSSProperties | null
 }
 
 const CENTER_ANCHOR = { x: 50, y: 50 }
@@ -107,6 +108,7 @@ export function ScreenshotFrameContent({
   aspectW,
   aspectH,
   mockupScopeToMinSide = false,
+  innerLightingStyle,
 }: ScreenshotFrameContentProps) {
   const browserFrame = isBrowserFrame(frame.id)
   const browserFrameColor = resolveBrowserFrameColor(frame.color)
@@ -155,6 +157,7 @@ export function ScreenshotFrameContent({
           onReplaceFile={onReplaceFile}
           onDelete={onDelete}
           showHoverActions={false}
+          innerLightingStyle={innerLightingStyle}
         />
       )
     }
@@ -188,6 +191,7 @@ export function ScreenshotFrameContent({
           onDelete={onDelete}
           showHoverActions={false}
           scopeToMinSide={mockupScopeToMinSide}
+          innerLightingStyle={innerLightingStyle}
         />
       )
     }
@@ -231,6 +235,7 @@ export function ScreenshotFrameContent({
           onCropClick={onCrop}
           onReplaceFile={onReplaceFile}
           onDelete={onDelete}
+          innerLightingStyle={innerLightingStyle}
         />
       </div>
     )
@@ -256,6 +261,7 @@ export function ScreenshotFrameContent({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         compact={emptyCompact}
+        innerLightingStyle={innerLightingStyle}
       />
     )
   }
@@ -280,6 +286,7 @@ export function ScreenshotFrameContent({
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
+        innerLightingStyle={innerLightingStyle}
       />
     )
   }
@@ -314,13 +321,23 @@ export function ScreenshotFrameContent({
           aspectW={aspectW}
           aspectH={aspectH}
           noOuterPadding
+          innerLightingStyle={innerLightingStyle}
         />
       ) : (
-        <BoxEmptyState
-          isDragOver={isDragOver}
-          onBrowse={onBrowse}
-          compact={emptyCompact}
-        />
+        <>
+          {innerLightingStyle ? (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 z-10"
+              style={innerLightingStyle}
+            />
+          ) : null}
+          <BoxEmptyState
+            isDragOver={isDragOver}
+            onBrowse={onBrowse}
+            compact={emptyCompact}
+          />
+        </>
       )}
     </div>
   )

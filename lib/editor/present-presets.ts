@@ -116,24 +116,6 @@ export const LAYOUT_PRESETS: LayoutPreset[] = [
     },
   },
   {
-    id: "cascade",
-    name: "Cascade",
-    canvasTilt: { rx: 0, ry: 0, rz: 0 },
-    canvasScale: 100,
-    slots: [
-      { xPct: 74, yPct: 67, rotation: 0, tilt: { rx: 0, ry: 0, rz: 0 }, scale: 100 },
-    ],
-    portraitDevice: {
-      canvasTilt: { rx: 0, ry: 0, rz: 0 },
-      canvasScale: 100,
-      slots: [
-        { xPct: -1.32, yPct: 21.39, rotation: 0, tilt: { rx: 0, ry: 0, rz: 0 }, scale: 100 },
-      ],
-      mainOffset: { xPct: 0, yPct: -14.12 },
-      relativeSlotPositions: true,
-    },
-  },
-  {
     // Rotations create the fan; base positions match natural row (25%+75%)
     // so the composition is centered before rotation is applied.
     id: "fan-out",

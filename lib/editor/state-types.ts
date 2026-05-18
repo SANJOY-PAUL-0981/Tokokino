@@ -43,9 +43,19 @@ export type BackdropPattern = {
   color: string
 }
 
+export type BackdropLightingTarget = "outer" | "inner"
+
+export type BackdropLighting = {
+  target: BackdropLightingTarget
+  intensity: number
+  direction: string
+  color: string
+}
+
 export type Backdrop = {
   effects: BackdropEffects
   pattern: BackdropPattern
+  lighting: BackdropLighting
   filter: AssetFilter
 }
 

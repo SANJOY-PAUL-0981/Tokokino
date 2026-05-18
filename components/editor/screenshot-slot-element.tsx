@@ -8,6 +8,7 @@ import { toast } from "sonner"
 
 import {
   frameSelectionRadius,
+  lightingOverlayCss,
   snapBoxToTarget,
 } from "@/components/editor/canvas/helpers"
 import {
@@ -36,6 +37,7 @@ import {
 import {
   assetFilterCss,
   type AssetBlendMode,
+  type BackdropLighting,
   type Border,
   type DeviceFrame,
   type EditorTool,
@@ -100,6 +102,7 @@ type CanvasSharedStyle = {
   enhance: EnhancePreset
   opacity: number
   blendMode: AssetBlendMode
+  lighting: BackdropLighting
 }
 
 function useCanvasSharedStyle(): CanvasSharedStyle {
@@ -113,6 +116,7 @@ function useCanvasSharedStyle(): CanvasSharedStyle {
     enhance: canvas.enhance,
     opacity: canvas.screenshotLayer.opacity,
     blendMode: canvas.screenshotLayer.blendMode,
+    lighting: canvas.backdrop.lighting,
   }))
 }
 
@@ -148,6 +152,10 @@ export function ScreenshotSlotRender({
   const shared = useCanvasSharedStyle()
   const computedShadowFilter = shadowDropFilterCss(shared.shadow)
   const enhanceFilter = enhanceFilterCss(shared.enhance)
+  const innerLightingStyle =
+    shared.lighting.target === "inner"
+      ? lightingOverlayCss(shared.lighting, { inner: true })
+      : null
   const filterChain = [enhanceFilter, assetFilterCss(slot.filter)]
     .filter(Boolean)
     .join(" ")
@@ -279,6 +287,7 @@ export function ScreenshotSlotRender({
               onCrop={onCropClick}
               onReplaceFile={onReplaceFile}
               onDelete={onDeleteFromMenu}
+              innerLightingStyle={innerLightingStyle}
             />
 
             {showEditMenu ? (

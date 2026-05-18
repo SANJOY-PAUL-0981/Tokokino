@@ -62,6 +62,7 @@ type ScreenshotBrowserFrameProps = {
   onReplaceFile: (file: File) => void
   onDelete: () => void
   showHoverActions?: boolean
+  innerLightingStyle?: React.CSSProperties | null
 }
 
 type BrowserFrameEmptyStateProps = {
@@ -82,6 +83,7 @@ type BrowserFrameEmptyStateProps = {
   onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void
   onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void
   compact?: boolean
+  innerLightingStyle?: React.CSSProperties | null
 }
 
 export function ScreenshotBrowserFrame({
@@ -111,6 +113,7 @@ export function ScreenshotBrowserFrame({
   onReplaceFile,
   onDelete,
   showHoverActions = true,
+  innerLightingStyle,
 }: ScreenshotBrowserFrameProps) {
   const frameRef = React.useRef<HTMLDivElement>(null)
   const [editOpen, setEditOpen] = React.useState(false)
@@ -206,6 +209,14 @@ export function ScreenshotBrowserFrame({
             className="h-full w-full"
           />
         )}
+
+        {innerLightingStyle ? (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[inherit]"
+            style={innerLightingStyle}
+          />
+        ) : null}
       </div>
       {showHoverActions &&
       activeTool === "pointer" &&
@@ -273,6 +284,7 @@ export function BrowserFrameEmptyState({
   onPointerMove,
   onPointerUp,
   compact = false,
+  innerLightingStyle,
 }: BrowserFrameEmptyStateProps) {
   const [url, setUrl] = React.useState("")
   const frame = getBrowserFrame(frameId)
@@ -360,6 +372,14 @@ export function BrowserFrameEmptyState({
             />
           </Safari>
         )}
+
+        {innerLightingStyle ? (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[inherit]"
+            style={innerLightingStyle}
+          />
+        ) : null}
       </div>
       {compact ? (
         <div

@@ -6,8 +6,9 @@ import {
   isBrowserFrame,
   SAFARI_BROWSER_FRAME_ID,
 } from "@/lib/browser-frame"
+import { hexToRgb } from "@/lib/editor/color-utils"
 import { DEVICE_MOCKUP_SPECS } from "@/lib/mockups"
-import type { PortraitMode } from "@/lib/editor/store"
+import type { BackdropLighting, PortraitMode } from "@/lib/editor/store"
 
 export const NOISE_DATA_URL =
   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.85'/></svg>\")"
@@ -69,6 +70,49 @@ export function portraitOverlayCss(
       }
     default:
       return null
+  }
+}
+
+function lightSourcePoint(direction: string) {
+  if (direction === "center") return { x: 50, y: 50 }
+  const [row, col] = direction.split("-").map(Number)
+  if (!Number.isFinite(row) || !Number.isFinite(col)) return { x: 50, y: 50 }
+  return {
+    x: clamp(col, 0, 4) * 25,
+    y: clamp(row, 0, 4) * 25,
+  }
+}
+
+function lightRgba(color: string, opacity: number) {
+  const { r, g, b } = hexToRgb(color || "#ffffff")
+  return `rgba(${r}, ${g}, ${b}, ${opacity.toFixed(3)})`
+}
+
+function lightGradientDirection(x: number, y: number) {
+  if (x === 50 && y === 50) return "to bottom"
+  const vertical = y <= 50 ? "bottom" : "top"
+  const horizontal = x <= 50 ? "right" : "left"
+  return `to ${vertical} ${horizontal}`
+}
+
+export function lightingOverlayCss(
+  lighting: BackdropLighting | undefined,
+  options: { inner?: boolean } = {}
+): React.CSSProperties | null {
+  if (!lighting || lighting.intensity <= 0) return null
+
+  const intensity = clamp(lighting.intensity, 0, 100) / 100
+  const { x, y } = lightSourcePoint(lighting.direction)
+  const strong = lightRgba(lighting.color, options.inner ? 0.56 : 0.62)
+  const mid = lightRgba(lighting.color, options.inner ? 0.32 : 0.36)
+  const soft = lightRgba(lighting.color, options.inner ? 0.22 : 0.26)
+
+  return {
+    backgroundImage: [
+      `radial-gradient(circle at ${x}% ${y}%, ${strong} 0%, ${mid} 22%, transparent 58%)`,
+      `linear-gradient(${lightGradientDirection(x, y)}, ${soft} 0%, transparent 62%)`,
+    ].join(", "),
+    opacity: 0.15 + intensity * 0.85,
   }
 }
 

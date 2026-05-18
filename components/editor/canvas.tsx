@@ -42,7 +42,11 @@ import {
   slotBoxAspectRatio,
 } from "@/lib/editor/screenshot-layout"
 import { MockupEmptyState } from "./canvas/mockup-empty-state"
-import { deviceMockupSpec, screenshotPlacementStyle } from "./canvas/helpers"
+import {
+  deviceMockupSpec,
+  lightingOverlayCss,
+  screenshotPlacementStyle,
+} from "./canvas/helpers"
 import { MainScreenshotRowItem } from "./canvas/main-screenshot-row-item"
 import { ScreenshotBare } from "./canvas/screenshot-bare"
 import {
@@ -314,6 +318,10 @@ function CanvasViewInner({
   const effectsFilter = effectsFilterCss(backdrop.effects)
   const noiseEnabled = backdrop.effects.noise > 0
   const noiseOpacity = noiseEnabled ? backdrop.effects.noise / 100 : 0
+  const innerLightingStyle =
+    backdrop.lighting.target === "inner"
+      ? lightingOverlayCss(backdrop.lighting, { inner: true })
+      : null
   const canDragScreenshot = activeTool === "pointer" && positionedStyle
   const mockupRotation =
     frame.orientation === "horizontal" && mockupOrientation === "portrait"
@@ -509,6 +517,7 @@ function CanvasViewInner({
                 setIsScreenshotSelected(false)
                 setScreenshot(null)
               }}
+              innerLightingStyle={innerLightingStyle}
               onDuplicate={() => {
                 const newId = addScreenshotSlot()
                 if (!newId) {
@@ -590,6 +599,7 @@ function CanvasViewInner({
                       setIsScreenshotSelected(false)
                       setScreenshot(null)
                     }}
+                    innerLightingStyle={innerLightingStyle}
                   />
                 ) : mockupAsset && mockupSpec ? (
                   <ScreenshotMockup
@@ -626,6 +636,7 @@ function CanvasViewInner({
                       setIsScreenshotSelected(false)
                       setScreenshot(null)
                     }}
+                    innerLightingStyle={innerLightingStyle}
                   />
                 ) : (
                   <ScreenshotBare
@@ -669,6 +680,7 @@ function CanvasViewInner({
                       setIsScreenshotSelected(false)
                       setScreenshot(null)
                     }}
+                    innerLightingStyle={innerLightingStyle}
                   />
                 )
               ) : browserFrame ? (
@@ -702,6 +714,7 @@ function CanvasViewInner({
                   }}
                   onPointerMove={moveMockup}
                   onPointerUp={stopMockupDrag}
+                  innerLightingStyle={innerLightingStyle}
                 />
               ) : mockupAsset && mockupSpec ? (
                 <MockupEmptyState
@@ -733,12 +746,14 @@ function CanvasViewInner({
                   }}
                   onPointerMove={moveMockup}
                   onPointerUp={stopMockupDrag}
+                  innerLightingStyle={innerLightingStyle}
                 />
               ) : (
                 <CanvasEmptyState
                   isDragOver={isDragOver}
                   onBrowse={() => fileInputRef.current?.click()}
                   previewStyle={imgStyle}
+                  innerLightingStyle={innerLightingStyle}
                   compact={
                     tilt.rx !== 0 ||
                     tilt.ry !== 0 ||

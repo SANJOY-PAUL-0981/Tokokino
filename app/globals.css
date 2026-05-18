@@ -123,6 +123,16 @@
   body {
     @apply bg-background text-foreground;
     }
+  /* Remove default browser spin buttons (up/down arrows) from number inputs */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
   body:has([data-slot="dialog-content"]) [data-editor-floating-toolbar-target],
   body:has([data-slot="alert-dialog-content"]) [data-editor-floating-toolbar-target] {
     display: none;

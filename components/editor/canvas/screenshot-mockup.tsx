@@ -54,6 +54,7 @@ type ScreenshotMockupProps = {
   showHoverActions?: boolean
   /** Cap the frame to min(cqw, cqh) so it doesn't fill tall canvases. */
   scopeToMinSide?: boolean
+  innerLightingStyle?: React.CSSProperties | null
 }
 
 export function ScreenshotMockup({
@@ -84,6 +85,7 @@ export function ScreenshotMockup({
   onCaptureWebsite,
   showHoverActions = true,
   scopeToMinSide = false,
+  innerLightingStyle,
 }: ScreenshotMockupProps) {
   const [editOpen, setEditOpen] = React.useState(false)
   const [measuredStageWidth, setMeasuredStageWidth] = React.useState<
@@ -187,6 +189,13 @@ export function ScreenshotMockup({
               )}
               style={horizontalScreenStyle}
             />
+            {innerLightingStyle ? (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 z-10"
+                style={innerLightingStyle}
+              />
+            ) : null}
           </div>
         </div>
         <img

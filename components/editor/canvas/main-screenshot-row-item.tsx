@@ -67,6 +67,7 @@ type MainScreenshotRenderProps = {
   onImageLoad?: (e: React.SyntheticEvent<HTMLImageElement>) => void
   previewMode?: boolean
   emptyCompact?: boolean
+  innerLightingStyle?: React.CSSProperties | null
 }
 
 export function MainScreenshotRender({
@@ -103,6 +104,7 @@ export function MainScreenshotRender({
   onImageLoad,
   previewMode = false,
   emptyCompact = false,
+  innerLightingStyle,
 }: MainScreenshotRenderProps) {
   const baseTransform = style.transform ?? ""
   const mergedStyle: React.CSSProperties = {
@@ -195,6 +197,7 @@ export function MainScreenshotRender({
             onCrop={onCropClick}
             onReplaceFile={onReplaceFile}
             onDelete={onDelete}
+            innerLightingStyle={innerLightingStyle}
           />
 
           {showEditMenu ? (
@@ -272,6 +275,7 @@ type MainScreenshotRowItemProps = {
   onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void
   previewMode?: boolean
   emptyCompact?: boolean
+  innerLightingStyle?: React.CSSProperties | null
 }
 
 export function MainScreenshotRowItem({
@@ -311,6 +315,7 @@ export function MainScreenshotRowItem({
   onPointerUp,
   previewMode = false,
   emptyCompact = false,
+  innerLightingStyle,
 }: MainScreenshotRowItemProps) {
   const rowRef = React.useRef<HTMLDivElement | null>(null)
   const [editOpen, setEditOpen] = React.useState(false)
@@ -373,6 +378,7 @@ export function MainScreenshotRowItem({
         onImageLoad={onImageLoad}
         previewMode={previewMode}
         emptyCompact={emptyCompact}
+        innerLightingStyle={innerLightingStyle}
       />
 
       {isSelected &&

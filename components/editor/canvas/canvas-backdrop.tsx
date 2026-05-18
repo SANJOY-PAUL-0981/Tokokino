@@ -14,7 +14,7 @@ import {
   type Portrait,
 } from "@/lib/editor/store"
 
-import { NOISE_DATA_URL, portraitOverlayCss } from "./helpers"
+import { lightingOverlayCss, NOISE_DATA_URL, portraitOverlayCss } from "./helpers"
 
 type CanvasBackdropProps = {
   background: Background
@@ -41,6 +41,10 @@ function CanvasBackdropImpl({
     portrait.position,
     portrait.distance
   )
+  const outerLightingStyle =
+    backdrop.lighting.target === "outer"
+      ? lightingOverlayCss(backdrop.lighting)
+      : null
 
   // Wrap the live-edited effects filter in a CSS var so the inspector can
   // override it during drag without dispatching to the store on every tick.
@@ -86,6 +90,14 @@ function CanvasBackdropImpl({
           aria-hidden
           className="pointer-events-none absolute inset-0 mix-blend-overlay"
           style={{ backgroundImage: NOISE_DATA_URL, opacity: noiseOpacity }}
+        />
+      ) : null}
+
+      {outerLightingStyle ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{ ...outerLightingStyle, zIndex: 20 }}
         />
       ) : null}
 

@@ -40,6 +40,7 @@ type ScreenshotBareProps = {
   onDelete: () => void
   shadowBoxTarget?: boolean
   objectFit?: "contain" | "cover" | "fill"
+  innerLightingStyle?: React.CSSProperties | null
 }
 
 export function ScreenshotBare({
@@ -69,6 +70,7 @@ export function ScreenshotBare({
   onDelete,
   shadowBoxTarget = false,
   objectFit = "cover",
+  innerLightingStyle,
 }: ScreenshotBareProps) {
   const [editOpen, setEditOpen] = React.useState(false)
 
@@ -114,6 +116,34 @@ export function ScreenshotBare({
           isScreenshotSelected && activeTool === "pointer" && "outline-none"
         )}
       />
+
+      {innerLightingStyle && !screenshotLayer.hidden ? (
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute",
+            objectFit === "cover" && "h-full w-full",
+            objectFit === "fill" && "h-full w-full",
+            objectFit === "contain" && "max-h-full max-w-full"
+          )}
+          style={{
+            ...innerLightingStyle,
+            borderRadius: imgStyle.borderRadius,
+            left: screenshotLeft ?? "50%",
+            top: screenshotTop ?? "50%",
+            zIndex: 1,
+            ...(positionedStyle
+              ? {
+                  transform: imgStyle.transform,
+                  transformStyle: imgStyle.transformStyle,
+                }
+              : {
+                  transform: `translate(-50%, -50%) ${transform}`,
+                  transformStyle: "preserve-3d",
+                }),
+          }}
+        />
+      ) : null}
 
       {activeTool === "pointer" && placementDims && !selectedTextId && (
         <div
