@@ -4,7 +4,6 @@ import * as React from "react"
 import {
   RiCheckLine,
   RiDownloadLine,
-  RiFileCopyLine,
   RiImageLine,
 } from "@remixicon/react"
 import { toast } from "sonner"
@@ -22,22 +21,40 @@ export function ShareView({
   sharedBy: string | null
   views: number | null
 }) {
-  const [copied, setCopied] = React.useState(false)
+  const [imageCopied, setImageCopied] = React.useState(false)
   const [imageFailed, setImageFailed] = React.useState(false)
-  const pageUrl =
-    typeof window === "undefined" ? `/share/${id}` : window.location.href
-
-  const handleCopy = React.useCallback(async () => {
+  const handleCopyImage = React.useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(pageUrl)
-      setCopied(true)
-      toast.success("Share link copied")
-      setTimeout(() => setCopied(false), 1600)
+      const response = await fetch(`/api/share/${id}/download`)
+      const blob = await response.blob()
+      const pngBlob =
+        blob.type === "image/png"
+          ? blob
+          : await new Promise<Blob>((resolve, reject) => {
+              const img = new Image()
+              img.crossOrigin = "anonymous"
+              img.onload = () => {
+                const canvas = document.createElement("canvas")
+                canvas.width = img.naturalWidth
+                canvas.height = img.naturalHeight
+                const ctx = canvas.getContext("2d")!
+                ctx.drawImage(img, 0, 0)
+                canvas.toBlob((b) => (b ? resolve(b) : reject()), "image/png")
+              }
+              img.onerror = reject
+              img.src = URL.createObjectURL(blob)
+            })
+      await navigator.clipboard.write([
+        new ClipboardItem({ "image/png": pngBlob }),
+      ])
+      setImageCopied(true)
+      toast.success("Image copied to clipboard")
+      setTimeout(() => setImageCopied(false), 1600)
     } catch (error) {
       console.error(error)
-      toast.error("Could not copy link")
+      toast.error("Could not copy image")
     }
-  }, [pageUrl])
+  }, [imageUrl])
 
   return (
     <main className="min-h-svh bg-background text-foreground">
@@ -52,9 +69,9 @@ export function ShareView({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="lg" onClick={() => void handleCopy()}>
-              {copied ? <RiCheckLine /> : <RiFileCopyLine />}
-              <span>{copied ? "Copied" : "Copy link"}</span>
+<Button variant="outline" size="lg" onClick={() => void handleCopyImage()}>
+              {imageCopied ? <RiCheckLine /> : <RiImageLine />}
+              <span>{imageCopied ? "Copied" : "Copy"}</span>
             </Button>
             <Button asChild size="lg">
               <a href={`/api/share/${id}/download`}>

@@ -246,7 +246,7 @@ export function UploadCard({
             }}
             className={cn(
               "pointer-events-auto grid place-items-center rounded-full border-2 border-primary bg-background/95 text-foreground shadow-[0_0_0_4px_rgba(0,0,0,0.08),0_8px_24px_-8px_rgba(0,0,0,0.15)] backdrop-blur-sm transition-[background-color,border-color] hover:bg-accent dark:bg-neutral-900/95 dark:text-white dark:shadow-[0_0_0_4px_rgba(0,0,0,0.4),0_8px_24px_-8px_rgba(0,0,0,0.6)]",
-              "size-[clamp(2rem,6.5cqw,4rem)]",
+              "size-[clamp(3.15rem,9.9cqw,3.5rem)]",
               className
             )}
           >
