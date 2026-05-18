@@ -252,10 +252,11 @@ export function frameFitStyle(
   if (normalizedRotation === 90) {
     const inverseRatio = 1 / ratio
     if (scopeToMinSide) {
+      const rotatedFitFraction = Math.min(fitFraction, 0.75)
       return {
         aspectRatio,
         width: "auto",
-        height: `min(100cqw, calc(100cqh * ${fitFraction} * ${inverseRatio}))`,
+        height: `min(calc(100cqw * ${rotatedFitFraction}), calc(100cqh * ${rotatedFitFraction} * ${inverseRatio}))`,
         maxWidth: "none",
         maxHeight: "none",
       }

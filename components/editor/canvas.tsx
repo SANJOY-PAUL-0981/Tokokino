@@ -219,11 +219,14 @@ function CanvasViewInner({
   const isVerticalPortraitDevice =
     frame.orientation === "vertical" &&
     mockupDevice?.orientations.includes("portrait") === true
-  // Only shrink vertical portrait devices on portrait/square canvases. Browsers,
-  // desktops, landscape devices, and landscape canvases should stay full-size.
+  const isRotatedPortraitDevice =
+    frame.orientation === "horizontal" &&
+    mockupDevice?.orientations.includes("portrait") === true
+  // Keep portrait mockups visually balanced when they are either shown on a
+  // portrait/square canvas or rotated into landscape.
   const shouldScopeFrame =
-    isPortraitOrSquareCanvas &&
-    isVerticalPortraitDevice &&
+    ((isPortraitOrSquareCanvas && isVerticalPortraitDevice) ||
+      isRotatedPortraitDevice) &&
     screenshotSlots.length === 0
   const screenshotBoxAspect = slotBoxAspectRatio(
     frame,
