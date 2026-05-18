@@ -101,6 +101,10 @@ const BASE_CANVAS_WIDTH = 1100
 const ARRANGE_GAP = 80
 const SCREENSHOT_OFFSET_GRID_SPREAD_PX = 300
 const POSITION_GRID_OUT_OF_BOUNDS_PCT = 25
+const SCREENSHOT_GROUP_BOX_HEIGHT_PCT = 28
+
+type PercentPoint = { xPct: number; yPct: number }
+type PercentBox = PercentPoint & { widthPct: number; heightPct: number }
 
 function positionIdFromPercent(xPct: number, yPct: number): ScreenshotPosition {
   const col = Math.round(Math.max(0, Math.min(4, xPct / 25)))
@@ -167,6 +171,75 @@ function mainScreenshotRowPositionPct({
   }
 }
 
+function mainScreenshotPositionPct({
+  aspect,
+  frame,
+  position,
+  offset,
+  slots,
+}: {
+  aspect: AspectState
+  frame: DeviceFrame
+  position: ScreenshotPosition
+  offset: { x: number; y: number }
+  slots: ScreenshotSlot[]
+}): PercentPoint {
+  const rowPosition = mainScreenshotRowPositionPct({
+    aspect,
+    frame,
+    position,
+    offset,
+    slots,
+  })
+  if (rowPosition) return rowPosition
+
+  const dims = canvasDimsFromAspect(aspect)
+  const anchor = screenshotPositionAnchorFn(position)
+  return {
+    xPct: anchor.x + (offset.x / dims.width) * 100,
+    yPct: anchor.y + (offset.y / dims.height) * 100,
+  }
+}
+
+function mainScreenshotOffsetForPoint({
+  aspect,
+  frame,
+  position,
+  slots,
+  point,
+}: {
+  aspect: AspectState
+  frame: DeviceFrame
+  position: ScreenshotPosition
+  slots: ScreenshotSlot[]
+  point: PercentPoint
+}) {
+  const dims = canvasDimsFromAspect(aspect)
+  const anchor = screenshotPositionAnchorFn(position)
+  let baseX = anchor.x
+  let baseY = anchor.y
+
+  if (slots.length > 0 && position === "center") {
+    const rowLayout = computeRowLayout(
+      [
+        { id: "__main__", frame },
+        ...slots.map((slot) => ({ id: slot.id, frame })),
+      ],
+      dims.ratio
+    )
+    const mainLayout = rowLayout[0]
+    if (mainLayout) {
+      baseX = mainLayout.xPct
+      baseY = 50
+    }
+  }
+
+  return {
+    x: ((point.xPct - baseX) / 100) * dims.width,
+    y: ((point.yPct - baseY) / 100) * dims.height,
+  }
+}
+
 function mainScreenshotOffsetForAnchor({
   aspect,
   frame,
@@ -178,22 +251,98 @@ function mainScreenshotOffsetForAnchor({
   position: ScreenshotPosition
   slots: ScreenshotSlot[]
 }) {
-  if (slots.length === 0) return { x: 0, y: 0 }
-  const current = mainScreenshotRowPositionPct({
+  const anchor = screenshotPositionAnchorFn(position)
+  return mainScreenshotOffsetForPoint({
     aspect,
     frame,
     position,
-    offset: { x: 0, y: 0 },
     slots,
+    point: { xPct: anchor.x, yPct: anchor.y },
   })
-  if (!current) return { x: 0, y: 0 }
+}
 
-  const dims = canvasDimsFromAspect(aspect)
-  const anchor = screenshotPositionAnchorFn(position)
+function centerOfBoxes(boxes: PercentBox[]): PercentPoint | null {
+  if (boxes.length === 0) return null
+  const bounds = boxes.reduce(
+    (acc, box) => ({
+      minX: Math.min(acc.minX, box.xPct - box.widthPct / 2),
+      maxX: Math.max(acc.maxX, box.xPct + box.widthPct / 2),
+      minY: Math.min(acc.minY, box.yPct - box.heightPct / 2),
+      maxY: Math.max(acc.maxY, box.yPct + box.heightPct / 2),
+    }),
+    {
+      minX: Number.POSITIVE_INFINITY,
+      maxX: Number.NEGATIVE_INFINITY,
+      minY: Number.POSITIVE_INFINITY,
+      maxY: Number.NEGATIVE_INFINITY,
+    }
+  )
   return {
-    x: ((anchor.x - current.xPct) / 100) * dims.width,
-    y: ((anchor.y - current.yPct) / 100) * dims.height,
+    xPct: (bounds.minX + bounds.maxX) / 2,
+    yPct: (bounds.minY + bounds.maxY) / 2,
   }
+}
+
+function screenshotSlotGroupCenter(slots: ScreenshotSlot[]) {
+  return centerOfBoxes(
+    slots.map((slot) => ({
+      xPct: slot.xPct,
+      yPct: slot.yPct,
+      widthPct: slot.widthPct,
+      heightPct: slot.heightPct,
+    }))
+  )
+}
+
+function allScreenshotGroupCenter({
+  hasMainScreenshot,
+  aspect,
+  frame,
+  position,
+  offset,
+  slots,
+}: {
+  hasMainScreenshot: boolean
+  aspect: AspectState
+  frame: DeviceFrame
+  position: ScreenshotPosition
+  offset: { x: number; y: number }
+  slots: ScreenshotSlot[]
+}) {
+  const boxes: PercentBox[] = slots.map((slot) => ({
+    xPct: slot.xPct,
+    yPct: slot.yPct,
+    widthPct: slot.widthPct,
+    heightPct: slot.heightPct,
+  }))
+
+  if (hasMainScreenshot) {
+    const dims = canvasDimsFromAspect(aspect)
+    const rowLayout =
+      slots.length > 0
+        ? computeRowLayout(
+            [
+              { id: "__main__", frame },
+              ...slots.map((slot) => ({ id: slot.id, frame })),
+            ],
+            dims.ratio
+          )
+        : null
+    const mainCenter = mainScreenshotPositionPct({
+      aspect,
+      frame,
+      position,
+      offset,
+      slots,
+    })
+    boxes.push({
+      ...mainCenter,
+      widthPct: rowLayout?.[0]?.widthPct ?? 60,
+      heightPct: SCREENSHOT_GROUP_BOX_HEIGHT_PCT,
+    })
+  }
+
+  return centerOfBoxes(boxes)
 }
 
 function computeArrangedPositions(
@@ -471,6 +620,7 @@ function DefaultToolbarContents() {
   const hasDeviceFrame = activeFrame.id !== "none"
   const hasMainScreenshotTarget =
     Boolean(screenshot) || hasDeviceFrame || screenshotSlots.length > 0
+  const hasMainScreenshot = Boolean(screenshot) || hasDeviceFrame
   const hasScalableContent = selectedSlot ? true : hasMainScreenshotTarget
   const hasAnyScreenshotContent =
     Boolean(screenshot) || hasDeviceFrame || screenshotSlots.length > 0
@@ -536,7 +686,16 @@ function DefaultToolbarContents() {
       const rowPct = (activeCanvasPosition.y / CANVAS_POS_SPREAD) * 50 + 50
       return positionIdFromPercent(colPct, rowPct)
     } else if (positionTarget === "allScreenshots") {
-      return screenshotPositionFromOffset(screenshotPosition, screenshotOffset)
+      const center = allScreenshotGroupCenter({
+        hasMainScreenshot,
+        aspect,
+        frame,
+        position: screenshotPosition,
+        offset: screenshotOffset,
+        slots: screenshotSlots,
+      })
+      if (!center) return null
+      return positionIdFromPercent(center.xPct, center.yPct)
     } else if (positionTarget === "screenshot") {
       const rowPosition = mainScreenshotRowPositionPct({
         aspect,
@@ -565,6 +724,7 @@ function DefaultToolbarContents() {
     screenshotPosition,
     screenshotOffset,
     activeCanvasPosition,
+    hasMainScreenshot,
   ])
 
   const handlePositionClick = (posId: ScreenshotPosition) => {
@@ -631,9 +791,50 @@ function DefaultToolbarContents() {
         setScreenshotPosition(posId)
       }
     } else if (positionTarget === "allScreenshots") {
-      setScreenshotPosition(posId)
-      for (const slot of screenshotSlots) {
-        updateScreenshotSlot(slot.id, { xPct: anchor.x, yPct: anchor.y })
+      const currentGroupCenter = allScreenshotGroupCenter({
+        hasMainScreenshot,
+        aspect,
+        frame,
+        position: screenshotPosition,
+        offset: screenshotOffset,
+        slots: screenshotSlots,
+      })
+      if (!currentGroupCenter) return
+
+      const dx = anchor.x - currentGroupCenter.xPct
+      const dy = anchor.y - currentGroupCenter.yPct
+
+      if (hasMainScreenshot) {
+        const mainCenter = mainScreenshotPositionPct({
+          aspect,
+          frame,
+          position: screenshotPosition,
+          offset: screenshotOffset,
+          slots: screenshotSlots,
+        })
+        setScreenshotPlacement(
+          posId,
+          mainScreenshotOffsetForPoint({
+            aspect,
+            frame,
+            position: posId,
+            slots: screenshotSlots,
+            point: {
+              xPct: mainCenter.xPct + dx,
+              yPct: mainCenter.yPct + dy,
+            },
+          })
+        )
+      }
+
+      if (screenshotSlots.length > 0) {
+        const slotCenter = screenshotSlotGroupCenter(screenshotSlots)
+        if (slotCenter) {
+          setScreenshotSlotGroupPosition({
+            xPct: slotCenter.xPct + dx,
+            yPct: slotCenter.yPct + dy,
+          })
+        }
       }
     }
   }

@@ -211,8 +211,10 @@ function TextToolbarBody({
       >
         <RiSubtractLine className="size-4" />
       </ToolbarButton>
-      <input
-        type="number"
+      <Input
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
         value={fontSizeInput}
         onChange={(e) => {
           const next = e.target.value
