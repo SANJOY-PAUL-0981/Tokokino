@@ -49,6 +49,11 @@ type DragState = {
 
 type ResizeHandleId = "ml" | "mr" | "mt" | "mb" | "tl" | "tr" | "bl" | "br"
 
+type AssetResizePatch = Pick<
+  AssetElement,
+  "xPct" | "yPct" | "widthPct" | "heightPct"
+>
+
 type ResizeState = {
   pointerId: number
   handle: ResizeHandleId
@@ -61,6 +66,7 @@ type ResizeState = {
   aspect: number
   canvasW: number
   canvasH: number
+  lastPatch: AssetResizePatch | null
 }
 
 export function AssetElementView({
@@ -228,6 +234,7 @@ export function AssetElementView({
         aspect: heightPx > 0 ? widthPx / heightPx : 1,
         canvasW: rect.width,
         canvasH: rect.height,
+        lastPatch: null,
       }
       setIsResizing(true)
     }
@@ -235,6 +242,8 @@ export function AssetElementView({
   const moveResize = (e: React.PointerEvent<HTMLButtonElement>) => {
     const rs = resizeRef.current
     if (!rs || rs.pointerId !== e.pointerId) return
+    const el = elRef.current
+    if (!el) return
     const dxPct = ((e.clientX - rs.startX) / rs.canvasW) * 100
     const dyPct = ((e.clientY - rs.startY) / rs.canvasH) * 100
 
@@ -257,12 +266,19 @@ export function AssetElementView({
       const newH = Math.max(2, rs.startHeightPct * scale)
       const xShift = (signX * (newW - rs.startWidthPct)) / 2
       const yShift = (signY * (newH - rs.startHeightPct)) / 2
-      updateAsset(asset.id, {
+      const patch: AssetResizePatch = {
         widthPct: Math.min(200, newW),
         heightPct: Math.min(200, newH),
         xPct: Math.max(-20, Math.min(120, rs.startXPct + xShift)),
         yPct: Math.max(-20, Math.min(120, rs.startYPct + yShift)),
-      })
+      }
+      rs.lastPatch = patch
+      el.style.left = `${patch.xPct}%`
+      el.style.top = `${patch.yPct}%`
+      el.style.width = `${patch.widthPct}%`
+      el.style.height = `${patch.heightPct}%`
+      if (imgRef.current) imgRef.current.style.objectFit = "fill"
+      setToolbarRect(el.getBoundingClientRect())
     } else {
       let newW = rs.startWidthPct
       let newH = rs.startHeightPct
@@ -286,20 +302,28 @@ export function AssetElementView({
           yShift = (newH - rs.startHeightPct) / 2
           break
       }
-      updateAsset(asset.id, {
+      const patch: AssetResizePatch = {
         widthPct: Math.min(200, newW),
         heightPct: Math.min(200, newH),
         xPct: Math.max(-20, Math.min(120, rs.startXPct + xShift)),
         yPct: Math.max(-20, Math.min(120, rs.startYPct + yShift)),
-      })
+      }
+      rs.lastPatch = patch
+      el.style.left = `${patch.xPct}%`
+      el.style.top = `${patch.yPct}%`
+      el.style.width = `${patch.widthPct}%`
+      el.style.height = `${patch.heightPct}%`
+      if (imgRef.current) imgRef.current.style.objectFit = "fill"
+      setToolbarRect(el.getBoundingClientRect())
     }
   }
 
   const endResize = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (resizeRef.current?.pointerId === e.pointerId) {
-      resizeRef.current = null
-      setIsResizing(false)
-    }
+    const rs = resizeRef.current
+    if (!rs || rs.pointerId !== e.pointerId) return
+    if (rs.lastPatch) updateAsset(asset.id, rs.lastPatch)
+    resizeRef.current = null
+    setIsResizing(false)
   }
 
   const heightStyle = asset.heightPct != null ? `${asset.heightPct}%` : "auto"

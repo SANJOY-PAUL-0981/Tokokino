@@ -32,22 +32,25 @@ try {
     if (eq === -1) continue
     const key = trimmed.slice(0, eq).trim()
     if (process.env[key]) continue
-    process.env[key] = trimmed.slice(eq + 1).trim()
+    const raw = trimmed.slice(eq + 1).trim()
+    process.env[key] = raw.replace(/^["']|["']$/g, "")
   }
 } catch (err) {
   console.warn(`could not read .env.local: ${err.message}`)
 }
 
 const {
-  NEXT_PUBLIC_OVERLAYS_BASE_URL,
+  NEXT_PUBLIC_R2_PUBLIC_BASE,
   R2_S3_ENDPOINT,
   R2_BUCKET,
   R2_ACCESS_KEY_ID,
   R2_SECRET_ACCESS_KEY,
 } = process.env
 
+const NEXT_PUBLIC_OVERLAYS_BASE_URL = `${NEXT_PUBLIC_R2_PUBLIC_BASE?.replace(/\/$/, "")}/overlays`
+
 for (const k of [
-  "NEXT_PUBLIC_OVERLAYS_BASE_URL",
+  "NEXT_PUBLIC_R2_PUBLIC_BASE",
   "R2_S3_ENDPOINT",
   "R2_BUCKET",
   "R2_ACCESS_KEY_ID",

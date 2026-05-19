@@ -38,7 +38,8 @@ try {
     if (eq === -1) continue
     const key = trimmed.slice(0, eq).trim()
     if (process.env[key]) continue
-    process.env[key] = trimmed.slice(eq + 1).trim()
+    const raw = trimmed.slice(eq + 1).trim()
+    process.env[key] = raw.replace(/^["']|["']$/g, "")
   }
 } catch (err) {
   console.warn(`could not read .env.local: ${err.message}`)

@@ -5,6 +5,7 @@ import { animate, AnimatePresence, motion } from "motion/react"
 
 import { CanvasView } from "@/components/editor/canvas"
 import { BASE_CANVAS_WIDTH } from "@/components/editor/canvas/constants"
+import { env } from "@/lib/env"
 import {
   LAYOUT_PRESETS,
   PRESENT_PRESETS,
@@ -47,6 +48,7 @@ import { cn } from "@/lib/utils"
 type PresetMotionKind = "canvas" | "slot"
 
 const PRESET_MOTION_MS = 560
+const ENABLE_DEBUG_PRESETS = env.NEXT_PUBLIC_ENABLE_DEBUG_PRESETS
 
 function canvasDimsFromAspect(aspect: AspectState) {
   const aw = aspect.w || 16
@@ -581,16 +583,18 @@ export function PresentPresetsSection() {
       <div className="sticky top-0 z-10 bg-sidebar pb-1">
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-[13px] font-medium text-foreground">Presets</p>
-          <button
-            type="button"
-            onClick={() => void copyCurrentLayout()}
-            className="inline-flex h-7 items-center gap-1.5 rounded-md border border-white/12 bg-white/[0.045] px-2 text-[11px] font-medium text-foreground/75 transition-colors hover:border-primary/45 hover:bg-primary/10 hover:text-foreground"
-            title="Copy current layout coordinates"
-            aria-label="Copy current layout coordinates"
-          >
-            <RiFileCopyLine className="size-3.5" />
-            Temp copy
-          </button>
+          {ENABLE_DEBUG_PRESETS && (
+            <button
+              type="button"
+              onClick={() => void copyCurrentLayout()}
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-white/12 bg-white/[0.045] px-2 text-[11px] font-medium text-foreground/75 transition-colors hover:border-primary/45 hover:bg-primary/10 hover:text-foreground"
+              title="Copy current layout coordinates"
+              aria-label="Copy current layout coordinates"
+            >
+              <RiFileCopyLine className="size-3.5" />
+              Temp copy
+            </button>
+          )}
         </div>
         <TabTriggerRow tab={tab} slotCount={canvas.screenshotSlots.length} onTabChange={setTab} />
       </div>

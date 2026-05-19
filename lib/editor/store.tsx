@@ -611,6 +611,14 @@ function applyEditorDraft(draft: PersistedEditorDraft): Partial<EditorStore> {
   }
 }
 
+function isEditableKeyboardTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false
+  if (target.isContentEditable) return true
+  return Boolean(
+    target.closest("input, textarea, select, [contenteditable='true']")
+  )
+}
+
 const computeNextZ = (items: { zIndex: number }[]) => {
   const max = items.length ? Math.max(...items.map((t) => t.zIndex)) : 0
   return Math.max(max + 1, 1)
@@ -2381,14 +2389,100 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   React.useEffect(() => {
+    const onDeleteKey = (e: KeyboardEvent) => {
+      if (e.key !== "Delete" && e.key !== "Backspace") return
+      if (isEditableKeyboardTarget(e.target)) return
+
+      const store = useEditorStore.getState()
+      const {
+        selectedTextId,
+        selectedAssetId,
+        selectedAnnotationShapeId,
+        selectedScreenshotSlotId,
+        isScreenshotSelected,
+      } = store
+
+      const findCanvasId = (
+        predicate: (canvas: CanvasState) => boolean
+      ) =>
+        store.present.canvases.find(predicate)?.id ??
+        store.present.activeCanvasId
+
+      if (selectedTextId) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        store.deleteText(
+          selectedTextId,
+          findCanvasId((canvas) =>
+            canvas.texts.some((text) => text.id === selectedTextId)
+          )
+        )
+        store.setSelectedTextId(null)
+        return
+      }
+
+      if (selectedAssetId) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        store.deleteAsset(
+          selectedAssetId,
+          findCanvasId((canvas) =>
+            canvas.assets.some((asset) => asset.id === selectedAssetId)
+          )
+        )
+        store.setSelectedAssetId(null)
+        return
+      }
+
+      if (selectedAnnotationShapeId) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        store.deleteAnnotationShape(
+          selectedAnnotationShapeId,
+          findCanvasId((canvas) =>
+            canvas.annotationShapes.some(
+              (shape) => shape.id === selectedAnnotationShapeId
+            )
+          )
+        )
+        store.setSelectedAnnotationShapeId(null)
+        return
+      }
+
+      if (
+        selectedScreenshotSlotId &&
+        store.presetTab !== "multi" &&
+        store.presetTab !== "triple"
+      ) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        store.deleteScreenshotSlot(
+          selectedScreenshotSlotId,
+          findCanvasId((canvas) =>
+            canvas.screenshotSlots.some(
+              (slot) => slot.id === selectedScreenshotSlotId
+            )
+          )
+        )
+        store.setSelectedScreenshotSlotId(null)
+        return
+      }
+
+      if (isScreenshotSelected) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        store.setScreenshot(null)
+        store.setIsScreenshotSelected(false)
+      }
+    }
+
+    window.addEventListener("keydown", onDeleteKey, true)
+    return () => window.removeEventListener("keydown", onDeleteKey, true)
+  }, [])
+
+  React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null
-      const tag = target?.tagName
-      const isEditable =
-        tag === "INPUT" ||
-        tag === "TEXTAREA" ||
-        target?.isContentEditable === true
-      if (isEditable) return
+      if (isEditableKeyboardTarget(e.target)) return
       const mod = e.metaKey || e.ctrlKey
       if (!mod) return
       if (e.key === "z" || e.key === "Z") {
