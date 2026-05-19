@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./app/favicon.ico" alt="Noctivy Logo" width="84" height="84" />
+  <img src="https://github.com/user-attachments/assets/b8d39faf-200e-468a-80b1-0bc0025e1867"alt="Noctivy Logo" width="84" height="84" />
 </p>
 
 <h1 align="center">Noctivy</h1>
