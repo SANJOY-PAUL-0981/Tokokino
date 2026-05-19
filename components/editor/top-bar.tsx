@@ -83,7 +83,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useSession } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
-import { motion, AnimatePresence } from "motion/react"
+import { motion, AnimatePresence, LayoutGroup } from "motion/react"
 
 type ProtectedTopBarAction = "save" | "share"
 type ShareDialogState = {
@@ -956,26 +956,35 @@ function SegmentedRow({
   onChange: (v: string) => void
 }) {
   return (
-    <div className="flex w-full items-center gap-1 rounded-full bg-secondary/50 p-1">
-      {options.map((opt) => {
-        const active = opt.value === value
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => onChange(opt.value)}
-            className={cn(
-              "flex-1 cursor-pointer rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors",
-              active
-                ? "bg-background text-foreground shadow-sm ring-1 ring-border/60"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {opt.label}
-          </button>
-        )
-      })}
-    </div>
+    <LayoutGroup id={`segmented-row-${options.map((opt) => opt.value).join("-")}`}>
+      <div className="flex w-full items-center gap-1 rounded-full bg-secondary/50 p-1">
+        {options.map((opt) => {
+          const active = opt.value === value
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange(opt.value)}
+              className={cn(
+                "relative flex-1 cursor-pointer rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors",
+                active
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {active ? (
+                <motion.span
+                  layoutId={`segmented-pill-${options.map((o) => o.value).join("-")}`}
+                  className="absolute inset-0 rounded-full bg-background shadow-sm ring-1 ring-border/60"
+                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                />
+              ) : null}
+              <span className="relative z-10">{opt.label}</span>
+            </button>
+          )
+        })}
+      </div>
+    </LayoutGroup>
   )
 }
 
