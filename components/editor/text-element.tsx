@@ -29,6 +29,8 @@ type DragState = {
   canvasW: number
   canvasH: number
   moved: boolean
+  snapXActive: boolean
+  snapYActive: boolean
 }
 
 type RotateState = {
@@ -61,6 +63,8 @@ type ResizeState = {
 }
 
 const DRAG_THRESHOLD = 4
+const CENTER_SNAP_ENTER_PX = 8
+const CENTER_SNAP_EXIT_PX = 14
 
 function isTextEditingTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false
@@ -217,6 +221,8 @@ export function TextElementView({ text, canvasRef, onCenterGuideChange, previewM
       canvasW: rect.width,
       canvasH: rect.height,
       moved: false,
+      snapXActive: false,
+      snapYActive: false,
     }
    
   }, [canvasRef, setSelectedAnnotationShapeId, setSelectedTextId])
@@ -240,13 +246,29 @@ export function TextElementView({ text, canvasRef, onCenterGuideChange, previewM
     let nextX = drag.startXPct + (dx / drag.canvasW) * 100
     let nextY = drag.startYPct + (dy / drag.canvasH) * 100
 
-    // Snap to canvas center (50%)
-    const snapThresholdPct = (8 / drag.canvasW) * 100
-    const snapX = Math.abs(nextX - 50) <= snapThresholdPct
-    const snapY = Math.abs(nextY - 50) <= snapThresholdPct
-    if (snapX) nextX = 50
-    if (snapY) nextY = 50
-    onCenterGuideChangeRef.current?.({ x: snapX, y: snapY })
+    // Snap to canvas center (50%) with hysteresis so dragging doesn't feel
+    // sticky once the element has snapped.
+    const snapEnterXPct = (CENTER_SNAP_ENTER_PX / drag.canvasW) * 100
+    const snapEnterYPct = (CENTER_SNAP_ENTER_PX / drag.canvasH) * 100
+    const snapExitXPct = (CENTER_SNAP_EXIT_PX / drag.canvasW) * 100
+    const snapExitYPct = (CENTER_SNAP_EXIT_PX / drag.canvasH) * 100
+
+    const xDistance = Math.abs(nextX - 50)
+    const yDistance = Math.abs(nextY - 50)
+
+    const shouldSnapX = drag.snapXActive
+      ? xDistance <= snapExitXPct
+      : xDistance <= snapEnterXPct
+    const shouldSnapY = drag.snapYActive
+      ? yDistance <= snapExitYPct
+      : yDistance <= snapEnterYPct
+
+    drag.snapXActive = shouldSnapX
+    drag.snapYActive = shouldSnapY
+
+    if (shouldSnapX) nextX = 50
+    if (shouldSnapY) nextY = 50
+    onCenterGuideChangeRef.current?.({ x: shouldSnapX, y: shouldSnapY })
 
     const clampedX = clamp(nextX, -20, 120)
     const clampedY = clamp(nextY, -20, 120)

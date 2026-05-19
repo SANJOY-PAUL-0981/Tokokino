@@ -27,6 +27,8 @@ type CanvasEmptyStateProps = {
   transform?: string
   /** The shadow drop-filter for the screenshot box. */
   shadowFilter?: string
+  /** Optional style overrides for the empty screenshot box (e.g. border effects). */
+  boxStyle?: React.CSSProperties
 }
 
 export function CanvasEmptyState({
@@ -44,6 +46,7 @@ export function CanvasEmptyState({
   screenshotOffset,
   transform,
   shadowFilter,
+  boxStyle,
 }: CanvasEmptyStateProps) {
   const { aspect } = useEditor()
   const aw = aspectW ?? aspect.w ?? 16
@@ -94,6 +97,7 @@ export function CanvasEmptyState({
           )}
           style={{
             ...fitStyle,
+            ...boxStyle,
             left: "50%",
             top: "50%",
             transform: framePositionTransform({
@@ -138,6 +142,7 @@ export function CanvasEmptyState({
         ref={rootRef}
         onClick={handleAreaClick}
         style={{
+          ...boxStyle,
           ...(previewStyle ? { transition: "none", ...previewStyle } : null),
           ...(isPortrait
             ? { aspectRatio: `${effectiveAw} / ${effectiveAh}` }

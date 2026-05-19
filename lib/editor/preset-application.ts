@@ -63,8 +63,8 @@ export function planSinglePreset(
   return {
     canvasTilt: preset.tilt,
     canvasScale: scale,
-    screenshotPosition: "center",
-    screenshotOffset: { x: 0, y: 0 },
+    screenshotPosition: canvas.screenshotPosition,
+    screenshotOffset: canvas.screenshotOffset,
     slots: canvas.screenshotSlots.map((slot, i) => ({
       xPct: naturalLayout[i + 1]?.xPct ?? slot.xPct,
       yPct: 50,

@@ -190,15 +190,15 @@ export function TiltSection() {
     <>
       <DegreeRow
         label="Rotate X"
-        value={tilt.rx}
-        onPreview={(v) => previewTilt({ ...tilt, rx: v })}
-        onCommit={(v) => commitTilt({ ...tilt, rx: v })}
-      />
-      <DegreeRow
-        label="Rotate Y"
         value={tilt.ry}
         onPreview={(v) => previewTilt({ ...tilt, ry: v })}
         onCommit={(v) => commitTilt({ ...tilt, ry: v })}
+      />
+      <DegreeRow
+        label="Rotate Y"
+        value={tilt.rx}
+        onPreview={(v) => previewTilt({ ...tilt, rx: v })}
+        onCommit={(v) => commitTilt({ ...tilt, rx: v })}
       />
       <DegreeRow
         label="Rotate Z"

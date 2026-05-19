@@ -319,6 +319,13 @@ function CanvasViewInner({
     imgStyle.outline = `${border.width}px ${border.style || "solid"} ${border.color}`
     imgStyle.outlineOffset = `${border.padding || 0}px`
   }
+  const emptyStateBoxStyle: React.CSSProperties = {
+    borderRadius,
+  }
+  if (border.color && border.width > 0) {
+    emptyStateBoxStyle.outline = imgStyle.outline
+    emptyStateBoxStyle.outlineOffset = imgStyle.outlineOffset
+  }
 
   const effectsFilter = effectsFilterCss(backdrop.effects)
   const noiseEnabled = backdrop.effects.noise > 0
@@ -763,6 +770,7 @@ function CanvasViewInner({
                   screenshotOffset={effectiveOffset}
                   transform={transform}
                   shadowFilter={computedShadowFilter}
+                  boxStyle={emptyStateBoxStyle}
                   compact={
                     tilt.rx !== 0 ||
                     tilt.ry !== 0 ||

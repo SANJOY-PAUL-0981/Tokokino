@@ -744,8 +744,10 @@ function DefaultToolbarContents() {
   const hasScalableContent = selectedSlot ? true : hasMainScreenshotTarget
   const hasAnyScreenshotContent =
     Boolean(screenshot) || hasDeviceFrame || screenshotSlots.length > 0
+  const screenshotBoxCount = (hasMainScreenshot ? 1 : 0) + screenshotSlots.length
+  const canGroupAllScreenshots = screenshotBoxCount > 1
   const positionTarget: PositionTarget =
-    groupAllScreenshots && hasAnyScreenshotContent
+    groupAllScreenshots && canGroupAllScreenshots && hasAnyScreenshotContent
       ? "allScreenshots"
       : selectedText
         ? "text"
@@ -1160,7 +1162,7 @@ function DefaultToolbarContents() {
                 <span className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
                   Position {positionTargetLabel}
                 </span>
-                {hasAnyScreenshotContent ? (
+                {canGroupAllScreenshots ? (
                   <button
                     type="button"
                     onClick={() => setGroupAllScreenshots((v) => !v)}
