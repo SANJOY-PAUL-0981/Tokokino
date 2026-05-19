@@ -1,0 +1,38 @@
+name: Feature Request
+description: Propose a new feature or improvement
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: input
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem are you trying to solve?
+      placeholder: Need faster way to apply layout presets across canvases
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: Describe your preferred solution
+      placeholder: Add bulk action to apply active layout preset to all selected canvases
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Other approaches you considered
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and Impact
+      description: Who benefits and what parts of app are affected?
+      placeholder: Affects inspector and store actions; improves multi-canvas workflows
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Mockups, references, examples

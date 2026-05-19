@@ -1,0 +1,26 @@
+name: General Issue / Task
+description: Track a maintenance task, cleanup, or discussion item
+title: "[Task]: "
+labels:
+  - chore
+body:
+  - type: input
+    id: objective
+    attributes:
+      label: Objective
+      description: What should be done?
+      placeholder: Refactor export asset preloading flow
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: Context, constraints, and acceptance criteria
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Related issues, PRs, docs, links
