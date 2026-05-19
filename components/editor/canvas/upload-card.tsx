@@ -268,7 +268,7 @@ export function UploadCard({
           align="center"
           sideOffset={8}
           onPointerDown={(e) => e.stopPropagation()}
-          className="w-[320px] rounded-2xl border border-neutral-200 bg-white p-0 text-neutral-950 shadow-xl shadow-black/10 dark:border-white/10 dark:bg-neutral-950 dark:text-white dark:shadow-black/40"
+          className="w-[320px] rounded-2xl border border-border bg-popover p-0 text-popover-foreground shadow-2xl"
         >
           <UploadCard
             isDragOver={isDragOver}

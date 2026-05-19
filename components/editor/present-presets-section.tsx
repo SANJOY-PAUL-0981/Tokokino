@@ -6,20 +6,18 @@ import { animate, AnimatePresence, motion } from "motion/react"
 import { CanvasView } from "@/components/editor/canvas"
 import { BASE_CANVAS_WIDTH } from "@/components/editor/canvas/constants"
 import { env } from "@/lib/env"
+import { resolveMainOffsetPx } from "@/lib/editor/preset-geometry"
 import {
-  resolveMainOffsetPx,
-  resolveSlotPositionPct,
-} from "@/lib/editor/preset-geometry"
+  planLayoutPreset,
+  planSinglePreset,
+} from "@/lib/editor/preset-application"
 import {
   LAYOUT_PRESETS,
   PRESENT_PRESETS,
   layoutPresetDeviceClassForFrame,
-  resolveLayoutPresetGeometry,
-  resolvePresentPresetScale,
   type LayoutPreset,
   type PresentPreset,
 } from "@/lib/editor/present-presets"
-import { computeRowLayout } from "@/lib/editor/screenshot-layout"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -343,9 +341,6 @@ function isTabDisabled(t: PresetTab, slotCount: number): boolean {
   return false
 }
 
-function tabNeedsDowngradeConfirm(t: PresetTab, slotCount: number): boolean {
-  return t === "multi" && slotCount === 2
-}
 
 const PRESET_TABS: PresetTab[] = ["single", "multi", "triple", "custom"]
 
@@ -353,12 +348,10 @@ function TabTriggerRow({
   tab,
   slotCount,
   onTabChange,
-  onTabChangeWithConfirm,
 }: {
   tab: PresetTab
   slotCount: number
   onTabChange: (t: PresetTab) => void
-  onTabChangeWithConfirm: (t: PresetTab) => void
 }) {
   const [open, setOpen] = React.useState(false)
   return (
@@ -404,7 +397,6 @@ function TabTriggerRow({
                 <div className="grid grid-cols-2 gap-1.5">
                   {PRESET_TABS.map((t) => {
                     const disabled = isTabDisabled(t, slotCount)
-                    const needsConfirm = tabNeedsDowngradeConfirm(t, slotCount)
                     const disabledReason =
                       t === "multi"
                         ? "Multi supports up to 2 screenshot boxes. Delete slots to switch."
@@ -417,11 +409,7 @@ function TabTriggerRow({
                             onClick={() => {
                               if (disabled) return
                               setOpen(false)
-                              if (needsConfirm) {
-                                onTabChangeWithConfirm(t)
-                              } else {
-                                onTabChange(t)
-                              }
+                              onTabChange(t)
                             }}
                             className={cn(
                               "flex flex-1 flex-col items-center gap-2 rounded-lg border p-2.5 transition-colors",
@@ -469,7 +457,6 @@ export function PresentPresetsSection() {
   const setScreenshotPosition = useEditorStore((s) => s.setScreenshotPosition)
   const updateScreenshotSlot = useEditorStore((s) => s.updateScreenshotSlot)
   const addScreenshotSlot = useEditorStore((s) => s.addScreenshotSlot)
-  const activeFrame = canvas.frame
   const presetMotionCleanupRef = React.useRef<(() => void) | null>(null)
   const tab = useEditorStore((s) => s.presetTab)
   const setTab = useEditorStore((s) => s.setPresetTab)
@@ -492,6 +479,8 @@ export function PresentPresetsSection() {
   const deleteScreenshotSlot = useEditorStore((s) => s.deleteScreenshotSlot)
   const [downgradeDialogOpen, setDowngradeDialogOpen] = React.useState(false)
   const [pendingTab, setPendingTab] = React.useState<PresetTab | null>(null)
+  const [pendingLayoutPreset, setPendingLayoutPreset] =
+    React.useState<LayoutPreset | null>(null)
   const { data: session } = useSession()
   const userId = session?.user?.id ?? null
 
@@ -556,19 +545,7 @@ export function PresentPresetsSection() {
 
   const applyPreset = React.useCallback(
     (preset: PresentPreset) => {
-      const scale = resolvePresentPresetScale(preset, activeFrame)
-      const aw = aspect.w || 16
-      const ah = aspect.h || 10
-      const naturalLayout = computeRowLayout(
-        [
-          { id: "__main__", frame: canvas.frame },
-          ...canvas.screenshotSlots.map((slot) => ({
-            id: slot.id,
-            frame: canvas.frame,
-          })),
-        ],
-        aw / ah
-      )
+      const plan = planSinglePreset(preset, canvas, aspect)
       presetMotionCleanupRef.current?.()
       const target =
         typeof document === "undefined"
@@ -583,34 +560,30 @@ export function PresentPresetsSection() {
         kind: "canvas",
         fromTilt: canvas.tilt,
         fromScale: canvas.scale,
-        toTilt: preset.tilt,
-        toScale: scale,
+        toTilt: plan.canvasTilt,
+        toScale: plan.canvasScale,
       })
-      setScreenshotPosition("center")
-      setTiltAndScale(preset.tilt, scale)
-      for (const [index, slot] of canvas.screenshotSlots.entries()) {
-        const naturalSlot = naturalLayout[index + 1]
+      setScreenshotPosition(plan.screenshotPosition)
+      setTiltAndScale(plan.canvasTilt, plan.canvasScale)
+      canvas.screenshotSlots.forEach((slot, i) => {
+        const patch = plan.slots[i]
+        if (!patch) return
         updateScreenshotSlot(slot.id, {
-          xPct: naturalSlot?.xPct ?? slot.xPct,
-          yPct: 50,
-          widthPct: naturalSlot?.widthPct ?? slot.widthPct,
-          rotation: 0,
-          tilt: preset.tilt,
-          scale,
+          xPct: patch.xPct,
+          yPct: patch.yPct,
+          widthPct: patch.widthPct ?? slot.widthPct,
+          rotation: patch.rotation,
+          tilt: patch.tilt,
+          scale: patch.scale,
         })
-      }
+      })
       setActiveSinglePresetId(preset.id)
       setActiveCustomPresetId(null)
     },
     [
       activeCanvasId,
-      activeFrame,
-      aspect.h,
-      aspect.w,
-      canvas.frame,
-      canvas.screenshotSlots,
-      canvas.scale,
-      canvas.tilt,
+      aspect,
+      canvas,
       setActiveCustomPresetId,
       setActiveSinglePresetId,
       setScreenshotPosition,
@@ -623,56 +596,41 @@ export function PresentPresetsSection() {
 
   const applyLayoutPreset = React.useCallback(
     (preset: LayoutPreset) => {
-      const geometry = resolveLayoutPresetGeometry(preset, canvas.frame)
-      setScreenshotPosition("center")
+      if (canvas.screenshotSlots.length > preset.slots.length) {
+        setPendingLayoutPreset(preset)
+        setDowngradeDialogOpen(true)
+        return
+      }
+      const plan = planLayoutPreset(preset, canvas, aspect)
+      setScreenshotPosition(plan.screenshotPosition)
       const currentSlotIds = canvas.screenshotSlots.map((s) => s.id)
       const newSlotIds: string[] = []
-      for (let i = currentSlotIds.length; i < geometry.slots.length; i++) {
+      for (let i = currentSlotIds.length; i < plan.slots.length; i++) {
         const id = addScreenshotSlot()
         if (id) newSlotIds.push(id)
       }
       const allSlotIds = [...currentSlotIds, ...newSlotIds]
-      // Compute natural row positions so relative presets can offset from them
-      const aw = aspect.w || 16
-      const ah = aspect.h || 10
-      const canvasAspect = aw / ah
-      const naturalLayout = computeRowLayout(
-        [
-          { id: "__main__", frame: canvas.frame },
-          ...allSlotIds.map((id) => ({ id, frame: canvas.frame })),
-        ],
-        canvasAspect
-      )
-      for (let i = 0; i < geometry.slots.length; i++) {
+      plan.slots.forEach((patch, i) => {
         const slotId = allSlotIds[i]
-        const config = geometry.slots[i]
-        if (!slotId || !config) continue
-        const { xPct, yPct } = resolveSlotPositionPct({
-          config,
-          naturalSlotXPct: naturalLayout[i + 1]?.xPct ?? 75,
-          relativeSlotPositions: geometry.relativeSlotPositions,
-        })
+        if (!slotId) return
         updateScreenshotSlot(slotId, {
-          xPct,
-          yPct,
-          rotation: config.rotation,
-          tilt: config.tilt,
-          scale: config.scale,
-          ...(config.zIndex !== undefined && { zIndex: config.zIndex }),
+          xPct: patch.xPct,
+          yPct: patch.yPct,
+          rotation: patch.rotation,
+          tilt: patch.tilt,
+          scale: patch.scale,
+          ...(patch.zIndex !== undefined ? { zIndex: patch.zIndex } : {}),
         })
-      }
-      setTiltAndScale(geometry.canvasTilt, geometry.canvasScale)
-      if (geometry.mainOffset) {
-        setScreenshotOffset(resolveMainOffsetPx(geometry.mainOffset))
-      }
+      })
+      setTiltAndScale(plan.canvasTilt, plan.canvasScale)
+      setScreenshotOffset(plan.screenshotOffset)
       setActiveLayoutPresetId(preset.id)
       setActiveCustomPresetId(null)
     },
     [
       addScreenshotSlot,
       aspect,
-      canvas.frame,
-      canvas.screenshotSlots,
+      canvas,
       setActiveCustomPresetId,
       setActiveLayoutPresetId,
       setScreenshotOffset,
@@ -705,19 +663,51 @@ export function PresentPresetsSection() {
     ]
   )
 
-  const handleTabChangeWithConfirm = React.useCallback((t: PresetTab) => {
-    setPendingTab(t)
-    setDowngradeDialogOpen(true)
-  }, [])
-
   const handleDowngradeConfirm = React.useCallback(() => {
-    if (!pendingTab) return
     const lastSlot = canvas.screenshotSlots[canvas.screenshotSlots.length - 1]
     if (lastSlot) deleteScreenshotSlot(lastSlot.id)
-    setTab(pendingTab)
-    setPendingTab(null)
+    if (pendingLayoutPreset) {
+      const plan = planLayoutPreset(pendingLayoutPreset, canvas, aspect)
+      setScreenshotPosition(plan.screenshotPosition)
+      const currentSlotIds = canvas.screenshotSlots
+        .filter((s) => s.id !== lastSlot?.id)
+        .map((s) => s.id)
+      plan.slots.forEach((patch, i) => {
+        const slotId = currentSlotIds[i]
+        if (!slotId) return
+        updateScreenshotSlot(slotId, {
+          xPct: patch.xPct,
+          yPct: patch.yPct,
+          rotation: patch.rotation,
+          tilt: patch.tilt,
+          scale: patch.scale,
+          ...(patch.zIndex !== undefined ? { zIndex: patch.zIndex } : {}),
+        })
+      })
+      setTiltAndScale(plan.canvasTilt, plan.canvasScale)
+      setScreenshotOffset(plan.screenshotOffset)
+      setActiveLayoutPresetId(pendingLayoutPreset.id)
+      setActiveCustomPresetId(null)
+      setPendingLayoutPreset(null)
+    } else if (pendingTab) {
+      setTab(pendingTab)
+      setPendingTab(null)
+    }
     setDowngradeDialogOpen(false)
-  }, [canvas.screenshotSlots, deleteScreenshotSlot, pendingTab, setTab])
+  }, [
+    aspect,
+    canvas,
+    deleteScreenshotSlot,
+    pendingLayoutPreset,
+    pendingTab,
+    setActiveCustomPresetId,
+    setActiveLayoutPresetId,
+    setScreenshotOffset,
+    setScreenshotPosition,
+    setTab,
+    setTiltAndScale,
+    updateScreenshotSlot,
+  ])
 
   React.useEffect(() => {
     return () => presetMotionCleanupRef.current?.()
@@ -728,13 +718,20 @@ export function PresentPresetsSection() {
       <AlertDialog open={downgradeDialogOpen} onOpenChange={setDowngradeDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Switch to Multi?</AlertDialogTitle>
+            <AlertDialogTitle>Apply preset?</AlertDialogTitle>
             <AlertDialogDescription>
-              Multi only supports 2 screenshot boxes. Switching will delete the last screenshot slot. This cannot be undone.
+              This preset supports fewer screenshot boxes than you currently have. Applying it will delete the last screenshot slot. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingTab(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel
+              onClick={() => {
+                setPendingTab(null)
+                setPendingLayoutPreset(null)
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDowngradeConfirm}
               className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
@@ -760,7 +757,7 @@ export function PresentPresetsSection() {
             </button>
           )}
         </div>
-        <TabTriggerRow tab={tab} slotCount={canvas.screenshotSlots.length} onTabChange={setTab} onTabChangeWithConfirm={handleTabChangeWithConfirm} />
+        <TabTriggerRow tab={tab} slotCount={canvas.screenshotSlots.length} onTabChange={setTab} />
       </div>
 
       {tab === "single" && (
@@ -1135,35 +1132,28 @@ const SinglePresetCard = React.memo(function SinglePresetCard({
     [onApply, preset]
   )
   const virtualCanvas = React.useMemo<CanvasState>(() => {
-    const presetScale = resolvePresentPresetScale(preset, canvas.frame)
-    const canvasAspect = aw / ah
-    const naturalLayout = computeRowLayout(
-      [
-        { id: "__main__", frame: canvas.frame },
-        ...canvas.screenshotSlots.map((slot) => ({
-          id: slot.id,
-          frame: canvas.frame,
-        })),
-      ],
-      canvasAspect
-    )
+    const plan = planSinglePreset(preset, canvas, aspect)
     return {
       ...canvas,
-      tilt: preset.tilt,
-      scale: presetScale,
-      screenshotPosition: "center",
-      screenshotOffset: { x: 0, y: 0 },
-      screenshotSlots: canvas.screenshotSlots.map((slot, index) => ({
-        ...slot,
-        xPct: naturalLayout[index + 1]?.xPct ?? slot.xPct,
-        yPct: 50,
-        widthPct: naturalLayout[index + 1]?.widthPct ?? slot.widthPct,
-        rotation: 0,
-        tilt: preset.tilt,
-        scale: presetScale,
-      })),
+      tilt: plan.canvasTilt,
+      scale: plan.canvasScale,
+      screenshotPosition: plan.screenshotPosition,
+      screenshotOffset: plan.screenshotOffset,
+      screenshotSlots: canvas.screenshotSlots.map((slot, i) => {
+        const patch = plan.slots[i]
+        if (!patch) return slot
+        return {
+          ...slot,
+          xPct: patch.xPct,
+          yPct: patch.yPct,
+          widthPct: patch.widthPct ?? slot.widthPct,
+          rotation: patch.rotation,
+          tilt: patch.tilt,
+          scale: patch.scale,
+        }
+      }),
     }
-  }, [ah, aw, canvas, preset])
+  }, [aspect, canvas, preset])
   return (
     <PresetCardShell
       active={active}
@@ -1197,49 +1187,27 @@ const LayoutPresetCard = React.memo(function LayoutPresetCard({
 }) {
   // Build a virtual canvas that looks like the preset applied, for the preview
   const virtualCanvas = React.useMemo<CanvasState>(() => {
-    const geometry = resolveLayoutPresetGeometry(preset, canvas.frame)
-    const aw = aspect.w || 16
-    const ah = aspect.h || 10
-    const canvasAspect = aw / ah
-    // Compute natural row positions so relative presets offset correctly in preview
-    const naturalLayout = computeRowLayout(
-      [
-        { id: "__main__", frame: canvas.frame },
-        ...geometry.slots.map((_, i) => ({
-          id: `_layout_preview_${i}`,
-          frame: canvas.frame,
-        })),
-      ],
-      canvasAspect
-    )
-    const virtualSlots: ScreenshotSlot[] = geometry.slots.map((cfg, i) => {
-      const { xPct, yPct } = resolveSlotPositionPct({
-        config: cfg,
-        naturalSlotXPct: naturalLayout[i + 1]?.xPct ?? 75,
-        relativeSlotPositions: geometry.relativeSlotPositions,
-      })
-      return {
-        id: `_layout_preview_${i}`,
-        src: canvas.screenshotSlots[i]?.src ?? null,
-        xPct,
-        yPct,
-        widthPct: 60,
-        heightPct: 28,
-        rotation: cfg.rotation,
-        tilt: cfg.tilt,
-        scale: cfg.scale,
-        zIndex: i + 1,
-        filter: "none" as const,
-      }
-    })
-    const offsetPx = resolveMainOffsetPx(geometry.mainOffset)
+    const plan = planLayoutPreset(preset, canvas, aspect)
+    const virtualSlots: ScreenshotSlot[] = plan.slots.map((patch, i) => ({
+      id: `_layout_preview_${i}`,
+      src: canvas.screenshotSlots[i]?.src ?? null,
+      xPct: patch.xPct,
+      yPct: patch.yPct,
+      widthPct: 60,
+      heightPct: 28,
+      rotation: patch.rotation,
+      tilt: patch.tilt,
+      scale: patch.scale,
+      zIndex: patch.zIndex ?? i + 1,
+      filter: "none" as const,
+    }))
     return {
       ...canvas,
-      tilt: geometry.canvasTilt,
-      scale: geometry.canvasScale,
+      tilt: plan.canvasTilt,
+      scale: plan.canvasScale,
       screenshotSlots: virtualSlots,
-      screenshotPosition: "center" as const,
-      screenshotOffset: offsetPx,
+      screenshotPosition: plan.screenshotPosition,
+      screenshotOffset: plan.screenshotOffset,
     }
   }, [aspect, canvas, preset])
 

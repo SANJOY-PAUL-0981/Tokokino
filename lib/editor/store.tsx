@@ -1,18 +1,50 @@
 "use client"
 
-import * as React from "react"
 import { create } from "zustand"
-import { useShallow } from "zustand/react/shallow"
 
-import { FONT_FAMILIES } from "./fonts"
-import { DEFAULT_IMAGE_BACKGROUND } from "./presets"
-import { LAYOUT_PRESETS, resolveLayoutPresetGeometry } from "./present-presets"
+import { LAYOUT_PRESETS } from "./present-presets"
 import {
   resolveActivePresetGeometry,
   resolveMainOffsetPx,
   resolveSlotPositionPct,
 } from "./preset-geometry"
 import { computeRowLayout } from "./screenshot-layout"
+import { computeNextLayerZ, moveLayerInStack } from "./store/layer-stack"
+import {
+  applySharedFrameToCanvas,
+  aspectRatioFromState,
+  CANVAS_BASE_W,
+  clampPct,
+  cloneBorder,
+  cloneLighting,
+  cloneShadow,
+  createScreenshotSlot,
+  duplicateLayerItem,
+  layoutSlotsInRow,
+  makeId,
+  mirrorToSlots,
+  placeNewSlotInRow,
+  placementAfterCanvas,
+  resolveActiveLayoutGeometry,
+  scaleAnnotationStrokesForAspectChange,
+  scaleScreenshotOffsetForAspectChange,
+  stateCanvasAspect,
+  type PresetTab,
+} from "./store/canvas-helpers"
+import {
+  CLEAR_SELECTION,
+  createCanvas,
+  DEFAULT_STATE,
+  GROUP_MERGE_MS,
+  HISTORY_LIMIT,
+  MAX_CANVASES,
+  MAX_SCREENSHOT_SLOTS,
+} from "./store/defaults"
+import {
+  normalizeEditorState,
+  type CurrentDraftInfo,
+} from "./store/draft-persistence"
+import { FONT_FAMILIES } from "./fonts"
 import type {
   Annotation,
   AnnotationPoint,
@@ -80,124 +112,23 @@ export {
   sampleImageColorsRaw,
 } from "./color-utils"
 
-const makeId = () =>
-  typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `t-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+export { MAX_CANVASES, MAX_SCREENSHOT_SLOTS }
+export type { PresetTab, CurrentDraftInfo }
 
-const FIRST_CANVAS_ID = "canvas-default"
-
-const DEFAULT_CANVAS_BASE: Omit<CanvasState, "id" | "position"> = {
-  screenshot: null,
-  originalScreenshot: null,
-  lastCropRegion: null,
-  background: {
-    type: "image",
-    value: DEFAULT_IMAGE_BACKGROUND,
-  },
-  padding: 40,
-  borderRadius: 7,
-  canvasBorderRadius: 16,
-  border: { color: null, width: 1, style: "solid", padding: 0 },
-  backdrop: {
-    effects: {
-      noise: 0,
-      blur: 0,
-      brightness: 100,
-      contrast: 100,
-      saturation: 100,
-      hue: 0,
-      grayscale: 0,
-      sepia: 0,
-      invert: 0,
-      opacity: 100,
-    },
-    pattern: {
-      ids: [],
-      intensity: 50,
-      thickness: 1,
-      color: "#FFFFFF",
-    },
-    lighting: {
-      target: "inner",
-      intensity: 0,
-      direction: "0-0",
-      color: "#FFFFFF",
-    },
-    filter: "none",
-  },
-  tilt: { rx: 0, ry: 0, rz: 0 },
-  scale: 100,
-  screenshotPosition: "center",
-  screenshotOffset: { x: 0, y: 0 },
-  objectFit: "cover",
-  screenshotLayer: {
-    zIndex: 1,
-    opacity: 100,
-    blendMode: "normal",
-    hidden: false,
-  },
-  shadow: {
-    type: "none",
-    intensity: 40,
-    lightSource: "center",
-    color: "#050505",
-  },
-  overlay: {
-    id: null,
-    opacity: 50,
-    position: "overlay",
-  },
-  frame: {
-    id: "none",
-    color: "black",
-    orientation: "vertical",
-  },
-  portrait: {
-    mode: "off",
-    intensity: 60,
-    position: 50,
-    distance: 50,
-  },
-  texts: [],
-  assets: [],
-  enhance: "off",
-  annotations: [],
-  annotationShapes: [],
-  screenshotSlots: [],
-  frameAddress: "",
-}
-
-const createCanvas = (
-  id: string = makeId(),
-  position = { x: 0, y: 0 }
-): CanvasState => ({
-  ...DEFAULT_CANVAS_BASE,
-  id,
-  position,
-})
-
-const DEFAULT_STATE: EditorState = {
-  activeTool: "pointer",
-  aspect: { id: "auto", w: 0, h: 0 },
-  canvasZoom: 100,
-  annotation: {
-    mode: "pen",
-    color: "#ef4444",
-    strokeWidth: 4,
-    lineStyle: "solid",
-    blurEffect: "blur",
-    blurAmount: 14,
-  },
-  canvases: [createCanvas(FIRST_CANVAS_ID, { x: 0, y: 0 })],
-  activeCanvasId: FIRST_CANVAS_ID,
-}
-
-const HISTORY_LIMIT = 100
-const GROUP_MERGE_MS = 600
-
-export const MAX_CANVASES = 20
-export const MAX_SCREENSHOT_SLOTS = 3
+export {
+  CanvasPreviewScope,
+  CanvasScope,
+  useActiveCanvasField,
+  useActiveCanvasId,
+  useCanvasById,
+  useCanvases,
+  useCanvasPreviewMode,
+  useCanvasScopeId,
+  useEditor,
+  useSelectedScreenshotSlot,
+  type EditorContext,
+} from "./store/use-editor"
+export { EditorProvider, saveCurrentEditorDraft } from "./store/provider"
 
 type SetPatch =
   | Partial<EditorState>
@@ -206,8 +137,6 @@ type SetPatch =
 type CanvasPatch =
   | Partial<CanvasState>
   | ((canvas: CanvasState, state: EditorState) => Partial<CanvasState>)
-
-export type PresetTab = "single" | "multi" | "triple" | "custom"
 
 export type CustomPresetSlotConfig = {
   xPct: number
@@ -270,12 +199,6 @@ export type CustomPresetSummary = {
   geometry: CustomPresetGeometry
 }
 
-export type CurrentDraftInfo = {
-  id: string
-  name: string
-  updatedAt: string | null
-}
-
 export type DraftLoadUi = {
   presetTab?: PresetTab
   activeLayoutPresetId?: string | null
@@ -288,7 +211,7 @@ export type DraftLoadUi = {
   previewAnimation?: "slide" | "fade" | "zoom" | "flip"
 }
 
-type EditorActions = {
+export type EditorActions = {
   setTopBarPopoverOpen: (open: boolean) => void
   setActiveTool: (t: EditorTool) => void
   setPresetTab: (tab: PresetTab) => void
@@ -458,7 +381,7 @@ type EditorActions = {
   ) => void
 }
 
-type EditorStore = {
+export type EditorStore = {
   past: EditorState[]
   present: EditorState
   future: EditorState[]
@@ -488,689 +411,6 @@ type EditorStore = {
   currentDraft: CurrentDraftInfo | null
 } & EditorActions
 
-const EDITOR_DRAFT_DB_NAME = "beautiful-screenshots-editor"
-const EDITOR_DRAFT_STORE_NAME = "drafts"
-const EDITOR_DRAFT_KEY = "current"
-const EDITOR_DRAFT_SCHEMA_VERSION = 1
-const EDITOR_DRAFT_SAVE_DELAY_MS = 250
-
-type PersistedEditorUi = Pick<
-  EditorStore,
-  | "bulkEditMode"
-  | "bulkViewportZoom"
-  | "bulkScale"
-  | "presetTab"
-  | "activeLayoutPresetId"
-  | "activeCustomPresetId"
-  | "activeSinglePresetId"
-  | "previewAutoScrollDelay"
-  | "previewAnimation"
-  | "currentDraft"
->
-
-type PersistedEditorDraft = {
-  id: typeof EDITOR_DRAFT_KEY
-  schemaVersion: number
-  updatedAt: number
-  present: EditorState
-  ui: PersistedEditorUi
-}
-
-const isBrowserIndexedDbAvailable = () =>
-  typeof window !== "undefined" && "indexedDB" in window
-
-const cloneEditorState = (state: EditorState): EditorState =>
-  JSON.parse(JSON.stringify(state)) as EditorState
-
-function normalizeCanvasState(
-  canvas: Partial<CanvasState> | null | undefined,
-  fallback: CanvasState
-): CanvasState {
-  const source = canvas ?? {}
-  const fallbackBackdrop = fallback.backdrop
-  const sourceBackdrop = source.backdrop
-  const normalized: CanvasState = {
-    ...fallback,
-    ...source,
-    id: source.id ?? fallback.id,
-    position: { ...fallback.position, ...(source.position ?? {}) },
-    background: { ...fallback.background, ...(source.background ?? {}) },
-    border: { ...fallback.border, ...(source.border ?? {}) },
-    backdrop: {
-      ...fallbackBackdrop,
-      ...(sourceBackdrop ?? {}),
-      effects: {
-        ...fallbackBackdrop.effects,
-        ...(sourceBackdrop?.effects ?? {}),
-      },
-      pattern: {
-        ...fallbackBackdrop.pattern,
-        ...(sourceBackdrop?.pattern ?? {}),
-      },
-      lighting: {
-        ...fallbackBackdrop.lighting,
-        ...(sourceBackdrop?.lighting ?? {}),
-      },
-    },
-    tilt: { ...fallback.tilt, ...(source.tilt ?? {}) },
-    screenshotOffset: {
-      ...fallback.screenshotOffset,
-      ...(source.screenshotOffset ?? {}),
-    },
-    screenshotLayer: {
-      ...fallback.screenshotLayer,
-      ...(source.screenshotLayer ?? {}),
-    },
-    shadow: { ...fallback.shadow, ...(source.shadow ?? {}) },
-    overlay: { ...fallback.overlay, ...(source.overlay ?? {}) },
-    frame: { ...fallback.frame, ...(source.frame ?? {}) },
-    portrait: { ...fallback.portrait, ...(source.portrait ?? {}) },
-    texts: Array.isArray(source.texts) ? source.texts : fallback.texts,
-    assets: Array.isArray(source.assets) ? source.assets : fallback.assets,
-    annotations: Array.isArray(source.annotations)
-      ? source.annotations
-      : fallback.annotations,
-    annotationShapes: Array.isArray(source.annotationShapes)
-      ? source.annotationShapes
-      : fallback.annotationShapes,
-    screenshotSlots: Array.isArray(source.screenshotSlots)
-      ? source.screenshotSlots.map((slot) => migrateLegacySlot(slot))
-      : fallback.screenshotSlots,
-  }
-
-  return {
-    ...normalized,
-    screenshotSlots: normalized.screenshotSlots.map((slot) =>
-      applySlotStyleDefaults(slot, normalized)
-    ),
-  }
-}
-
-function normalizeEditorState(state: Partial<EditorState>): EditorState {
-  const fallback = cloneEditorState(DEFAULT_STATE)
-  const rawCanvases = Array.isArray(state.canvases) ? state.canvases : []
-  const canvases =
-    rawCanvases.length > 0
-      ? rawCanvases.map((canvas, index) =>
-          normalizeCanvasState(
-            canvas,
-            createCanvas(
-              canvas?.id ?? makeId(),
-              canvas?.position ?? {
-                x: index * (CANVAS_BASE_W + CANVAS_GAP),
-                y: 0,
-              }
-            )
-          )
-        )
-      : fallback.canvases
-  const activeCanvasId = canvases.some((c) => c.id === state.activeCanvasId)
-    ? state.activeCanvasId
-    : canvases[0]?.id
-
-  return {
-    ...fallback,
-    ...state,
-    aspect: { ...fallback.aspect, ...(state.aspect ?? {}) },
-    annotation: { ...fallback.annotation, ...(state.annotation ?? {}) },
-    canvases,
-    activeCanvasId: activeCanvasId ?? FIRST_CANVAS_ID,
-  }
-}
-
-function openEditorDraftDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (!isBrowserIndexedDbAvailable()) {
-      reject(new Error("IndexedDB is not available"))
-      return
-    }
-
-    const request = window.indexedDB.open(
-      EDITOR_DRAFT_DB_NAME,
-      EDITOR_DRAFT_SCHEMA_VERSION
-    )
-
-    request.onupgradeneeded = () => {
-      const db = request.result
-      if (!db.objectStoreNames.contains(EDITOR_DRAFT_STORE_NAME)) {
-        db.createObjectStore(EDITOR_DRAFT_STORE_NAME, { keyPath: "id" })
-      }
-    }
-    request.onerror = () =>
-      reject(request.error ?? new Error("Failed to open editor draft database"))
-    request.onsuccess = () => resolve(request.result)
-  })
-}
-
-function readEditorDraft(): Promise<PersistedEditorDraft | null> {
-  return new Promise((resolve, reject) => {
-    void openEditorDraftDb()
-      .then((db) => {
-        const transaction = db.transaction(EDITOR_DRAFT_STORE_NAME, "readonly")
-        const store = transaction.objectStore(EDITOR_DRAFT_STORE_NAME)
-        const request = store.get(EDITOR_DRAFT_KEY)
-
-        request.onerror = () => {
-          db.close()
-          reject(request.error ?? new Error("Failed to read editor draft"))
-        }
-        request.onsuccess = () => {
-          db.close()
-          resolve((request.result as PersistedEditorDraft | undefined) ?? null)
-        }
-      })
-      .catch(reject)
-  })
-}
-
-function writeEditorDraft(draft: PersistedEditorDraft): Promise<void> {
-  return new Promise((resolve, reject) => {
-    void openEditorDraftDb()
-      .then((db) => {
-        const transaction = db.transaction(EDITOR_DRAFT_STORE_NAME, "readwrite")
-        const store = transaction.objectStore(EDITOR_DRAFT_STORE_NAME)
-        store.put(draft)
-
-        transaction.oncomplete = () => {
-          db.close()
-          resolve()
-        }
-        transaction.onerror = () => {
-          db.close()
-          reject(transaction.error ?? new Error("Failed to save editor draft"))
-        }
-        transaction.onabort = () => {
-          db.close()
-          reject(transaction.error ?? new Error("Editor draft save aborted"))
-        }
-      })
-      .catch(reject)
-  })
-}
-
-function createEditorDraftSnapshot(state: EditorStore): PersistedEditorDraft {
-  return {
-    id: EDITOR_DRAFT_KEY,
-    schemaVersion: EDITOR_DRAFT_SCHEMA_VERSION,
-    updatedAt: Date.now(),
-    present: cloneEditorState(state.present),
-    ui: {
-      bulkEditMode: state.bulkEditMode,
-      bulkViewportZoom: state.bulkViewportZoom,
-      bulkScale: state.bulkScale,
-      presetTab: state.presetTab,
-      activeLayoutPresetId: state.activeLayoutPresetId,
-      activeCustomPresetId: state.activeCustomPresetId,
-      activeSinglePresetId: state.activeSinglePresetId,
-      previewAutoScrollDelay: state.previewAutoScrollDelay,
-      previewAnimation: state.previewAnimation,
-      currentDraft: state.currentDraft,
-    },
-  }
-}
-
-function applyEditorDraft(draft: PersistedEditorDraft): Partial<EditorStore> {
-  const present = normalizeEditorState(draft.present)
-  const ui = draft.ui
-
-  return {
-    past: [],
-    present,
-    future: [],
-    _lastGroup: null,
-    _lastTs: 0,
-    isPreviewMode: false,
-    isPreviewAutoScroll: false,
-    previewAutoScrollDelay: ui?.previewAutoScrollDelay ?? 3000,
-    previewAnimation: ui?.previewAnimation ?? "slide",
-    bulkEditMode: ui?.bulkEditMode ?? present.canvases.length > 1,
-    bulkCanvasDragging: false,
-    bulkViewportZoom: ui?.bulkViewportZoom ?? 1,
-    bulkScale: ui?.bulkScale ?? 65,
-    selectedTextId: null,
-    selectedAssetId: null,
-    selectedAnnotationShapeId: null,
-    selectedScreenshotSlotId: null,
-    isScreenshotSelected: false,
-    presetTab: ui?.presetTab ?? "single",
-    activeLayoutPresetId: ui?.activeLayoutPresetId ?? null,
-    activeCustomPresetId: ui?.activeCustomPresetId ?? null,
-    activeSinglePresetId: ui?.activeSinglePresetId ?? null,
-    currentDraft: ui?.currentDraft ?? null,
-  }
-}
-
-function isEditableKeyboardTarget(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) return false
-  if (target.isContentEditable) return true
-  return Boolean(
-    target.closest("input, textarea, select, [contenteditable='true']")
-  )
-}
-
-function isFormKeyboardTarget(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) return false
-  if (target.isContentEditable) return true
-  return Boolean(
-    target.closest("input, textarea, select, [contenteditable='true']")
-  )
-}
-
-const computeNextZ = (items: { zIndex: number }[]) => {
-  const max = items.length ? Math.max(...items.map((t) => t.zIndex)) : 0
-  return Math.max(max + 1, 1)
-}
-
-const getLayerItems = (c: CanvasState) => [
-  c.screenshotLayer,
-  ...c.screenshotSlots,
-  ...c.assets,
-  ...c.texts,
-  ...c.annotations.filter((stroke) => stroke.mode !== "eraser"),
-  ...c.annotationShapes,
-]
-
-const computeNextLayerZ = (c: CanvasState) => computeNextZ(getLayerItems(c))
-
-const getLayerRefs = (c: CanvasState) => [
-  { key: "screenshot", zIndex: c.screenshotLayer.zIndex },
-  ...c.screenshotSlots.map((slot) => ({
-    key: `slot:${slot.id}`,
-    zIndex: slot.zIndex,
-  })),
-  ...c.assets.map((asset) => ({
-    key: `asset:${asset.id}`,
-    zIndex: asset.zIndex,
-  })),
-  ...c.texts.map((text) => ({
-    key: `text:${text.id}`,
-    zIndex: text.zIndex,
-  })),
-  ...c.annotations.reduce<{ key: string; zIndex: number }[]>(
-    (refs, stroke, index) => {
-      if (stroke.mode !== "eraser") {
-        refs.push({
-          key: `annotation-stroke:${stroke.id}`,
-          zIndex: stroke.zIndex ?? index + 1,
-        })
-      }
-      return refs
-    },
-    []
-  ),
-  ...c.annotationShapes.map((shape) => ({
-    key: `annotation:${shape.id}`,
-    zIndex: shape.zIndex,
-  })),
-]
-
-function applyLayerOrder(
-  c: CanvasState,
-  refsBottomFirst: { key: string; zIndex: number }[]
-): Partial<CanvasState> {
-  const zByKey = new Map(
-    refsBottomFirst.map((layer, index) => [layer.key, index + 1])
-  )
-  return {
-    screenshotLayer: {
-      ...c.screenshotLayer,
-      zIndex: zByKey.get("screenshot") ?? c.screenshotLayer.zIndex,
-    },
-    screenshotSlots: c.screenshotSlots.map((slot) => ({
-      ...slot,
-      zIndex: zByKey.get(`slot:${slot.id}`) ?? slot.zIndex,
-    })),
-    assets: c.assets.map((asset) => ({
-      ...asset,
-      zIndex: zByKey.get(`asset:${asset.id}`) ?? asset.zIndex,
-    })),
-    texts: c.texts.map((text) => ({
-      ...text,
-      zIndex: zByKey.get(`text:${text.id}`) ?? text.zIndex,
-    })),
-    annotations: c.annotations.map((stroke) => ({
-      ...stroke,
-      zIndex:
-        stroke.mode !== "eraser"
-          ? (zByKey.get(`annotation-stroke:${stroke.id}`) ?? stroke.zIndex)
-          : stroke.zIndex,
-    })),
-    annotationShapes: c.annotationShapes.map((shape) => ({
-      ...shape,
-      zIndex: zByKey.get(`annotation:${shape.id}`) ?? shape.zIndex,
-    })),
-  }
-}
-
-function moveLayerInStack(
-  c: CanvasState,
-  key: string,
-  position: "front" | "back"
-): Partial<CanvasState> {
-  const refs = getLayerRefs(c).sort((a, b) => a.zIndex - b.zIndex)
-  const index = refs.findIndex((layer) => layer.key === key)
-  if (index < 0) return {}
-  const [target] = refs.splice(index, 1)
-  if (position === "front") refs.push(target)
-  else refs.unshift(target)
-  return applyLayerOrder(c, refs)
-}
-
-const SLOT_DEFAULT_HEIGHT_PCT = 28
-const SLOT_DEFAULT_FALLBACK_WIDTH = 60
-
-const layoutSlotsInRow = (
-  slots: ScreenshotSlot[],
-  canvasFrame: DeviceFrame,
-  canvasAspect: number,
-  options: { preservePositions?: boolean } = {}
-): ScreenshotSlot[] => {
-  const n = slots.length
-  if (n === 0) return slots
-  const layout = computeRowLayout(
-    [
-      { id: "__main__", frame: canvasFrame },
-      ...slots.map((slot) => ({ id: slot.id, frame: canvasFrame })),
-    ],
-    canvasAspect
-  )
-  const slotLayoutById = new Map(
-    layout.slice(1).map((entry) => [entry.id, entry])
-  )
-  return slots.map((slot) => {
-    const entry = slotLayoutById.get(slot.id)
-    if (!entry) return slot
-    if (options.preservePositions) {
-      return {
-        ...slot,
-        widthPct: entry.widthPct,
-        heightPct: SLOT_DEFAULT_HEIGHT_PCT,
-      }
-    }
-    return {
-      ...slot,
-      xPct: entry.xPct,
-      yPct: 50,
-      widthPct: entry.widthPct,
-      heightPct: SLOT_DEFAULT_HEIGHT_PCT,
-      rotation: 0,
-    }
-  })
-}
-
-const aspectRatioFromState = (aspect: AspectState): number => {
-  const w = aspect.w || 16
-  const h = aspect.h || 10
-  return w / h
-}
-
-const stateCanvasAspect = (state: EditorState): number =>
-  aspectRatioFromState(state.aspect)
-
-function applyLayoutPresetGeometryToCanvas(
-  canvas: CanvasState,
-  state: EditorState,
-  frame: DeviceFrame,
-  activeLayoutPresetId: string | null
-): Partial<CanvasState> | null {
-  if (!activeLayoutPresetId) return null
-  const preset = LAYOUT_PRESETS.find((p) => p.id === activeLayoutPresetId)
-  if (!preset) return null
-  if (canvas.screenshotSlots.length === 0) return null
-  const geometry = resolveLayoutPresetGeometry(preset, frame)
-  if (canvas.screenshotSlots.length !== geometry.slots.length) return null
-
-  const aspect = stateCanvasAspect(state)
-  const naturalLayout = computeRowLayout(
-    [
-      { id: "__main__", frame },
-      ...canvas.screenshotSlots.map((slot) => ({ id: slot.id, frame })),
-    ],
-    aspect
-  )
-
-  const screenshotSlots = canvas.screenshotSlots.map((slot, i) => {
-    const config = geometry.slots[i]
-    const entry = naturalLayout[i + 1]
-    if (!config || !entry) return slot
-    const naturalSlotX = entry.xPct
-    const xPct = geometry.relativeSlotPositions
-      ? naturalSlotX + config.xPct
-      : config.xPct
-    const yPct = geometry.relativeSlotPositions ? 50 + config.yPct : config.yPct
-    return {
-      ...slot,
-      xPct,
-      yPct,
-      rotation: config.rotation,
-      tilt: { ...config.tilt },
-      scale: config.scale,
-      widthPct: entry.widthPct,
-      heightPct: SLOT_DEFAULT_HEIGHT_PCT,
-      ...(config.zIndex !== undefined && { zIndex: config.zIndex }),
-    }
-  })
-
-  const patch: Partial<CanvasState> = {
-    screenshotSlots,
-    tilt: { ...geometry.canvasTilt },
-    scale: geometry.canvasScale,
-  }
-  if (geometry.mainOffset) {
-    const PRESET_DESIGN_HEIGHT = CANVAS_BASE_W * (10 / 16)
-    patch.screenshotOffset = {
-      x: (geometry.mainOffset.xPct / 100) * CANVAS_BASE_W,
-      y: (geometry.mainOffset.yPct / 100) * PRESET_DESIGN_HEIGHT,
-    }
-  }
-  return patch
-}
-
-function applySharedFrameToCanvas(
-  canvas: CanvasState,
-  state: EditorState,
-  frame: DeviceFrame,
-  activeLayoutPresetId: string | null,
-  options: { preservePositions?: boolean } = { preservePositions: true }
-): Partial<CanvasState> {
-  const sharedFrame = { ...frame }
-  const presetPatch = applyLayoutPresetGeometryToCanvas(
-    canvas,
-    state,
-    sharedFrame,
-    activeLayoutPresetId
-  )
-  if (presetPatch) {
-    return { frame: sharedFrame, ...presetPatch }
-  }
-  return {
-    frame: sharedFrame,
-    screenshotSlots: layoutSlotsInRow(
-      canvas.screenshotSlots,
-      sharedFrame,
-      stateCanvasAspect(state),
-      options
-    ),
-  }
-}
-
-const createScreenshotSlot = (
-  base: Partial<ScreenshotSlot>,
-  zIndex: number
-): ScreenshotSlot => ({
-  id: makeId(),
-  src: null,
-  xPct: 50,
-  yPct: 50,
-  widthPct: SLOT_DEFAULT_FALLBACK_WIDTH,
-  heightPct: SLOT_DEFAULT_HEIGHT_PCT,
-  rotation: 0,
-  tilt: { rx: 0, ry: 0, rz: 0 },
-  scale: 100,
-  zIndex,
-  filter: "none",
-  objectFit: "cover",
-  ...base,
-})
-
-const cloneBorder = (border: Border): Border => ({ ...border })
-
-const cloneShadow = (shadow: Shadow): Shadow => ({ ...shadow })
-
-const cloneLighting = (lighting: BackdropLighting): BackdropLighting => ({
-  ...lighting,
-})
-
-function applySlotStyleDefaults(slot: ScreenshotSlot, canvas: CanvasState) {
-  return {
-    ...slot,
-    border: slot.border ?? cloneBorder(canvas.border),
-    borderRadius: slot.borderRadius ?? canvas.borderRadius,
-    padding: slot.padding ?? canvas.padding,
-    shadow: slot.shadow ?? cloneShadow(canvas.shadow),
-    lighting: slot.lighting ?? cloneLighting(canvas.backdrop.lighting),
-  }
-}
-
-function migrateLegacySlot(raw: unknown): ScreenshotSlot {
-  const slot = (raw ?? {}) as Partial<ScreenshotSlot> & {
-    tilt?: Partial<{ rx: number; ry: number; rz: number }>
-  }
-  const base: Partial<ScreenshotSlot> = {}
-  if (typeof slot.id === "string") base.id = slot.id
-  if (slot.src === null || typeof slot.src === "string") base.src = slot.src
-  if (typeof slot.xPct === "number") base.xPct = slot.xPct
-  if (typeof slot.yPct === "number") base.yPct = slot.yPct
-  if (typeof slot.widthPct === "number") base.widthPct = slot.widthPct
-  if (typeof slot.heightPct === "number") base.heightPct = slot.heightPct
-  if (typeof slot.rotation === "number") base.rotation = slot.rotation
-  if (slot.tilt) {
-    base.tilt = {
-      rx: slot.tilt.rx ?? 0,
-      ry: slot.tilt.ry ?? 0,
-      rz: slot.tilt.rz ?? 0,
-    }
-  }
-  if (typeof slot.scale === "number") base.scale = slot.scale
-  if (typeof slot.zIndex === "number") base.zIndex = slot.zIndex
-  if (typeof slot.filter === "string") base.filter = slot.filter
-  if (typeof slot.hidden === "boolean") base.hidden = slot.hidden
-  if (slot.objectFit) base.objectFit = slot.objectFit
-  if (slot.border) base.border = cloneBorder(slot.border)
-  if (typeof slot.borderRadius === "number") {
-    base.borderRadius = slot.borderRadius
-  }
-  if (typeof slot.padding === "number") base.padding = slot.padding
-  if (slot.shadow) base.shadow = cloneShadow(slot.shadow)
-  if (slot.lighting) base.lighting = cloneLighting(slot.lighting)
-  return createScreenshotSlot(base, slot.zIndex ?? 1)
-}
-
-const CANVAS_BASE_W = 1100
-const CANVAS_GAP = 80
-// Preset mainOffset Y values were tuned at the default 16:10 canvas height.
-// Using this constant keeps the pixel offset consistent across all aspect ratios.
-const PRESET_DESIGN_HEIGHT = CANVAS_BASE_W * (10 / 16)
-
-const clampPct = (value: number) => Math.max(-20, Math.min(120, value))
-
-const canvasHeightFromAspectRatio = (canvasAspect: number) =>
-  CANVAS_BASE_W / canvasAspect
-
-const scaleScreenshotOffsetForAspectChange = (
-  offset: { x: number; y: number },
-  currentAspect: number,
-  nextAspect: number
-) => {
-  const currentHeight = canvasHeightFromAspectRatio(currentAspect)
-  const nextHeight = canvasHeightFromAspectRatio(nextAspect)
-  if (!currentHeight || !nextHeight) return offset
-  return {
-    x: offset.x,
-    y: offset.y * (nextHeight / currentHeight),
-  }
-}
-
-const scaleAnnotationStrokesForAspectChange = (
-  annotations: AnnotationStroke[],
-  currentAspect: number,
-  nextAspect: number
-): AnnotationStroke[] => {
-  const currentHeight = canvasHeightFromAspectRatio(currentAspect)
-  const nextHeight = canvasHeightFromAspectRatio(nextAspect)
-  if (!currentHeight || !nextHeight) return annotations
-
-  const scaleY = nextHeight / currentHeight
-  if (!Number.isFinite(scaleY) || Math.abs(scaleY - 1) < 0.0001) {
-    return annotations
-  }
-
-  return annotations.map((stroke) => ({
-    ...stroke,
-    points: stroke.points.map((point) => ({
-      x: point.x,
-      y: point.y * scaleY,
-    })),
-  }))
-}
-
-/**
- * Place a new canvas adjacent to an existing canvas without overlap.
- * - With an explicit `sourceId`: place to the right of that canvas, then if
- *   that spot collides with any other canvas, fall back to the rightmost free
- *   slot in the grid.
- * - Without a source: place to the right of the visually-rightmost canvas.
- */
-const placementAfterCanvas = (
-  state: EditorState,
-  sourceId?: string
-): { x: number; y: number } => {
-  if (state.canvases.length === 0) return { x: 0, y: 0 }
-
-  const aw = state.aspect.w || 16
-  const ah = state.aspect.h || 10
-  const canvasW = CANVAS_BASE_W
-  const canvasH = (CANVAS_BASE_W * ah) / aw
-  const strideX = canvasW + CANVAS_GAP
-  const strideY = canvasH + CANVAS_GAP
-
-  const collidesWithExisting = (pos: { x: number; y: number }) =>
-    state.canvases.some(
-      (c) =>
-        Math.abs(c.position.x - pos.x) < 1 && Math.abs(c.position.y - pos.y) < 1
-    )
-
-  // Anchor: the source canvas (when duplicating) or the rightmost canvas.
-  const src = sourceId
-    ? state.canvases.find((c) => c.id === sourceId)
-    : state.canvases.reduce(
-        (best, c) => (c.position.x > best.position.x ? c : best),
-        state.canvases[0]
-      )
-
-  if (!src) {
-    const rightmost = state.canvases.reduce(
-      (max, c) => (c.position.x > max.position.x ? c : max),
-      state.canvases[0]
-    )
-    return { x: rightmost.position.x + strideX, y: rightmost.position.y }
-  }
-
-  // First choice: directly to the right of the source.
-  let candidate = { x: src.position.x + strideX, y: src.position.y }
-  if (!collidesWithExisting(candidate)) return candidate
-
-  // Otherwise, find the rightmost canvas overall and place after it.
-  const rightmost = state.canvases.reduce(
-    (max, c) => (c.position.x > max.position.x ? c : max),
-    state.canvases[0]
-  )
-  candidate = { x: rightmost.position.x + strideX, y: rightmost.position.y }
-  if (!collidesWithExisting(candidate)) return candidate
-
-  // As a final fallback, drop one row below the source.
-  return { x: src.position.x, y: src.position.y + strideY }
-}
 
 export const useEditorStore = create<EditorStore>((set, get) => {
   const commit = (patch: SetPatch, group: string | null) => {
@@ -1214,6 +454,29 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       return { canvases }
     }, group)
   }
+
+  const makeLayerOps = (
+    prefix: string,
+    getGroup?: (id: string) => string | null
+  ) => ({
+    toFront: (id: string, canvasId?: string) =>
+      commitCanvas(
+        canvasId,
+        (c) => moveLayerInStack(c, `${prefix}:${id}`, "front"),
+        getGroup?.(id) ?? null
+      ),
+    toBack: (id: string, canvasId?: string) =>
+      commitCanvas(
+        canvasId,
+        (c) => moveLayerInStack(c, `${prefix}:${id}`, "back"),
+        getGroup?.(id) ?? null
+      ),
+  })
+
+  const textLayerOps = makeLayerOps("text")
+  const assetLayerOps = makeLayerOps("asset")
+  const annotationShapeLayerOps = makeLayerOps("annotation")
+  const slotLayerOps = makeLayerOps("slot", (id) => `slot-layer-${id}`)
 
   return {
     past: [],
@@ -1290,11 +553,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         bulkScale: ui?.bulkScale ?? 65,
         previewAutoScrollDelay: ui?.previewAutoScrollDelay ?? 3000,
         previewAnimation: ui?.previewAnimation ?? "slide",
-        selectedTextId: null,
-        selectedAssetId: null,
-        selectedAnnotationShapeId: null,
-        selectedScreenshotSlotId: null,
-        isScreenshotSelected: false,
+        ...CLEAR_SELECTION,
       })
     },
     applyPresetSnapshot: (snapshot, canvasId) => {
@@ -1386,20 +645,13 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     },
     setScreenshot: (screenshot, canvasId) => {
       const state = get()
-      const activeLayoutPreset =
-        state.presetTab === "multi" || state.presetTab === "triple"
-          ? LAYOUT_PRESETS.find(
-              (preset) => preset.id === state.activeLayoutPresetId
-            )
-          : null
       const targetCanvasId = canvasId ?? state.present.activeCanvasId
       const targetCanvas = state.present.canvases.find(
         (canvas) => canvas.id === targetCanvasId
       )
-      const activeLayoutGeometry =
-        activeLayoutPreset && targetCanvas
-          ? resolveLayoutPresetGeometry(activeLayoutPreset, targetCanvas.frame)
-          : null
+      const activeLayoutGeometry = targetCanvas
+        ? resolveActiveLayoutGeometry(state, targetCanvas.frame)
+        : null
       const presetOffset = resolveMainOffsetPx(activeLayoutGeometry?.mainOffset)
       commitCanvas(
         canvasId,
@@ -1535,10 +787,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         canvasId,
         (canvas) => ({
           padding: n,
-          screenshotSlots: canvas.screenshotSlots.map((slot) => ({
-            ...slot,
-            padding: n,
-          })),
+          screenshotSlots: mirrorToSlots(canvas.screenshotSlots, { padding: n }),
         }),
         "padding"
       ),
@@ -1547,10 +796,9 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         canvasId,
         (canvas) => ({
           borderRadius: n,
-          screenshotSlots: canvas.screenshotSlots.map((slot) => ({
-            ...slot,
+          screenshotSlots: mirrorToSlots(canvas.screenshotSlots, {
             borderRadius: n,
-          })),
+          }),
         }),
         "borderRadius"
       ),
@@ -1561,8 +809,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         canvasId,
         (canvas) => ({
           border: b,
-          screenshotSlots: canvas.screenshotSlots.map((slot) => ({
-            ...slot,
+          screenshotSlots: mirrorToSlots(canvas.screenshotSlots, () => ({
             border: cloneBorder(b),
           })),
         }),
@@ -1591,8 +838,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         canvasId,
         (canvas) => ({
           backdrop: { ...canvas.backdrop, lighting: l },
-          screenshotSlots: canvas.screenshotSlots.map((slot) => ({
-            ...slot,
+          screenshotSlots: mirrorToSlots(canvas.screenshotSlots, () => ({
             lighting: cloneLighting(l),
           })),
         }),
@@ -1642,8 +888,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         canvasId,
         (canvas) => ({
           shadow: s,
-          screenshotSlots: canvas.screenshotSlots.map((slot) => ({
-            ...slot,
+          screenshotSlots: mirrorToSlots(canvas.screenshotSlots, () => ({
             shadow: cloneShadow(s),
           })),
         }),
@@ -1786,34 +1031,22 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       commitCanvas(
         canvasId,
         (canvas) => {
-          const src = canvas.annotationShapes.find((shape) => shape.id === id)
-          if (!src) return { annotationShapes: canvas.annotationShapes }
-          didCopy = true
-          const copy: AnnotationShape = {
-            ...src,
-            id: copyId,
-            xPct: Math.min(98, src.xPct + 3),
-            yPct: Math.min(98, src.yPct + 3),
-            zIndex: computeNextLayerZ(canvas),
-          }
-          return { annotationShapes: [...canvas.annotationShapes, copy] }
+          const result = duplicateLayerItem(
+            canvas.annotationShapes,
+            id,
+            copyId,
+            computeNextLayerZ(canvas),
+            { offset: 3, maxPct: 98 }
+          )
+          didCopy = result.ok
+          return { annotationShapes: result.items }
         },
         null
       )
       return didCopy ? copyId : null
     },
-    bringAnnotationShapeToFront: (id, canvasId) =>
-      commitCanvas(
-        canvasId,
-        (canvas) => moveLayerInStack(canvas, `annotation:${id}`, "front"),
-        null
-      ),
-    sendAnnotationShapeToBack: (id, canvasId) =>
-      commitCanvas(
-        canvasId,
-        (canvas) => moveLayerInStack(canvas, `annotation:${id}`, "back"),
-        null
-      ),
+    bringAnnotationShapeToFront: annotationShapeLayerOps.toFront,
+    sendAnnotationShapeToBack: annotationShapeLayerOps.toBack,
     clearAnnotations: (canvasId) =>
       commitCanvas(canvasId, { annotations: [], annotationShapes: [] }, null),
 
@@ -1883,46 +1116,23 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       commitCanvas(
         canvasId,
         (canvas) => {
-          const src = canvas.texts.find((t) => t.id === id)
-          if (!src) return { texts: canvas.texts }
-          didCopy = true
-          const copy: TextElement = {
-            ...src,
-            id: copyId,
-            xPct: Math.min(95, src.xPct + 4),
-            yPct: Math.min(95, src.yPct + 4),
-            zIndex: computeNextLayerZ(canvas),
-          }
-          return { texts: [...canvas.texts, copy] }
+          const result = duplicateLayerItem(
+            canvas.texts,
+            id,
+            copyId,
+            computeNextLayerZ(canvas)
+          )
+          didCopy = result.ok
+          return { texts: result.items }
         },
         null
       )
       return didCopy ? copyId : null
     },
-    bringTextToFront: (id, canvasId) =>
-      commitCanvas(
-        canvasId,
-        (canvas) => moveLayerInStack(canvas, `text:${id}`, "front"),
-        null
-      ),
-    sendTextToBack: (id, canvasId) =>
-      commitCanvas(
-        canvasId,
-        (canvas) => moveLayerInStack(canvas, `text:${id}`, "back"),
-        null
-      ),
+    bringTextToFront: textLayerOps.toFront,
+    sendTextToBack: textLayerOps.toBack,
     setSelectedTextId: (id) =>
-      set(
-        id
-          ? {
-              selectedTextId: id,
-              selectedAssetId: null,
-              selectedAnnotationShapeId: null,
-              selectedScreenshotSlotId: null,
-              isScreenshotSelected: false,
-            }
-          : { selectedTextId: null }
-      ),
+      set(id ? { ...CLEAR_SELECTION, selectedTextId: id } : { selectedTextId: null }),
 
     addAsset: (src, canvasId) => {
       const id = makeId()
@@ -1973,80 +1183,39 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       commitCanvas(
         canvasId,
         (canvas) => {
-          const src = canvas.assets.find((a) => a.id === id)
-          if (!src) return { assets: canvas.assets }
-          didCopy = true
-          const copy: AssetElement = {
-            ...src,
-            id: copyId,
-            xPct: Math.min(95, src.xPct + 4),
-            yPct: Math.min(95, src.yPct + 4),
-            zIndex: computeNextLayerZ(canvas),
-          }
-          return { assets: [...canvas.assets, copy] }
+          const result = duplicateLayerItem(
+            canvas.assets,
+            id,
+            copyId,
+            computeNextLayerZ(canvas)
+          )
+          didCopy = result.ok
+          return { assets: result.items }
         },
         null
       )
       return didCopy ? copyId : null
     },
-    bringAssetToFront: (id, canvasId) =>
-      commitCanvas(
-        canvasId,
-        (canvas) => moveLayerInStack(canvas, `asset:${id}`, "front"),
-        null
-      ),
-    sendAssetToBack: (id, canvasId) =>
-      commitCanvas(
-        canvasId,
-        (canvas) => moveLayerInStack(canvas, `asset:${id}`, "back"),
-        null
-      ),
+    bringAssetToFront: assetLayerOps.toFront,
+    sendAssetToBack: assetLayerOps.toBack,
     setSelectedAssetId: (id) =>
-      set(
-        id
-          ? {
-              selectedAssetId: id,
-              selectedTextId: null,
-              selectedAnnotationShapeId: null,
-              selectedScreenshotSlotId: null,
-              isScreenshotSelected: false,
-            }
-          : { selectedAssetId: null }
-      ),
+      set(id ? { ...CLEAR_SELECTION, selectedAssetId: id } : { selectedAssetId: null }),
     setSelectedAnnotationShapeId: (id) =>
       set(
         id
-          ? {
-              selectedAnnotationShapeId: id,
-              selectedTextId: null,
-              selectedAssetId: null,
-              selectedScreenshotSlotId: null,
-              isScreenshotSelected: false,
-            }
+          ? { ...CLEAR_SELECTION, selectedAnnotationShapeId: id }
           : { selectedAnnotationShapeId: null }
       ),
     setSelectedScreenshotSlotId: (id) =>
       set(
         id
-          ? {
-              selectedScreenshotSlotId: id,
-              selectedTextId: null,
-              selectedAssetId: null,
-              selectedAnnotationShapeId: null,
-              isScreenshotSelected: false,
-            }
+          ? { ...CLEAR_SELECTION, selectedScreenshotSlotId: id }
           : { selectedScreenshotSlotId: null }
       ),
     setIsScreenshotSelected: (selected) =>
       set(
         selected
-          ? {
-              isScreenshotSelected: true,
-              selectedTextId: null,
-              selectedAssetId: null,
-              selectedAnnotationShapeId: null,
-              selectedScreenshotSlotId: null,
-            }
+          ? { ...CLEAR_SELECTION, isScreenshotSelected: true }
           : { isScreenshotSelected: false }
       ),
     setTopBarPopoverOpen: (open) => set({ topBarPopoverOpen: open }),
@@ -2127,11 +1296,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         }
       }, null)
       set((s) => ({
-        selectedTextId: null,
-        selectedAssetId: null,
-        selectedAnnotationShapeId: null,
-        selectedScreenshotSlotId: null,
-        isScreenshotSelected: false,
+        ...CLEAR_SELECTION,
         bulkEditMode: true,
         bulkCanvasDragging: false,
         bulkViewportZoom: 1,
@@ -2149,13 +1314,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
             : state.activeCanvasId
         return { canvases: remaining, activeCanvasId }
       }, null)
-      set({
-        selectedTextId: null,
-        selectedAssetId: null,
-        selectedAnnotationShapeId: null,
-        selectedScreenshotSlotId: null,
-        isScreenshotSelected: false,
-      })
+      set({ ...CLEAR_SELECTION })
     },
     duplicateCanvas: (sourceId) => {
       if (get().present.canvases.length >= MAX_CANVASES) return null
@@ -2189,13 +1348,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       const state = get()
       if (state.present.activeCanvasId === id) return
       commit({ activeCanvasId: id }, null)
-      set({
-        selectedTextId: null,
-        selectedAssetId: null,
-        selectedAnnotationShapeId: null,
-        selectedScreenshotSlotId: null,
-        isScreenshotSelected: false,
-      })
+      set({ ...CLEAR_SELECTION })
     },
     setCanvasPosition: (id, position) => {
       commit(
@@ -2245,25 +1398,12 @@ export const useEditorStore = create<EditorStore>((set, get) => {
             },
             computeNextLayerZ(canvas)
           )
-          // Compute full row layout to place the new slot, but preserve
-          // existing slot positions so they don't jump.
-          const allSlots = [...canvas.screenshotSlots, next]
-          const fullLayout = layoutSlotsInRow(
-            allSlots,
-            canvas.frame,
-            stateCanvasAspect(state)
-          )
-          // Keep existing slots' positions, only update their widths;
-          // the new slot gets the full row-layout position.
-          const preserved = layoutSlotsInRow(
-            allSlots,
-            canvas.frame,
-            stateCanvasAspect(state),
-            { preservePositions: true }
-          )
           return {
-            screenshotSlots: preserved.map((slot, i) =>
-              slot.id === id ? fullLayout[i] : slot
+            screenshotSlots: placeNewSlotInRow(
+              canvas.screenshotSlots,
+              next,
+              canvas.frame,
+              stateCanvasAspect(state)
             ),
           }
         },
@@ -2295,19 +1435,14 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         return
       }
 
-      const state = get()
-      const activeLayoutPreset =
-        state.presetTab === "multi" || state.presetTab === "triple"
-          ? LAYOUT_PRESETS.find(
-              (preset) => preset.id === state.activeLayoutPresetId
-            )
-          : null
+      const snapshot = get()
       commitCanvas(
         canvasId,
         (canvas, state) => {
-          const activeLayoutGeometry = activeLayoutPreset
-            ? resolveLayoutPresetGeometry(activeLayoutPreset, canvas.frame)
-            : null
+          const activeLayoutGeometry = resolveActiveLayoutGeometry(
+            snapshot,
+            canvas.frame
+          )
           const updatedSlots = canvas.screenshotSlots.map((slot) =>
             slot.id === id
               ? { ...slot, src, objectFit: slot.objectFit ?? "cover" }
@@ -2393,23 +1528,12 @@ export const useEditorStore = create<EditorStore>((set, get) => {
             id: copyId,
             zIndex: computeNextLayerZ(canvas),
           }
-          // Preserve existing slot positions; only place the new copy
-          // using the full row layout.
-          const allSlots = [...canvas.screenshotSlots, copy]
-          const fullLayout = layoutSlotsInRow(
-            allSlots,
-            canvas.frame,
-            stateCanvasAspect(state)
-          )
-          const preserved = layoutSlotsInRow(
-            allSlots,
-            canvas.frame,
-            stateCanvasAspect(state),
-            { preservePositions: true }
-          )
           return {
-            screenshotSlots: preserved.map((slot, i) =>
-              slot.id === copyId ? fullLayout[i] : slot
+            screenshotSlots: placeNewSlotInRow(
+              canvas.screenshotSlots,
+              copy,
+              canvas.frame,
+              stateCanvasAspect(state)
             ),
           }
         },
@@ -2417,18 +1541,8 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       )
       return didCopy ? copyId : null
     },
-    bringScreenshotSlotToFront: (id, canvasId) =>
-      commitCanvas(
-        canvasId,
-        (canvas) => moveLayerInStack(canvas, `slot:${id}`, "front"),
-        `slot-layer-${id}`
-      ),
-    sendScreenshotSlotToBack: (id, canvasId) =>
-      commitCanvas(
-        canvasId,
-        (canvas) => moveLayerInStack(canvas, `slot:${id}`, "back"),
-        `slot-layer-${id}`
-      ),
+    bringScreenshotSlotToFront: slotLayerOps.toFront,
+    sendScreenshotSlotToBack: slotLayerOps.toBack,
     arrangeScreenshotSlotsInRow: (canvasId) =>
       commitCanvas(
         canvasId,
@@ -2481,575 +1595,3 @@ export const useEditorStore = create<EditorStore>((set, get) => {
   }
 })
 
-const CanvasIdContext = React.createContext<string | null>(null)
-
-const CanvasOverrideContext = React.createContext<Partial<CanvasState> | null>(
-  null
-)
-
-const CanvasPreviewModeContext = React.createContext<boolean>(false)
-
-export function CanvasPreviewScope({
-  override,
-  children,
-}: {
-  override: Partial<CanvasState> | null
-  children: React.ReactNode
-}) {
-  return (
-    <CanvasPreviewModeContext.Provider value={true}>
-      <CanvasOverrideContext.Provider value={override}>
-        {children}
-      </CanvasOverrideContext.Provider>
-    </CanvasPreviewModeContext.Provider>
-  )
-}
-
-export function useCanvasPreviewMode() {
-  return React.useContext(CanvasPreviewModeContext)
-}
-
-export function CanvasScope({
-  id,
-  children,
-}: {
-  id: string
-  children: React.ReactNode
-}) {
-  return (
-    <CanvasIdContext.Provider value={id}>{children}</CanvasIdContext.Provider>
-  )
-}
-
-export function useCanvasScopeId() {
-  return React.useContext(CanvasIdContext)
-}
-
-export function useActiveCanvasId() {
-  return useEditorStore((s) => s.present.activeCanvasId)
-}
-
-export function useCanvases() {
-  return useEditorStore((s) => s.present.canvases)
-}
-
-export function useCanvasById(id: string): CanvasState | undefined {
-  return useEditorStore((s) => s.present.canvases.find((c) => c.id === id))
-}
-
-export function useSelectedScreenshotSlot(): ScreenshotSlot | null {
-  const selectedId = useEditorStore((s) => s.selectedScreenshotSlotId)
-  return useActiveCanvasField((canvas) =>
-    selectedId
-      ? (canvas.screenshotSlots.find((slot) => slot.id === selectedId) ?? null)
-      : null
-  )
-}
-
-const FALLBACK_CANVAS: CanvasState = {
-  ...DEFAULT_CANVAS_BASE,
-  id: "__fallback__",
-  position: { x: 0, y: 0 },
-}
-
-export function useActiveCanvasField<T>(
-  selector: (canvas: CanvasState) => T
-): T {
-  const scopeId = React.useContext(CanvasIdContext)
-  const override = React.useContext(CanvasOverrideContext)
-
-  const overrideRef = React.useRef(override)
-  const selectorRef = React.useRef(selector)
-  overrideRef.current = override
-  selectorRef.current = selector
-
-  const mergedCacheRef = React.useRef<{
-    base: CanvasState | null
-    ov: Partial<CanvasState> | null
-    merged: CanvasState | null
-  }>({ base: null, ov: null, merged: null })
-
-  const stableSelector = React.useCallback(
-    (s: EditorStore) => {
-      const id = scopeId ?? s.present.activeCanvasId
-      const base =
-        s.present.canvases.find((c) => c.id === id) ??
-        s.present.canvases[0] ??
-        FALLBACK_CANVAS
-      const ov = overrideRef.current
-      let canvas: CanvasState
-      if (ov) {
-        const cache = mergedCacheRef.current
-        if (cache.base === base && cache.ov === ov && cache.merged !== null) {
-          canvas = cache.merged
-        } else {
-          canvas = { ...base, ...ov }
-          mergedCacheRef.current = { base, ov, merged: canvas }
-        }
-      } else {
-        canvas = base
-      }
-      return selectorRef.current(canvas)
-    },
-    [scopeId]
-  )
-
-  // Wrap with useShallow so selectors returning a new object literal (e.g.
-  // `(c) => ({ frame: c.frame, padding: c.padding })`) don't trigger re-renders
-  // when field values haven't changed, and also satisfy React's requirement that
-  // getSnapshot returns a stable reference between calls (preventing the
-  // "getSnapshot should be cached" infinite loop warning).
-  return useEditorStore(useShallow(stableSelector))
-}
-
-export type EditorContext = Omit<EditorState, "canvases"> &
-  CanvasState &
-  EditorActions & {
-    topBarPopoverOpen: boolean
-    isPreviewMode: boolean
-    isPreviewAutoScroll: boolean
-    previewAutoScrollDelay: number
-    previewAnimation: "slide" | "fade" | "zoom" | "flip"
-    bulkEditMode: boolean
-    bulkCanvasDragging: boolean
-    bulkViewportZoom: number
-    bulkScale: number
-    selectedTextId: string | null
-    selectedAssetId: string | null
-    selectedAnnotationShapeId: string | null
-    selectedScreenshotSlotId: string | null
-    isScreenshotSelected: boolean
-    canUndo: boolean
-    canRedo: boolean
-    canvases: CanvasState[]
-    canvasScopeId: string
-    canvasCount: number
-  }
-
-export function useEditor(): EditorContext {
-  const scopeId = React.useContext(CanvasIdContext)
-  const activeCanvasId = useEditorStore((s) => s.present.activeCanvasId)
-  const targetId = scopeId ?? activeCanvasId
-  const activeTool = useEditorStore((s) => s.present.activeTool)
-  const globalAspect = useEditorStore((s) => s.present.aspect)
-  const canvasAspectOverride = useEditorStore(
-    (s) => s.present.canvases.find((c) => c.id === targetId)?.aspect
-  )
-  const aspect = canvasAspectOverride ?? globalAspect
-  const canvasZoom = useEditorStore((s) => s.present.canvasZoom)
-  const annotation = useEditorStore((s) => s.present.annotation)
-  const canvas = useActiveCanvasField((c) => c)
-  const topBarPopoverOpen = useEditorStore((s) => s.topBarPopoverOpen)
-  const isPreviewMode = useEditorStore((s) => s.isPreviewMode)
-  const isPreviewAutoScroll = useEditorStore((s) => s.isPreviewAutoScroll)
-  const previewAutoScrollDelay = useEditorStore((s) => s.previewAutoScrollDelay)
-  const previewAnimation = useEditorStore((s) => s.previewAnimation)
-  const bulkEditMode = useEditorStore((s) => s.bulkEditMode)
-  const bulkCanvasDragging = useEditorStore((s) => s.bulkCanvasDragging)
-  const bulkViewportZoom = useEditorStore((s) => s.bulkViewportZoom)
-  const bulkScale = useEditorStore((s) => s.bulkScale)
-  const selectedTextId = useEditorStore((s) => s.selectedTextId)
-  const selectedAssetId = useEditorStore((s) => s.selectedAssetId)
-  const selectedAnnotationShapeId = useEditorStore(
-    (s) => s.selectedAnnotationShapeId
-  )
-  const selectedScreenshotSlotId = useEditorStore(
-    (s) => s.selectedScreenshotSlotId
-  )
-  const isScreenshotSelected = useEditorStore((s) => s.isScreenshotSelected)
-  const canUndo = useEditorStore((s) => s.past.length > 0)
-  const canRedo = useEditorStore((s) => s.future.length > 0)
-  const canvasCount = useEditorStore((s) => s.present.canvases.length)
-  const store = useEditorStore.getState()
-
-  return {
-    // shared editor state
-    topBarPopoverOpen,
-    activeTool,
-    aspect,
-    canvasZoom,
-    annotation,
-    canvases: store.present.canvases,
-    activeCanvasId,
-    canvasScopeId: canvas.id,
-
-    // flattened canvas state
-    id: canvas.id,
-    position: canvas.position,
-    screenshot: canvas.screenshot,
-    originalScreenshot: canvas.originalScreenshot,
-    lastCropRegion: canvas.lastCropRegion,
-    background: canvas.background,
-    padding: canvas.padding,
-    borderRadius: canvas.borderRadius,
-    canvasBorderRadius: canvas.canvasBorderRadius,
-    border: canvas.border,
-    backdrop: canvas.backdrop,
-    tilt: canvas.tilt,
-    scale: canvas.scale,
-    screenshotPosition: canvas.screenshotPosition,
-    screenshotOffset: canvas.screenshotOffset,
-    screenshotLayer: canvas.screenshotLayer,
-    shadow: canvas.shadow,
-    overlay: canvas.overlay,
-    frame: canvas.frame,
-    frameAddress: canvas.frameAddress,
-    portrait: canvas.portrait,
-    texts: canvas.texts,
-    assets: canvas.assets,
-    enhance: canvas.enhance,
-    annotations: canvas.annotations,
-    annotationShapes: canvas.annotationShapes,
-    screenshotSlots: canvas.screenshotSlots,
-    objectFit: canvas.objectFit,
-
-    isPreviewMode,
-    isPreviewAutoScroll,
-    previewAutoScrollDelay,
-    previewAnimation,
-    bulkEditMode,
-    bulkCanvasDragging,
-    bulkViewportZoom,
-    bulkScale,
-    selectedTextId,
-    selectedAssetId,
-    selectedAnnotationShapeId,
-    selectedScreenshotSlotId,
-    isScreenshotSelected,
-    canUndo,
-    canRedo,
-
-    setTopBarPopoverOpen: store.setTopBarPopoverOpen,
-    setActiveTool: store.setActiveTool,
-    setPresetTab: store.setPresetTab,
-    setActiveLayoutPresetId: store.setActiveLayoutPresetId,
-    setActiveCustomPresetId: store.setActiveCustomPresetId,
-    setActiveSinglePresetId: store.setActiveSinglePresetId,
-    setCustomPresets: store.setCustomPresets,
-    addCustomPreset: store.addCustomPreset,
-    updateCustomPreset: store.updateCustomPreset,
-    removeCustomPreset: store.removeCustomPreset,
-    setCurrentDraft: store.setCurrentDraft,
-    loadDraftState: store.loadDraftState,
-    applyPresetSnapshot: (snapshot, canvasId) =>
-      store.applyPresetSnapshot(snapshot, canvasId ?? targetId),
-    setScreenshot: (s, canvasId) =>
-      store.setScreenshot(s, canvasId ?? targetId),
-    applyCroppedScreenshot: (s, region, canvasId) =>
-      store.applyCroppedScreenshot(s, region, canvasId ?? targetId),
-    setAspect: store.setAspect,
-    setCanvasAspect: store.setCanvasAspect,
-    setBackground: (b, canvasId) =>
-      store.setBackground(b, canvasId ?? targetId),
-    setPadding: (n, canvasId) => store.setPadding(n, canvasId ?? targetId),
-    setBorderRadius: (n, canvasId) =>
-      store.setBorderRadius(n, canvasId ?? targetId),
-    setCanvasBorderRadius: (n, canvasId) =>
-      store.setCanvasBorderRadius(n, canvasId ?? targetId),
-    setBorder: (b, canvasId) => store.setBorder(b, canvasId ?? targetId),
-    setMainScreenshotPadding: (n, canvasId) =>
-      store.setMainScreenshotPadding(n, canvasId ?? targetId),
-    setMainScreenshotBorderRadius: (n, canvasId) =>
-      store.setMainScreenshotBorderRadius(n, canvasId ?? targetId),
-    setMainScreenshotBorder: (b, canvasId) =>
-      store.setMainScreenshotBorder(b, canvasId ?? targetId),
-    setBackdropEffects: (e, canvasId) =>
-      store.setBackdropEffects(e, canvasId ?? targetId),
-    setBackdropPattern: (p, canvasId) =>
-      store.setBackdropPattern(p, canvasId ?? targetId),
-    setBackdropLighting: (l, canvasId) =>
-      store.setBackdropLighting(l, canvasId ?? targetId),
-    setMainScreenshotBackdropLighting: (l, canvasId) =>
-      store.setMainScreenshotBackdropLighting(l, canvasId ?? targetId),
-    setBackdropFilter: (f, canvasId) =>
-      store.setBackdropFilter(f, canvasId ?? targetId),
-    setTilt: (t, canvasId) => store.setTilt(t, canvasId ?? targetId),
-    setScale: (n, canvasId) => store.setScale(n, canvasId ?? targetId),
-    setTiltAndScale: (t, scale, canvasId) =>
-      store.setTiltAndScale(t, scale, canvasId ?? targetId),
-    setCanvasZoom: store.setCanvasZoom,
-    setScreenshotPosition: (p, canvasId) =>
-      store.setScreenshotPosition(p, canvasId ?? targetId),
-    setScreenshotOffset: (o, canvasId) =>
-      store.setScreenshotOffset(o, canvasId ?? targetId),
-    setScreenshotPlacement: (p, o, canvasId) =>
-      store.setScreenshotPlacement(p, o, canvasId ?? targetId),
-    updateScreenshotLayer: (patch, canvasId) =>
-      store.updateScreenshotLayer(patch, canvasId ?? targetId),
-    setShadow: (s, canvasId) => store.setShadow(s, canvasId ?? targetId),
-    setMainScreenshotShadow: (s, canvasId) =>
-      store.setMainScreenshotShadow(s, canvasId ?? targetId),
-    setOverlay: (o, canvasId) => store.setOverlay(o, canvasId ?? targetId),
-    setFrame: (f, canvasId) => store.setFrame(f, canvasId ?? targetId),
-    setFrameForMatchingScreenshots: (f, canvasId) =>
-      store.setFrameForMatchingScreenshots(f, canvasId ?? targetId),
-    setObjectFit: (fit, canvasId) =>
-      store.setObjectFit(fit, canvasId ?? targetId),
-    setFrameAddress: (address, canvasId) =>
-      store.setFrameAddress(address, canvasId ?? targetId),
-    bringScreenshotToFront: (canvasId) =>
-      store.bringScreenshotToFront(canvasId ?? targetId),
-    sendScreenshotToBack: (canvasId) =>
-      store.sendScreenshotToBack(canvasId ?? targetId),
-    setPortrait: (p, canvasId) => store.setPortrait(p, canvasId ?? targetId),
-    setEnhance: (e, canvasId) => store.setEnhance(e, canvasId ?? targetId),
-    setAnnotation: store.setAnnotation,
-    addAnnotationStroke: (stroke, canvasId) =>
-      store.addAnnotationStroke(stroke, canvasId ?? targetId),
-    updateAnnotationStroke: (id, points, canvasId) =>
-      store.updateAnnotationStroke(id, points, canvasId ?? targetId),
-    updateAnnotationStrokeLayer: (id, patch, canvasId) =>
-      store.updateAnnotationStrokeLayer(id, patch, canvasId ?? targetId),
-    deleteAnnotationStroke: (id, canvasId) =>
-      store.deleteAnnotationStroke(id, canvasId ?? targetId),
-    addAnnotationShape: (shape, canvasId) =>
-      store.addAnnotationShape(shape, canvasId ?? targetId),
-    updateAnnotationShape: (id, patch, canvasId) =>
-      store.updateAnnotationShape(id, patch, canvasId ?? targetId),
-    deleteAnnotationShape: (id, canvasId) =>
-      store.deleteAnnotationShape(id, canvasId ?? targetId),
-    duplicateAnnotationShape: (id, canvasId) =>
-      store.duplicateAnnotationShape(id, canvasId ?? targetId),
-    bringAnnotationShapeToFront: (id, canvasId) =>
-      store.bringAnnotationShapeToFront(id, canvasId ?? targetId),
-    sendAnnotationShapeToBack: (id, canvasId) =>
-      store.sendAnnotationShapeToBack(id, canvasId ?? targetId),
-    clearAnnotations: (canvasId) =>
-      store.clearAnnotations(canvasId ?? targetId),
-    addText: (canvasId) => store.addText(canvasId ?? targetId),
-    updateText: (id, patch, canvasId) =>
-      store.updateText(id, patch, canvasId ?? targetId),
-    deleteText: (id, canvasId) => store.deleteText(id, canvasId ?? targetId),
-    duplicateText: (id, canvasId) =>
-      store.duplicateText(id, canvasId ?? targetId),
-    bringTextToFront: (id, canvasId) =>
-      store.bringTextToFront(id, canvasId ?? targetId),
-    sendTextToBack: (id, canvasId) =>
-      store.sendTextToBack(id, canvasId ?? targetId),
-    setSelectedTextId: store.setSelectedTextId,
-    addAsset: (src, canvasId) => store.addAsset(src, canvasId ?? targetId),
-    updateAsset: (id, patch, canvasId) =>
-      store.updateAsset(id, patch, canvasId ?? targetId),
-    deleteAsset: (id, canvasId) => store.deleteAsset(id, canvasId ?? targetId),
-    duplicateAsset: (id, canvasId) =>
-      store.duplicateAsset(id, canvasId ?? targetId),
-    bringAssetToFront: (id, canvasId) =>
-      store.bringAssetToFront(id, canvasId ?? targetId),
-    sendAssetToBack: (id, canvasId) =>
-      store.sendAssetToBack(id, canvasId ?? targetId),
-    setSelectedAssetId: store.setSelectedAssetId,
-    setSelectedAnnotationShapeId: store.setSelectedAnnotationShapeId,
-    setSelectedScreenshotSlotId: store.setSelectedScreenshotSlotId,
-    setIsScreenshotSelected: store.setIsScreenshotSelected,
-    setIsPreviewMode: store.setIsPreviewMode,
-    setIsPreviewAutoScroll: store.setIsPreviewAutoScroll,
-    setPreviewAutoScrollDelay: store.setPreviewAutoScrollDelay,
-    setPreviewAnimation: store.setPreviewAnimation,
-    setBulkEditMode: store.setBulkEditMode,
-    setBulkCanvasDragging: store.setBulkCanvasDragging,
-    setBulkViewportZoom: store.setBulkViewportZoom,
-    setBulkScale: store.setBulkScale,
-    reset: store.reset,
-    undo: store.undo,
-    redo: store.redo,
-    addCanvas: store.addCanvas,
-    removeCanvas: store.removeCanvas,
-    duplicateCanvas: store.duplicateCanvas,
-    setActiveCanvasId: store.setActiveCanvasId,
-    setCanvasPosition: store.setCanvasPosition,
-    setCanvasPositions: store.setCanvasPositions,
-    requestBulkFitView: store.requestBulkFitView,
-    addScreenshotSlot: (canvasId) =>
-      store.addScreenshotSlot(canvasId ?? targetId),
-    updateScreenshotSlot: (id, patch, canvasId) =>
-      store.updateScreenshotSlot(id, patch, canvasId ?? targetId),
-    setScreenshotSlotImage: (id, src, canvasId) =>
-      store.setScreenshotSlotImage(id, src, canvasId ?? targetId),
-    deleteScreenshotSlot: (id, canvasId) =>
-      store.deleteScreenshotSlot(id, canvasId ?? targetId),
-    duplicateScreenshotSlot: (id, canvasId) =>
-      store.duplicateScreenshotSlot(id, canvasId ?? targetId),
-    bringScreenshotSlotToFront: (id, canvasId) =>
-      store.bringScreenshotSlotToFront(id, canvasId ?? targetId),
-    sendScreenshotSlotToBack: (id, canvasId) =>
-      store.sendScreenshotSlotToBack(id, canvasId ?? targetId),
-    arrangeScreenshotSlotsInRow: (canvasId) =>
-      store.arrangeScreenshotSlotsInRow(canvasId ?? targetId),
-    setScreenshotSlotGroupPosition: (position, canvasId) =>
-      store.setScreenshotSlotGroupPosition(position, canvasId ?? targetId),
-    canvasCount,
-  }
-}
-
-export function EditorProvider({ children }: { children: React.ReactNode }) {
-  React.useEffect(() => {
-    if (!isBrowserIndexedDbAvailable()) return
-
-    let saveTimer: number | null = null
-    let unsubscribe: (() => void) | null = null
-    let cancelled = false
-
-    const saveNow = () => {
-      if (saveTimer !== null) {
-        window.clearTimeout(saveTimer)
-        saveTimer = null
-      }
-      void writeEditorDraft(
-        createEditorDraftSnapshot(useEditorStore.getState())
-      ).catch((error) => {
-        console.warn("Unable to save editor draft", error)
-      })
-    }
-
-    const scheduleSave = () => {
-      if (saveTimer !== null) {
-        window.clearTimeout(saveTimer)
-      }
-      saveTimer = window.setTimeout(saveNow, EDITOR_DRAFT_SAVE_DELAY_MS)
-    }
-
-    const startAutosave = () => {
-      if (cancelled) return
-      unsubscribe = useEditorStore.subscribe(scheduleSave)
-      window.addEventListener("pagehide", saveNow)
-    }
-
-    void readEditorDraft()
-      .then((draft) => {
-        if (cancelled) return
-        if (draft) {
-          useEditorStore.setState(applyEditorDraft(draft))
-        }
-        startAutosave()
-      })
-      .catch((error) => {
-        console.warn("Unable to restore editor draft", error)
-        startAutosave()
-      })
-
-    return () => {
-      cancelled = true
-      unsubscribe?.()
-      window.removeEventListener("pagehide", saveNow)
-      if (saveTimer !== null) {
-        window.clearTimeout(saveTimer)
-      }
-    }
-  }, [])
-
-  React.useEffect(() => {
-    const onDeleteKey = (e: KeyboardEvent) => {
-      if (e.key !== "Delete" && e.key !== "Backspace") return
-      if (isFormKeyboardTarget(e.target)) return
-
-      const store = useEditorStore.getState()
-      const {
-        selectedTextId,
-        selectedAssetId,
-        selectedAnnotationShapeId,
-        selectedScreenshotSlotId,
-        isScreenshotSelected,
-      } = store
-
-      const findCanvasId = (predicate: (canvas: CanvasState) => boolean) =>
-        store.present.canvases.find(predicate)?.id ??
-        store.present.activeCanvasId
-
-      if (selectedTextId) {
-        e.preventDefault()
-        e.stopImmediatePropagation()
-        store.deleteText(
-          selectedTextId,
-          findCanvasId((canvas) =>
-            canvas.texts.some((text) => text.id === selectedTextId)
-          )
-        )
-        store.setSelectedTextId(null)
-        return
-      }
-
-      if (selectedAssetId) {
-        e.preventDefault()
-        e.stopImmediatePropagation()
-        store.deleteAsset(
-          selectedAssetId,
-          findCanvasId((canvas) =>
-            canvas.assets.some((asset) => asset.id === selectedAssetId)
-          )
-        )
-        store.setSelectedAssetId(null)
-        return
-      }
-
-      if (selectedAnnotationShapeId) {
-        e.preventDefault()
-        e.stopImmediatePropagation()
-        store.deleteAnnotationShape(
-          selectedAnnotationShapeId,
-          findCanvasId((canvas) =>
-            canvas.annotationShapes.some(
-              (shape) => shape.id === selectedAnnotationShapeId
-            )
-          )
-        )
-        store.setSelectedAnnotationShapeId(null)
-        return
-      }
-
-      if (
-        selectedScreenshotSlotId &&
-        store.presetTab !== "multi" &&
-        store.presetTab !== "triple" &&
-        !(store.presetTab === "custom" && store.activeCustomPresetId)
-      ) {
-        e.preventDefault()
-        e.stopImmediatePropagation()
-        store.deleteScreenshotSlot(
-          selectedScreenshotSlotId,
-          findCanvasId((canvas) =>
-            canvas.screenshotSlots.some(
-              (slot) => slot.id === selectedScreenshotSlotId
-            )
-          )
-        )
-        store.setSelectedScreenshotSlotId(null)
-        return
-      }
-
-      if (isScreenshotSelected) {
-        e.preventDefault()
-        e.stopImmediatePropagation()
-        store.setScreenshot(null)
-        store.setIsScreenshotSelected(false)
-      }
-    }
-
-    window.addEventListener("keydown", onDeleteKey, true)
-    return () => window.removeEventListener("keydown", onDeleteKey, true)
-  }, [])
-
-  React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (isEditableKeyboardTarget(e.target)) return
-      const mod = e.metaKey || e.ctrlKey
-      if (!mod) return
-      if (e.key === "z" || e.key === "Z") {
-        e.preventDefault()
-        if (e.shiftKey) useEditorStore.getState().redo()
-        else useEditorStore.getState().undo()
-      } else if (e.key === "y" || e.key === "Y") {
-        e.preventDefault()
-        useEditorStore.getState().redo()
-      }
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [])
-
-  return <>{children}</>
-}
-
-export async function saveCurrentEditorDraft() {
-  if (!isBrowserIndexedDbAvailable()) return
-  await writeEditorDraft(createEditorDraftSnapshot(useEditorStore.getState()))
-}

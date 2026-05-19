@@ -516,7 +516,7 @@ export function TopBar() {
         if (!res.ok) {
           throw new Error(data?.error ?? "Could not update preset")
         }
-        updateCustomPresetInStore(id, { name })
+        updateCustomPresetInStore(id, { name, geometry })
         toast.success(`Preset "${name}" updated`)
         return true
       } catch (err) {
