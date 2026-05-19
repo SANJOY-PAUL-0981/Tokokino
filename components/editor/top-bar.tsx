@@ -34,7 +34,11 @@ import { BrandLogo } from "@/components/editor/brand-logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MAX_CANVASES, useEditorStore } from "@/lib/editor/store"
+import {
+  MAX_CANVASES,
+  saveCurrentEditorDraft,
+  useEditorStore,
+} from "@/lib/editor/store"
 import type {
   CanvasState,
   CurrentDraftInfo,
@@ -289,6 +293,9 @@ export function TopBar() {
       if (isAuthPending) return
 
       if (!session) {
+        void saveCurrentEditorDraft().catch((error) => {
+          console.warn("Could not save local editor state before auth", error)
+        })
         setShareDialog((current) => ({ ...current, open: false }))
         setAuthDialog({ open: true, action })
         return
@@ -906,7 +913,11 @@ export function TopBar() {
                 Your account is needed before this action can continue.
               </DialogDescription>
             </div>
-            <LoginForm callbackURL="/app" variant="dialog" />
+            <LoginForm
+              callbackURL="/app"
+              variant="dialog"
+              onBeforeSignIn={saveCurrentEditorDraft}
+            />
           </DialogContent>
         </Dialog>
 

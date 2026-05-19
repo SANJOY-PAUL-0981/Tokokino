@@ -35,9 +35,7 @@ export const COPY_RESOLUTION_WIDTHS: Record<CopyResolution, number> = {
 export const SHARE_RESOLUTION_WIDTH = 1920
 
 function findCanvasElement(canvasId: string): HTMLElement | null {
-  return document.querySelector<HTMLElement>(
-    `[data-canvas-id="${canvasId}"]`
-  )
+  return document.querySelector<HTMLElement>(`[data-canvas-id="${canvasId}"]`)
 }
 
 export function getCanvasRenderedDims(canvasId: string): {
@@ -119,7 +117,7 @@ function rewriteCssUrls(value: string): { value: string; urls: string[] } {
       if (!shouldProxyAssetUrl(rawUrl)) return match
       const proxied = proxiedAssetUrl(rawUrl)
       urls.push(proxied)
-      return `url(${quote || "\""}${proxied}${quote || "\""})`
+      return `url(${quote || '"'}${proxied}${quote || '"'})`
     }
   )
   return { value: rewritten, urls }
@@ -222,24 +220,27 @@ function makeExportStyle(scopeId: string) {
   return exportStyle
 }
 
-function prepareExportNode(node: HTMLElement) {
-  const scopeId = `export-${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2)}`
+function prepareExportNode(source: HTMLElement, width: number, height: number) {
+  const node = source.cloneNode(true) as HTMLElement
+  const scopeId = `export-${Date.now()}-${Math.random().toString(36).slice(2)}`
   const exportStyle = makeExportStyle(scopeId)
-  const previousScope = node.getAttribute("data-export-scope")
 
   node.setAttribute("data-export-scope", scopeId)
+  node.style.position = "fixed"
+  node.style.left = "-100000px"
+  node.style.top = "0"
+  node.style.width = `${width}px`
+  node.style.height = `${height}px`
+  node.style.pointerEvents = "none"
+  node.style.transform = "none"
+
   document.head.appendChild(exportStyle)
+  document.body.appendChild(node)
 
   return {
     node,
     cleanup: () => {
-      if (previousScope === null) {
-        node.removeAttribute("data-export-scope")
-      } else {
-        node.setAttribute("data-export-scope", previousScope)
-      }
+      node.remove()
       exportStyle.remove()
     },
   }
@@ -262,12 +263,13 @@ export async function exportCanvas(
 
   const rect = node.getBoundingClientRect()
   const renderedWidth = rect.width || node.offsetWidth
+  const renderedHeight = rect.height || node.offsetHeight
   if (!renderedWidth) throw new Error("Canvas has zero width")
 
   const targetWidth = EXPORT_RESOLUTION_WIDTHS[resolution]
   const pixelRatio = targetWidth / renderedWidth
 
-  const exportTarget = prepareExportNode(node)
+  const exportTarget = prepareExportNode(node, renderedWidth, renderedHeight)
   const { rewrites, preloadUrls } = rewriteExportAssets(exportTarget.node)
 
   const baseOptions = {
@@ -358,11 +360,12 @@ export async function captureCanvasAsPngBlob(
 
   const rect = node.getBoundingClientRect()
   const renderedWidth = rect.width || node.offsetWidth
+  const renderedHeight = rect.height || node.offsetHeight
   if (!renderedWidth) throw new Error("Canvas has zero width")
 
   const pixelRatio = targetWidth / renderedWidth
 
-  const exportTarget = prepareExportNode(node)
+  const exportTarget = prepareExportNode(node, renderedWidth, renderedHeight)
   const { rewrites, preloadUrls } = rewriteExportAssets(exportTarget.node)
 
   try {

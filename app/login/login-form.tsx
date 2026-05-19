@@ -10,15 +10,22 @@ import { cn } from "@/lib/utils"
 export function LoginForm({
   callbackURL = "/app",
   variant = "page",
+  onBeforeSignIn,
 }: {
   callbackURL?: string
   variant?: "page" | "dialog"
+  onBeforeSignIn?: () => void | Promise<void>
 }) {
   const [loading, setLoading] = React.useState(false)
 
   const handleGoogle = async () => {
     if (loading) return
     setLoading(true)
+    try {
+      await onBeforeSignIn?.()
+    } catch (error) {
+      console.warn("Could not save local editor state before sign-in", error)
+    }
     const { error } = await authClient.signIn.social({
       provider: "google",
       callbackURL,

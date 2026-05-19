@@ -2245,11 +2245,25 @@ export const useEditorStore = create<EditorStore>((set, get) => {
             },
             computeNextLayerZ(canvas)
           )
+          // Compute full row layout to place the new slot, but preserve
+          // existing slot positions so they don't jump.
+          const allSlots = [...canvas.screenshotSlots, next]
+          const fullLayout = layoutSlotsInRow(
+            allSlots,
+            canvas.frame,
+            stateCanvasAspect(state)
+          )
+          // Keep existing slots' positions, only update their widths;
+          // the new slot gets the full row-layout position.
+          const preserved = layoutSlotsInRow(
+            allSlots,
+            canvas.frame,
+            stateCanvasAspect(state),
+            { preservePositions: true }
+          )
           return {
-            screenshotSlots: layoutSlotsInRow(
-              [...canvas.screenshotSlots, next],
-              canvas.frame,
-              stateCanvasAspect(state)
+            screenshotSlots: preserved.map((slot, i) =>
+              slot.id === id ? fullLayout[i] : slot
             ),
           }
         },
@@ -2339,7 +2353,8 @@ export const useEditorStore = create<EditorStore>((set, get) => {
           screenshotSlots: layoutSlotsInRow(
             canvas.screenshotSlots.filter((slot) => slot.id !== id),
             canvas.frame,
-            stateCanvasAspect(state)
+            stateCanvasAspect(state),
+            { preservePositions: true }
           ),
         }),
         null
@@ -2365,11 +2380,23 @@ export const useEditorStore = create<EditorStore>((set, get) => {
             id: copyId,
             zIndex: computeNextLayerZ(canvas),
           }
+          // Preserve existing slot positions; only place the new copy
+          // using the full row layout.
+          const allSlots = [...canvas.screenshotSlots, copy]
+          const fullLayout = layoutSlotsInRow(
+            allSlots,
+            canvas.frame,
+            stateCanvasAspect(state)
+          )
+          const preserved = layoutSlotsInRow(
+            allSlots,
+            canvas.frame,
+            stateCanvasAspect(state),
+            { preservePositions: true }
+          )
           return {
-            screenshotSlots: layoutSlotsInRow(
-              [...canvas.screenshotSlots, copy],
-              canvas.frame,
-              stateCanvasAspect(state)
+            screenshotSlots: preserved.map((slot, i) =>
+              slot.id === copyId ? fullLayout[i] : slot
             ),
           }
         },
@@ -3007,4 +3034,9 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return <>{children}</>
+}
+
+export async function saveCurrentEditorDraft() {
+  if (!isBrowserIndexedDbAvailable()) return
+  await writeEditorDraft(createEditorDraftSnapshot(useEditorStore.getState()))
 }
