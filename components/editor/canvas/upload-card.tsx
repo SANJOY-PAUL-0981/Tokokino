@@ -256,11 +256,11 @@ export function UploadCard({
             }}
             className={cn(
               "pointer-events-auto grid place-items-center rounded-full border-2 border-primary bg-white text-neutral-950 shadow-[0_0_0_3px_rgba(0,0,0,0.06),0_6px_20px_-6px_rgba(0,0,0,0.18)] backdrop-blur-sm transition-[background-color,border-color] hover:bg-neutral-50 dark:bg-neutral-900 dark:text-white dark:shadow-[0_0_0_4px_rgba(0,0,0,0.4),0_8px_24px_-8px_rgba(0,0,0,0.6)] dark:hover:bg-neutral-800",
-              "size-[clamp(1.5rem,9.9cqw,3.5rem)]",
+              "size-14",
               className
             )}
           >
-            <RiAddLine className="size-[55%]" />
+            <RiAddLine className="size-7" />
           </button>
         </PopoverTrigger>
         <PopoverContent

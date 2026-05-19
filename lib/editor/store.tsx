@@ -2282,6 +2282,19 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         `screenshot-slot-${id}`
       ),
     setScreenshotSlotImage: (id, src, canvasId) => {
+      if (src === null) {
+        commitCanvas(
+          canvasId,
+          (canvas) => ({
+            screenshotSlots: canvas.screenshotSlots.map((slot) =>
+              slot.id === id ? { ...slot, src } : slot
+            ),
+          }),
+          null
+        )
+        return
+      }
+
       const state = get()
       const activeLayoutPreset =
         state.presetTab === "multi" || state.presetTab === "triple"

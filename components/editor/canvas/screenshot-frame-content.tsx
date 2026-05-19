@@ -48,6 +48,8 @@ type ScreenshotFrameContentProps = {
   screenshotAnchor?: { x: number; y: number }
   /** Keep transform in the empty-state container (needed for preset previews) */
   applyTransformWhenEmpty?: boolean
+  /** Avoid a mount-time transform tween when swapping an image for an empty slot. */
+  suppressEmptyTransition?: boolean
   /** Show a compact icon trigger instead of the full upload card */
   emptyCompact?: boolean
   objectFit?: "contain" | "cover" | "fill"
@@ -103,6 +105,7 @@ export function ScreenshotFrameContent({
   screenshotOffset = ZERO_OFFSET,
   screenshotAnchor = CENTER_ANCHOR,
   applyTransformWhenEmpty = false,
+  suppressEmptyTransition = false,
   emptyCompact = false,
   objectFit = "cover",
   aspectW,
@@ -306,7 +309,7 @@ export function ScreenshotFrameContent({
     <div
       data-editor-shadow-box-target={frame.id === "none" ? "" : undefined}
       className={`relative h-full w-full overflow-hidden${
-        applyTransformWhenEmpty
+        applyTransformWhenEmpty && !suppressEmptyTransition
           ? " transition-transform duration-300 ease-out"
           : ""
       }`}
