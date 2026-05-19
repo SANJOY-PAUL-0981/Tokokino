@@ -19,6 +19,7 @@ Noctivy is a client-heavy Next.js app for creating polished screenshot visuals w
 ## Index
 
 - [Installation](#installation)
+- [Docker](#docker)
 - [Scripts](#scripts)
 - [Install assets locally (curl/bash)](#install-assets-locally-curlbash)
 - [Device frames](#device-frames)
@@ -64,6 +65,28 @@ Required for auth:
 
 ```bash
 pnpm dev
+```
+
+## Docker
+
+This repo includes Docker setup for local MongoDB with replica set support (`docker-compose.yml` + `docker/mongo/Dockerfile`).
+
+Start MongoDB:
+
+```bash
+docker compose up -d mongo
+```
+
+Stop MongoDB:
+
+```bash
+docker compose down
+```
+
+Use this local connection string in `.env.local`:
+
+```bash
+MONGODB_URI="mongodb://noctivy:noctivy@localhost:27017/noctivy?authSource=admin&replicaSet=rs0"
 ```
 
 ## Scripts
