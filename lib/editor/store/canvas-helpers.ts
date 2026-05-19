@@ -119,9 +119,10 @@ export const layoutSlotsInRow = (
 }
 
 /**
- * Append `newSlot` to `existingSlots`, then re-run the row layout for the new
- * slot only — every existing slot keeps its current xPct/yPct, with only the
- * widths refreshed to match the new row width.
+ * Append `newSlot` to `existingSlots`, then re-run the row layout for the full
+ * set. The main screenshot and every slot share one row, so adding a slot has
+ * to move the existing boxes too; otherwise older slots keep stale centers and
+ * overlap the newly inserted slot.
  */
 export const placeNewSlotInRow = (
   existingSlots: ScreenshotSlot[],
@@ -129,13 +130,24 @@ export const placeNewSlotInRow = (
   frame: DeviceFrame,
   aspect: number
 ): ScreenshotSlot[] => {
-  const allSlots = [...existingSlots, newSlot]
-  const fullLayout = layoutSlotsInRow(allSlots, frame, aspect)
-  const preserved = layoutSlotsInRow(allSlots, frame, aspect, {
-    preservePositions: true,
-  })
-  return preserved.map((slot, i) =>
-    slot.id === newSlot.id ? fullLayout[i] : slot
+  return layoutSlotsInRow([...existingSlots, newSlot], frame, aspect)
+}
+
+/**
+ * Remove a slot and reflow the remaining boxes through the same row math used
+ * by preset previews. Keeping the old centers while widening the boxes makes
+ * the live canvas diverge from the preset card after deletes.
+ */
+export const removeSlotFromRow = (
+  slots: ScreenshotSlot[],
+  slotId: string,
+  frame: DeviceFrame,
+  aspect: number
+): ScreenshotSlot[] => {
+  return layoutSlotsInRow(
+    slots.filter((slot) => slot.id !== slotId),
+    frame,
+    aspect
   )
 }
 

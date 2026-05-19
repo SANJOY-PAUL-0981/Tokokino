@@ -5,6 +5,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { useEditor } from "@/lib/editor/store"
 import { BoxEmptyState } from "./box-empty-state"
+import { frameFitStyle, framePositionTransform } from "./helpers"
 
 type CanvasEmptyStateProps = {
   isDragOver: boolean
@@ -19,6 +20,13 @@ type CanvasEmptyStateProps = {
   /** Disable the outer padding wrapper (used when caller already provides one). */
   noOuterPadding?: boolean
   innerLightingStyle?: React.CSSProperties | null
+  /** When provided, the empty state is positioned using the anchor/offset like device frames. */
+  screenshotAnchor?: { x: number; y: number }
+  screenshotOffset?: { x: number; y: number }
+  /** The CSS transform string for tilt/scale (e.g. perspective + rotateX/Y/Z + scale). */
+  transform?: string
+  /** The shadow drop-filter for the screenshot box. */
+  shadowFilter?: string
 }
 
 export function CanvasEmptyState({
@@ -32,6 +40,10 @@ export function CanvasEmptyState({
   aspectH,
   noOuterPadding = false,
   innerLightingStyle,
+  screenshotAnchor,
+  screenshotOffset,
+  transform,
+  shadowFilter,
 }: CanvasEmptyStateProps) {
   const { aspect } = useEditor()
   const aw = aspectW ?? aspect.w ?? 16
@@ -52,6 +64,64 @@ export function CanvasEmptyState({
       "[data-upload-compact-trigger]"
     )
     trigger?.click()
+  }
+
+  // When screenshotAnchor is provided, use absolute positioning like frame
+  // empty states do — the box is sized via container queries and positioned
+  // with framePositionTransform so it follows the preset direction.
+  const hasPosition = screenshotAnchor !== undefined
+  if (hasPosition) {
+    const boxAspect = `${effectiveAw} / ${effectiveAh}`
+    const fitStyle = frameFitStyle(boxAspect, 0, {
+      fitFraction: isPortrait ? 0.7 : 0.8,
+    })
+    return (
+      <div
+        className="pointer-events-none relative h-full w-full"
+        style={{ containerType: "size" }}
+      >
+        <div
+          ref={rootRef}
+          onClick={handleAreaClick}
+          data-drag-over={isDragOver}
+          data-active={isActive}
+          data-editor-shadow-filter-target
+          data-editor-shadow-filter-base={shadowFilter || ""}
+          className={cn(
+            "pointer-events-auto absolute top-0 left-0 max-h-full max-w-full select-none",
+            "cursor-pointer overflow-hidden rounded-3xl border border-border/30 transition-all duration-300 ease-out dark:border-white/8",
+            "data-[drag-over=true]:border-primary/60 data-[drag-over=true]:ring-2 data-[drag-over=true]:ring-primary/35",
+          )}
+          style={{
+            ...fitStyle,
+            left: "50%",
+            top: "50%",
+            transform: framePositionTransform({
+              anchor: screenshotAnchor,
+              offset: screenshotOffset ?? { x: 0, y: 0 },
+              transform: transform ?? "",
+            }),
+            transformOrigin: "center",
+            transformStyle: "preserve-3d",
+            filter: shadowFilter || undefined,
+          }}
+        >
+          {innerLightingStyle ? (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 z-10"
+              style={innerLightingStyle}
+            />
+          ) : null}
+          <BoxEmptyState
+            isDragOver={isDragOver}
+            onBrowse={onBrowse}
+            onCapture={onCapture}
+            compact={useCompact}
+          />
+        </div>
+      </div>
+    )
   }
 
   return (

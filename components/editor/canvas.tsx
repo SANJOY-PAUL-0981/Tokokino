@@ -758,8 +758,11 @@ function CanvasViewInner({
                 <CanvasEmptyState
                   isDragOver={isDragOver}
                   onBrowse={() => fileInputRef.current?.click()}
-                  previewStyle={imgStyle}
                   innerLightingStyle={innerLightingStyle}
+                  screenshotAnchor={screenshotAnchor}
+                  screenshotOffset={effectiveOffset}
+                  transform={transform}
+                  shadowFilter={computedShadowFilter}
                   compact={
                     tilt.rx !== 0 ||
                     tilt.ry !== 0 ||

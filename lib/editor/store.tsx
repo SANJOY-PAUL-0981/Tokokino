@@ -25,6 +25,7 @@ import {
   mirrorToSlots,
   placeNewSlotInRow,
   placementAfterCanvas,
+  removeSlotFromRow,
   resolveActiveLayoutGeometry,
   scaleAnnotationStrokesForAspectChange,
   scaleScreenshotOffsetForAspectChange,
@@ -1498,11 +1499,11 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       commitCanvas(
         canvasId,
         (canvas, state) => ({
-          screenshotSlots: layoutSlotsInRow(
-            canvas.screenshotSlots.filter((slot) => slot.id !== id),
+          screenshotSlots: removeSlotFromRow(
+            canvas.screenshotSlots,
+            id,
             canvas.frame,
-            stateCanvasAspect(state),
-            { preservePositions: true }
+            stateCanvasAspect(state)
           ),
         }),
         null
@@ -1594,4 +1595,3 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       ),
   }
 })
-
