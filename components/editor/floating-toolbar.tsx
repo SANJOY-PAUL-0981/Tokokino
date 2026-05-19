@@ -499,6 +499,7 @@ function computeArrangedPositions(
 
 export function FloatingToolbar() {
   const { activeTool, setActiveTool, addCanvas, bulkEditMode } = useEditor()
+  const topBarPopoverOpen = useEditorStore((s) => s.topBarPopoverOpen)
   const canvasIds = useEditorStore(
     useShallow((s) => s.present.canvases.map((canvas) => canvas.id))
   )
@@ -532,7 +533,7 @@ export function FloatingToolbar() {
   const showBulkBar = bulkEditMode && !isAnnotateMode
 
   return (
-    <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 flex w-full max-w-[calc(100vw-1.5rem)] -translate-x-1/2 flex-col items-center gap-2 px-3 sm:w-auto sm:px-0">
+    <div className={cn("pointer-events-none absolute bottom-4 left-1/2 z-20 flex w-full max-w-[calc(100vw-1.5rem)] -translate-x-1/2 flex-col items-center gap-2 px-3 sm:w-auto sm:px-0 transition-opacity duration-200", topBarPopoverOpen && "opacity-0 pointer-events-none")}>
       <AnimatePresence initial={false}>
         {showBulkBar ? (
           <motion.div
@@ -1402,13 +1403,13 @@ function ScreenshotMediaPill() {
               )}
             >
               <RiFullscreenLine className="size-4 shrink-0" />
-              Fit
+              Fill Mode
             </button>
           )}
         >
           <div className="flex flex-col gap-2">
             <span className="px-1 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-              Image Fit
+              Fill Mode
             </span>
             <div className="grid grid-cols-3 gap-1.5">
               {FIT_OPTIONS.map(({ value, label, icon }) => (
@@ -1447,7 +1448,7 @@ function ScreenshotMediaPill() {
               className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap text-foreground/80 opacity-40"
             >
               <RiFullscreenLine className="size-4 shrink-0" />
-              Fit
+              Fill Mode
             </button>
           </TooltipTrigger>
           <TooltipContent side="top">Add a screenshot first</TooltipContent>

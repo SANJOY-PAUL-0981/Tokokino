@@ -262,7 +262,7 @@ type UnobserveFn = (el: Element) => void
 
 const overlayLoadedCache = new Set<number>()
 
-function OverlayGrid({
+const OverlayGrid = React.memo(function OverlayGrid({
   ids,
   selectedId,
   onSelect,
@@ -354,7 +354,7 @@ function OverlayGrid({
       ))}
     </div>
   )
-}
+})
 
 const OverlayThumb = React.memo(function OverlayThumb({
   id,
@@ -573,8 +573,13 @@ export function BackdropSection() {
   }
   const setLighting = (patch: Partial<typeof lighting>) =>
     applyLighting(lightingPatch(activeLighting, patch))
-  const setOverlayPatch = (patch: Partial<typeof overlay>) =>
-    setOverlay({ ...overlay, ...patch })
+  const overlayRef = React.useRef(overlay)
+  overlayRef.current = overlay
+  const setOverlayPatch = React.useCallback(
+    (patch: Partial<typeof overlay>) =>
+      setOverlay({ ...overlayRef.current, ...patch }),
+    [setOverlay]
+  )
 
   const overlayIds = React.useMemo(
     () => Array.from({ length: OVERLAY_COUNT }, (_, i) => i + 1),

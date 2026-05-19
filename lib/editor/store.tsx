@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { create } from "zustand"
+import { useShallow } from "zustand/react/shallow"
 
 import { FONT_FAMILIES } from "./fonts"
 import { DEFAULT_IMAGE_BACKGROUND } from "./presets"
@@ -288,6 +289,7 @@ export type DraftLoadUi = {
 }
 
 type EditorActions = {
+  setTopBarPopoverOpen: (open: boolean) => void
   setActiveTool: (t: EditorTool) => void
   setPresetTab: (tab: PresetTab) => void
   setActiveLayoutPresetId: (id: string | null) => void
@@ -462,6 +464,7 @@ type EditorStore = {
   future: EditorState[]
   _lastGroup: string | null
   _lastTs: number
+  topBarPopoverOpen: boolean
   isPreviewMode: boolean
   isPreviewAutoScroll: boolean
   previewAutoScrollDelay: number
@@ -1218,6 +1221,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     future: [],
     _lastGroup: null,
     _lastTs: 0,
+    topBarPopoverOpen: false,
     isPreviewMode: false,
     isPreviewAutoScroll: false,
     previewAutoScrollDelay: 3000,
@@ -1308,10 +1312,8 @@ export const useEditorStore = create<EditorStore>((set, get) => {
                 src: previous?.src ?? null,
                 xPct: config.xPct,
                 yPct: config.yPct,
-                widthPct:
-                  config.widthPct ?? previous?.widthPct ?? 60,
-                heightPct:
-                  config.heightPct ?? previous?.heightPct ?? 28,
+                widthPct: config.widthPct ?? previous?.widthPct ?? 60,
+                heightPct: config.heightPct ?? previous?.heightPct ?? 28,
                 rotation: config.rotation,
                 tilt: config.tilt,
                 scale: config.scale,
@@ -1385,7 +1387,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     setScreenshot: (screenshot, canvasId) => {
       const state = get()
       const activeLayoutPreset =
-        (state.presetTab === "multi" || state.presetTab === "triple")
+        state.presetTab === "multi" || state.presetTab === "triple"
           ? LAYOUT_PRESETS.find(
               (preset) => preset.id === state.activeLayoutPresetId
             )
@@ -2047,6 +2049,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
             }
           : { isScreenshotSelected: false }
       ),
+    setTopBarPopoverOpen: (open) => set({ topBarPopoverOpen: open }),
     setIsPreviewMode: (p) => set({ isPreviewMode: p }),
     setIsPreviewAutoScroll: (a) => set({ isPreviewAutoScroll: a }),
     setPreviewAnimation: (a) => set({ previewAnimation: a }),
@@ -2267,7 +2270,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     setScreenshotSlotImage: (id, src, canvasId) => {
       const state = get()
       const activeLayoutPreset =
-        (state.presetTab === "multi" || state.presetTab === "triple")
+        state.presetTab === "multi" || state.presetTab === "triple"
           ? LAYOUT_PRESETS.find(
               (preset) => preset.id === state.activeLayoutPresetId
             )
@@ -2310,8 +2313,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
               if (!config) return slot
               const { xPct, yPct } = resolveSlotPositionPct({
                 config,
-                naturalSlotXPct:
-                  naturalLayout[index + 1]?.xPct ?? slot.xPct,
+                naturalSlotXPct: naturalLayout[index + 1]?.xPct ?? slot.xPct,
                 relativeSlotPositions:
                   activeLayoutGeometry.relativeSlotPositions,
               })
@@ -2515,21 +2517,55 @@ export function useActiveCanvasField<T>(
 ): T {
   const scopeId = React.useContext(CanvasIdContext)
   const override = React.useContext(CanvasOverrideContext)
-  const base = useEditorStore((s) => {
-    const id = scopeId ?? s.present.activeCanvasId
-    return (
-      s.present.canvases.find((c) => c.id === id) ??
-      s.present.canvases[0] ??
-      FALLBACK_CANVAS
-    )
-  })
-  const canvas = override ? { ...base, ...override } : base
-  return selector(canvas)
+
+  const overrideRef = React.useRef(override)
+  const selectorRef = React.useRef(selector)
+  overrideRef.current = override
+  selectorRef.current = selector
+
+  const mergedCacheRef = React.useRef<{
+    base: CanvasState | null
+    ov: Partial<CanvasState> | null
+    merged: CanvasState | null
+  }>({ base: null, ov: null, merged: null })
+
+  const stableSelector = React.useCallback(
+    (s: EditorStore) => {
+      const id = scopeId ?? s.present.activeCanvasId
+      const base =
+        s.present.canvases.find((c) => c.id === id) ??
+        s.present.canvases[0] ??
+        FALLBACK_CANVAS
+      const ov = overrideRef.current
+      let canvas: CanvasState
+      if (ov) {
+        const cache = mergedCacheRef.current
+        if (cache.base === base && cache.ov === ov && cache.merged !== null) {
+          canvas = cache.merged
+        } else {
+          canvas = { ...base, ...ov }
+          mergedCacheRef.current = { base, ov, merged: canvas }
+        }
+      } else {
+        canvas = base
+      }
+      return selectorRef.current(canvas)
+    },
+    [scopeId]
+  )
+
+  // Wrap with useShallow so selectors returning a new object literal (e.g.
+  // `(c) => ({ frame: c.frame, padding: c.padding })`) don't trigger re-renders
+  // when field values haven't changed, and also satisfy React's requirement that
+  // getSnapshot returns a stable reference between calls (preventing the
+  // "getSnapshot should be cached" infinite loop warning).
+  return useEditorStore(useShallow(stableSelector))
 }
 
 export type EditorContext = Omit<EditorState, "canvases"> &
   CanvasState &
   EditorActions & {
+    topBarPopoverOpen: boolean
     isPreviewMode: boolean
     isPreviewAutoScroll: boolean
     previewAutoScrollDelay: number
@@ -2556,13 +2592,14 @@ export function useEditor(): EditorContext {
   const targetId = scopeId ?? activeCanvasId
   const activeTool = useEditorStore((s) => s.present.activeTool)
   const globalAspect = useEditorStore((s) => s.present.aspect)
-  const canvasAspectOverride = useEditorStore((s) =>
-    s.present.canvases.find((c) => c.id === targetId)?.aspect
+  const canvasAspectOverride = useEditorStore(
+    (s) => s.present.canvases.find((c) => c.id === targetId)?.aspect
   )
   const aspect = canvasAspectOverride ?? globalAspect
   const canvasZoom = useEditorStore((s) => s.present.canvasZoom)
   const annotation = useEditorStore((s) => s.present.annotation)
   const canvas = useActiveCanvasField((c) => c)
+  const topBarPopoverOpen = useEditorStore((s) => s.topBarPopoverOpen)
   const isPreviewMode = useEditorStore((s) => s.isPreviewMode)
   const isPreviewAutoScroll = useEditorStore((s) => s.isPreviewAutoScroll)
   const previewAutoScrollDelay = useEditorStore((s) => s.previewAutoScrollDelay)
@@ -2587,6 +2624,7 @@ export function useEditor(): EditorContext {
 
   return {
     // shared editor state
+    topBarPopoverOpen,
     activeTool,
     aspect,
     canvasZoom,
@@ -2641,6 +2679,7 @@ export function useEditor(): EditorContext {
     canUndo,
     canRedo,
 
+    setTopBarPopoverOpen: store.setTopBarPopoverOpen,
     setActiveTool: store.setActiveTool,
     setPresetTab: store.setPresetTab,
     setActiveLayoutPresetId: store.setActiveLayoutPresetId,
@@ -2872,9 +2911,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
         isScreenshotSelected,
       } = store
 
-      const findCanvasId = (
-        predicate: (canvas: CanvasState) => boolean
-      ) =>
+      const findCanvasId = (predicate: (canvas: CanvasState) => boolean) =>
         store.present.canvases.find(predicate)?.id ??
         store.present.activeCanvasId
 

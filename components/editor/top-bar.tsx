@@ -140,6 +140,7 @@ export function TopBar() {
   const canRedo = useEditorStore((s) => s.future.length > 0)
   const reset = useEditorStore((s) => s.reset)
   const setIsPreviewMode = useEditorStore((s) => s.setIsPreviewMode)
+  const setTopBarPopoverOpen = useEditorStore((s) => s.setTopBarPopoverOpen)
   const removeCanvas = useEditorStore((s) => s.removeCanvas)
   const bulkEditMode = useEditorStore((s) => s.bulkEditMode)
   const setBulkEditMode = useEditorStore((s) => s.setBulkEditMode)
@@ -751,6 +752,7 @@ export function TopBar() {
             currentDraft={currentDraft}
             isDraftSaving={isDraftSaving}
             onOpenChange={(open) => {
+              setTopBarPopoverOpen(open)
               if (open) {
                 handleProtectedAction("save")
               } else {
@@ -781,6 +783,7 @@ export function TopBar() {
             error={shareDialog.error}
             copied={isShareLinkCopied}
             onOpenChange={(open) => {
+              setTopBarPopoverOpen(open)
               setShareDialog((current) => ({ ...current, open }))
             }}
             onShare={() => handleProtectedAction("share")}
@@ -1051,6 +1054,7 @@ function ExportControls() {
   const activeCanvasId = useEditorStore((s) => s.present.activeCanvasId)
   const bulkEditMode = useEditorStore((s) => s.bulkEditMode)
   const canvases = useEditorStore(useShallow((s) => s.present.canvases))
+  const setTopBarPopoverOpen = useEditorStore((s) => s.setTopBarPopoverOpen)
   const [format, setFormat] = React.useState<ExportFormat>("png")
   const [resolution, setResolution] = React.useState<ExportResolution>("hd")
   const [isExporting, setIsExporting] = React.useState(false)
@@ -1116,7 +1120,7 @@ function ExportControls() {
         <div className="w-px bg-white/20" />
 
         {/* Settings Zone */}
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={(o) => { setOpen(o); setTopBarPopoverOpen(o) }}>
           <Tooltip open={open ? false : undefined}>
             <TooltipTrigger asChild>
               <PopoverTrigger asChild>
