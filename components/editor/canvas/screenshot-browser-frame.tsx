@@ -1,16 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { RiAddLine } from "@remixicon/react"
 
 import { EmptyStateBackdrop } from "@/components/editor/canvas/empty-state-backdrop"
 import { ScreenshotEditMenu } from "@/components/editor/canvas/screenshot-edit-menu"
 import { UploadCard } from "@/components/editor/canvas/upload-card"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
 import { Arc } from "@/components/ui/arc"
 import { Chrome } from "@/components/ui/chrome"
 import { Safari } from "@/components/ui/safari"
@@ -471,39 +465,20 @@ function BrowserFrameCompactUpload({
   onBrowse: () => void
 }) {
   const stopPointer = (e: React.PointerEvent) => e.stopPropagation()
-  const stopClick = (e: React.MouseEvent) => e.stopPropagation()
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
-      <Popover>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            aria-label="Add screenshot"
-            onPointerDownCapture={stopPointer}
-            onPointerMoveCapture={stopPointer}
-            onPointerUpCapture={stopPointer}
-            onPointerDown={stopPointer}
-            onPointerMove={stopPointer}
-            onPointerUp={stopPointer}
-            onClick={stopClick}
-            className="group pointer-events-auto grid size-28 cursor-pointer place-items-center border-0 bg-transparent p-0"
-          >
-            <span className="grid size-16 place-items-center rounded-full border-2 border-primary bg-neutral-900/95 text-white shadow-[0_0_0_4px_rgba(0,0,0,0.4),0_8px_24px_-8px_rgba(0,0,0,0.6)] backdrop-blur-sm transition-all group-hover:scale-105 group-hover:bg-neutral-800 group-active:scale-95 group-data-[state=open]:scale-105">
-              <RiAddLine className="size-8" />
-            </span>
-          </button>
-        </PopoverTrigger>
-        <PopoverContent
-          side="bottom"
-          align="center"
-          sideOffset={8}
-          onPointerDown={stopPointer}
-          className="w-[320px] rounded-2xl border border-white/10 bg-neutral-900 p-0 text-white shadow-2xl"
-        >
-          <UploadCard isDragOver={isDragOver} onBrowse={onBrowse} showHint />
-        </PopoverContent>
-      </Popover>
+    <div
+      className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center"
+      onPointerDownCapture={stopPointer}
+      onPointerMoveCapture={stopPointer}
+      onPointerUpCapture={stopPointer}
+    >
+      <UploadCard
+        compact
+        isDragOver={isDragOver}
+        onBrowse={onBrowse}
+        showHint
+      />
     </div>
   )
 }

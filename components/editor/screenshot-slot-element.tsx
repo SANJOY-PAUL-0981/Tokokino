@@ -562,12 +562,7 @@ export function ScreenshotSlotView({
   }
 
   const handleDeleteFromMenu = () => {
-    if (canDeleteSlot) {
-      deleteScreenshotSlot(slot.id)
-      setSelectedScreenshotSlotId(null)
-    } else {
-      setScreenshotSlotImage(slot.id, null)
-    }
+    setScreenshotSlotImage(slot.id, null)
   }
 
   return (

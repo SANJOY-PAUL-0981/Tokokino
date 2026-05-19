@@ -52,8 +52,8 @@ function ToggleChip({ active, onClick, children }: ToggleChipProps) {
       className={cn(
         "rounded-lg px-3 py-1.5 text-[12px] font-medium transition-all",
         active
-          ? "bg-foreground/15 text-foreground shadow-sm"
-          : "text-muted-foreground/70 hover:text-foreground/80"
+          ? "bg-neutral-200 text-neutral-950 shadow-sm dark:bg-white/15 dark:text-white"
+          : "text-neutral-500 hover:text-neutral-800 dark:text-white/60 dark:hover:text-white/85"
       )}
     >
       {children}
@@ -79,7 +79,7 @@ function CaptureSettingsPopover({
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
           aria-label="Capture settings"
-          className="grid size-10 shrink-0 place-items-center rounded-md bg-foreground/[0.06] text-muted-foreground transition-all hover:bg-foreground/12 hover:text-foreground data-[state=open]:bg-foreground/16 data-[state=open]:text-foreground"
+          className="grid size-10 shrink-0 place-items-center rounded-md border border-neutral-200 bg-neutral-50 text-neutral-500 transition-all hover:bg-neutral-100 hover:text-neutral-800 data-[state=open]:bg-neutral-100 data-[state=open]:text-neutral-900 dark:border-white/10 dark:bg-white/8 dark:text-white/60 dark:hover:bg-white/12 dark:hover:text-white dark:data-[state=open]:bg-white/15 dark:data-[state=open]:text-white"
         >
           <RiSettings3Line className="size-4" />
         </button>
@@ -89,12 +89,14 @@ function CaptureSettingsPopover({
         align="start"
         sideOffset={10}
         onPointerDown={(e) => e.stopPropagation()}
-        className="w-[280px] rounded-2xl border border-border/60 bg-popover/95 p-0 shadow-2xl ring-0 backdrop-blur-xl"
+        className="w-[280px] rounded-2xl border border-neutral-200 bg-white p-0 text-neutral-950 shadow-2xl ring-0 backdrop-blur-xl dark:border-white/10 dark:bg-neutral-950 dark:text-white"
       >
-        <div className="flex flex-col divide-y divide-border/40">
+        <div className="flex flex-col divide-y divide-neutral-200 dark:divide-white/10">
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-[13px] text-muted-foreground">Device</span>
-            <div className="flex items-center gap-0.5 rounded-xl bg-foreground/[0.06] p-0.5">
+            <span className="text-[13px] text-neutral-500 dark:text-white/55">
+              Device
+            </span>
+            <div className="flex items-center gap-0.5 rounded-xl bg-neutral-100 p-0.5 dark:bg-white/8">
               <ToggleChip
                 active={settings.device === "desktop"}
                 onClick={() => onChange("device", "desktop")}
@@ -110,8 +112,10 @@ function CaptureSettingsPopover({
             </div>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-[13px] text-muted-foreground">Aspect Ratio</span>
-            <div className="flex items-center gap-0.5 rounded-xl bg-foreground/[0.06] p-0.5">
+            <span className="text-[13px] text-neutral-500 dark:text-white/55">
+              Aspect Ratio
+            </span>
+            <div className="flex items-center gap-0.5 rounded-xl bg-neutral-100 p-0.5 dark:bg-white/8">
               {(["4:3", "16:9", "1:1"] as AspectRatio[]).map((r) => (
                 <ToggleChip
                   key={r}
@@ -124,8 +128,10 @@ function CaptureSettingsPopover({
             </div>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-[13px] text-muted-foreground">Width</span>
-            <div className="flex items-center gap-0.5 rounded-xl bg-foreground/[0.06] p-0.5">
+            <span className="text-[13px] text-neutral-500 dark:text-white/55">
+              Width
+            </span>
+            <div className="flex items-center gap-0.5 rounded-xl bg-neutral-100 p-0.5 dark:bg-white/8">
               {([1280, 1440, 1920] as number[]).map((w) => (
                 <ToggleChip
                   key={w}
@@ -138,8 +144,10 @@ function CaptureSettingsPopover({
             </div>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-[13px] text-muted-foreground">Theme</span>
-            <div className="flex items-center gap-0.5 rounded-xl bg-foreground/[0.06] p-0.5">
+            <span className="text-[13px] text-neutral-500 dark:text-white/55">
+              Theme
+            </span>
+            <div className="flex items-center gap-0.5 rounded-xl bg-neutral-100 p-0.5 dark:bg-white/8">
               <ToggleChip
                 active={settings.theme === "light"}
                 onClick={() => onChange("theme", "light")}
@@ -155,8 +163,10 @@ function CaptureSettingsPopover({
             </div>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-[13px] text-muted-foreground">Delay</span>
-            <div className="flex items-center gap-0.5 rounded-xl bg-foreground/[0.06] p-0.5">
+            <span className="text-[13px] text-neutral-500 dark:text-white/55">
+              Delay
+            </span>
+            <div className="flex items-center gap-0.5 rounded-xl bg-neutral-100 p-0.5 dark:bg-white/8">
               {(["none", "2s", "5s"] as CaptureDelay[]).map((d) => (
                 <ToggleChip
                   key={d}
@@ -245,7 +255,7 @@ export function UploadCard({
               transformOrigin: "center",
             }}
             className={cn(
-              "pointer-events-auto grid place-items-center rounded-full border-2 border-primary bg-white text-foreground shadow-[0_0_0_3px_rgba(0,0,0,0.06),0_6px_20px_-6px_rgba(0,0,0,0.18)] backdrop-blur-sm transition-[background-color,border-color] hover:bg-neutral-50 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:shadow-[0_0_0_4px_rgba(0,0,0,0.4),0_8px_24px_-8px_rgba(0,0,0,0.6)]",
+              "pointer-events-auto grid place-items-center rounded-full border-2 border-primary bg-white text-neutral-950 shadow-[0_0_0_3px_rgba(0,0,0,0.06),0_6px_20px_-6px_rgba(0,0,0,0.18)] backdrop-blur-sm transition-[background-color,border-color] hover:bg-neutral-50 dark:bg-neutral-900 dark:text-white dark:shadow-[0_0_0_4px_rgba(0,0,0,0.4),0_8px_24px_-8px_rgba(0,0,0,0.6)] dark:hover:bg-neutral-800",
               "size-[clamp(1.5rem,9.9cqw,3.5rem)]",
               className
             )}
@@ -258,7 +268,7 @@ export function UploadCard({
           align="center"
           sideOffset={8}
           onPointerDown={(e) => e.stopPropagation()}
-          className="w-[320px] rounded-2xl border border-border/50 bg-white p-0 shadow-xl shadow-black/10 dark:bg-neutral-950 dark:shadow-black/40"
+          className="w-[320px] rounded-2xl border border-neutral-200 bg-white p-0 text-neutral-950 shadow-xl shadow-black/10 dark:border-white/10 dark:bg-neutral-950 dark:text-white dark:shadow-black/40"
         >
           <UploadCard
             isDragOver={isDragOver}
@@ -348,7 +358,12 @@ export function UploadCard({
   }
 
   return (
-    <div className={cn("flex flex-col gap-2 p-2.5", className)}>
+    <div
+      className={cn(
+        "flex flex-col gap-2 p-2.5 text-neutral-950 dark:text-white",
+        className
+      )}
+    >
       <button
         type="button"
         onPointerDown={(e) => e.stopPropagation()}
@@ -369,9 +384,9 @@ export function UploadCard({
       <div className="flex items-center gap-1.5">
         <label
           onPointerDown={(e) => e.stopPropagation()}
-          className="flex min-h-10 flex-1 items-center gap-2 rounded-md border border-border/60 bg-muted/40 px-3 text-left transition-colors focus-within:border-border focus-within:bg-muted/60 dark:border-border/30 dark:bg-foreground/[0.06] dark:focus-within:bg-foreground/[0.1]"
+          className="flex min-h-10 flex-1 items-center gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-3 text-left transition-colors focus-within:border-neutral-300 focus-within:bg-white dark:border-white/10 dark:bg-white/8 dark:focus-within:bg-white/12"
         >
-          <RiLink className="size-4 shrink-0 text-muted-foreground/60" />
+          <RiLink className="size-4 shrink-0 text-neutral-400 dark:text-white/35" />
           <input
             type="text"
             inputMode="url"
@@ -382,7 +397,7 @@ export function UploadCard({
             onKeyDown={(e) => {
               if (e.key === "Enter") handleCapture(e)
             }}
-            className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent text-[13px] text-neutral-950 placeholder:text-neutral-400 focus:outline-none dark:text-white dark:placeholder:text-white/35"
             onClick={(e) => e.stopPropagation()}
           />
         </label>
@@ -396,7 +411,7 @@ export function UploadCard({
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => handleCapture(e)}
         className={cn(
-          "flex w-full items-center justify-center gap-2 rounded-md border border-border/60 bg-muted/40 py-2.5 text-[13px] font-medium text-muted-foreground transition-all hover:bg-muted/70 hover:text-foreground dark:border-transparent dark:bg-foreground/[0.06] dark:hover:bg-foreground/10",
+          "flex w-full items-center justify-center gap-2 rounded-md border border-neutral-200 bg-neutral-50 py-2.5 text-[13px] font-medium text-neutral-500 transition-all hover:bg-neutral-100 hover:text-neutral-800 dark:border-white/10 dark:bg-white/8 dark:text-white/45 dark:hover:bg-white/12 dark:hover:text-white/75",
           url === PREFIX && "cursor-default opacity-50"
         )}
       >
@@ -404,9 +419,9 @@ export function UploadCard({
         Capture Screenshot
       </button>
       {showHint && (
-        <div className="-mx-2.5 mt-0.5 -mb-2.5 flex items-center justify-center border-t border-border/30 px-4 py-2.5">
-          <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/50">
-            <kbd className="rounded border border-border/50 bg-foreground/[0.06] px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+        <div className="-mx-2.5 mt-0.5 -mb-2.5 flex items-center justify-center border-t border-neutral-200 px-4 py-2.5 dark:border-white/10">
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-neutral-400 dark:text-white/40">
+            <kbd className="rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 font-mono text-[10px] text-neutral-500 dark:border-white/10 dark:bg-white/10 dark:text-white/70">
               ⌘V
             </kbd>
             paste · drop · or click upload
