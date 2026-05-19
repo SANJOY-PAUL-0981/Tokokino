@@ -164,11 +164,34 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 function AccountTile() {
-  const { data: session } = useSession()
+  const { data: session, isPending: isAuthPending } = useSession()
   const [expanded, setExpanded] = React.useState(false)
   const [isSigningOut, setIsSigningOut] = React.useState(false)
+  const [isHydrated, setIsHydrated] = React.useState(false)
+
+  React.useEffect(() => {
+    setIsHydrated(true)
+  }, [])
 
   const user = session?.user
+  if (!isHydrated || isAuthPending) {
+    return (
+      <div className="shrink-0 border-t border-dashed border-border/70 px-4 py-2.5">
+        <div
+          className="flex h-12 w-full items-center gap-2.5 rounded-md px-1.5"
+          aria-hidden
+        >
+          <span className="size-8 shrink-0 rounded-full bg-secondary ring-1 ring-border/70" />
+          <span className="min-w-0 flex-1 space-y-1.5">
+            <span className="block h-3 w-24 rounded bg-secondary" />
+            <span className="block h-2.5 w-32 rounded bg-secondary/80" />
+          </span>
+          <span className="size-4 shrink-0 rounded bg-secondary/80" />
+        </div>
+      </div>
+    )
+  }
+
   if (!user) {
     return (
       <div className="shrink-0 border-t border-dashed border-border/70 px-4 py-2.5">
