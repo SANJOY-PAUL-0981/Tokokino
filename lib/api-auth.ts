@@ -2,7 +2,7 @@ import "server-only"
 
 import { NextResponse } from "next/server"
 
-import { auth } from "@/lib/auth"
+import { getAuth } from "@/lib/auth"
 
 export type AuthorizedSession = {
   user: {
@@ -16,6 +16,7 @@ export async function requireSession(request: Request): Promise<
   | { ok: true; session: AuthorizedSession }
   | { ok: false; response: NextResponse }
 > {
+  const auth = getAuth()
   const session = await auth.api.getSession({ headers: request.headers })
   if (!session) {
     return {

@@ -2,20 +2,21 @@ import { MongoClient } from "mongodb"
 
 import { env } from "@/lib/env"
 
-const mongoUri = env.MONGODB_URI
-
-if (!mongoUri) {
-  throw new Error("Please provide a MONGODB_URI in your environment variables")
-}
-
 const globalForMongo = globalThis as unknown as {
   mongoClient?: MongoClient
   mongoClientPromise?: Promise<MongoClient>
 }
 
+function getMongoUri() {
+  if (!env.MONGODB_URI) {
+    throw new Error("Please provide a MONGODB_URI in your environment variables")
+  }
+  return env.MONGODB_URI
+}
+
 export function getMongoClient() {
   if (!globalForMongo.mongoClient) {
-    globalForMongo.mongoClient = new MongoClient(mongoUri!)
+    globalForMongo.mongoClient = new MongoClient(getMongoUri())
   }
   return globalForMongo.mongoClient
 }

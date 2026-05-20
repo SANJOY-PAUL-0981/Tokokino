@@ -25,37 +25,77 @@ import { cn } from "@/lib/utils"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Tokokino — Create Stunning Screenshots Instantly",
+  metadataBase: new URL("https://tokokino.com"),
+  applicationName: "Tokokino",
+  title: {
+    default: "Tokokino - Beautiful Screenshot Mockups",
+    template: "%s | Tokokino",
+  },
   description:
-    "Transform screenshots into beautiful, share-ready visuals with device mockups, browser frames, gradients, and more. Free, fast, and right in your browser.",
+    "Create polished screenshot mockups with browser frames, device frames, gradients, backgrounds, shadows, annotations, and export-ready visuals.",
   keywords: [
-    "screenshot",
-    "mockup",
-    "device frame",
-    "browser frame",
+    "screenshot mockup generator",
     "beautiful screenshots",
+    "website screenshot mockup",
+    "app screenshot mockup",
+    "browser frame mockup",
+    "device frame mockup",
     "screenshot editor",
-    "design tool",
+    "social media screenshot",
+    "product screenshot",
+    "Tokokino",
   ],
   authors: [{ name: "Shiva Bhattacharjee" }],
   creator: "Shiva Bhattacharjee",
+  publisher: "Tokokino",
+  category: "Design",
+  alternates: {
+    canonical: "/",
+  },
+  icons: {
+    icon: [{ url: "/logo.png", sizes: "512x512", type: "image/png" }],
+    apple: [{ url: "/logo.png", sizes: "512x512", type: "image/png" }],
+  },
   openGraph: {
-    title: "Beautiful Screenshots",
+    title: "Tokokino - Beautiful Screenshot Mockups",
     description:
-      "Create stunning, share-ready screenshots with device mockups, browser frames, and custom backgrounds.",
+      "Turn raw screenshots into polished website, app, and product visuals with frames, backgrounds, shadows, annotations, and fast exports.",
+    url: "/",
     type: "website",
     locale: "en_US",
-    siteName: "Beautiful Screenshots",
+    siteName: "Tokokino",
+    images: [
+      {
+        url: "/opengraph.png",
+        width: 1920,
+        height: 1008,
+        alt: "Tokokino screenshot mockup editor preview",
+        type: "image/png",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Beautiful Screenshots",
+    title: "Tokokino - Beautiful Screenshot Mockups",
     description:
-      "Create stunning, share-ready screenshots with device mockups, browser frames, and custom backgrounds.",
+      "Create polished screenshot mockups for websites, apps, products, decks, and social posts.",
+    images: [
+      {
+        url: "/opengraph.png",
+        alt: "Tokokino screenshot mockup editor preview",
+      },
+    ],
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
   },
 }
 

@@ -58,6 +58,30 @@ import { cn } from "@/lib/utils"
 
 const POP_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
+function useLazyVisible(rootMargin = "200px") {
+  const ref = React.useRef<HTMLButtonElement | null>(null)
+  const [visible, setVisible] = React.useState(false)
+  React.useEffect(() => {
+    const node = ref.current
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setVisible(true)
+      return
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setVisible(true)
+          io.disconnect()
+        }
+      },
+      { rootMargin }
+    )
+    io.observe(node)
+    return () => io.disconnect()
+  }, [rootMargin])
+  return { ref, visible }
+}
+
 type FrameKind = "browser" | "phone" | "tablet" | "watch" | "desktop" | "none"
 type ImageFit = "contain" | "cover" | "fill"
 
@@ -336,27 +360,17 @@ export function FramePopover({
               </div>
 
               <div className={frameSectionGridClass(section.id)}>
-                {section.options.map((option, optIdx) => (
-                  <motion.div
+                {section.options.map((option) => (
+                  <DeviceTile
                     key={option.id}
-                    initial={{ opacity: 0, scale: 0.9, y: 6 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{
-                      duration: 0.28,
-                      ease: POP_EASE,
-                      delay: 0.08 + idx * 0.035 + Math.min(optIdx, 10) * 0.018,
-                    }}
-                  >
-                    <DeviceTile
-                      option={option}
-                      selectedColor={currentColor}
-                      active={value.id === option.id}
-                      screenshot={previewScreenshot}
-                      imageFit={imageFit}
-                      compact={isCompactFrameSection(section.id)}
-                      onSelect={selectFrame}
-                    />
-                  </motion.div>
+                    option={option}
+                    selectedColor={currentColor}
+                    active={value.id === option.id}
+                    screenshot={previewScreenshot}
+                    imageFit={imageFit}
+                    compact={isCompactFrameSection(section.id)}
+                    onSelect={selectFrame}
+                  />
                 ))}
               </div>
             </motion.div>
@@ -477,6 +491,7 @@ const DeviceTile = React.memo(function DeviceTile({
   compact?: boolean
   onSelect: (option: FrameOption) => void
 }) {
+  const { ref, visible } = useLazyVisible()
   const device = option.isDevice ? getDeviceMockup(option.id) : undefined
   const tileColor = resolveFrameColor(option, device, selectedColor)
   const portraitAsset = option.isDevice
@@ -493,6 +508,7 @@ const DeviceTile = React.memo(function DeviceTile({
 
   return (
     <button
+      ref={ref}
       onClick={() => onSelect(option)}
       aria-pressed={active}
       className={cn(
@@ -507,7 +523,9 @@ const DeviceTile = React.memo(function DeviceTile({
           compact ? "h-[78px]" : "h-[88px]"
         )}
       >
-        {option.kind === "browser" ? (
+        {!visible ? (
+          <div className="h-full w-full rounded-md bg-secondary/30" />
+        ) : option.kind === "browser" ? (
           <BrowserTilePreview
             frameId={option.id}
             color={tileColor}

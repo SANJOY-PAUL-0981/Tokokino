@@ -7,7 +7,7 @@ const MAX_REDIRECTS = 5
 const IMAGE_FETCH_HEADERS = {
   Accept:
     "image/avif,image/webp,image/png,image/jpeg,image/svg+xml,image/*,*/*;q=0.8",
-  "User-Agent": "BeautifulScreenshotsExport/1.0",
+  "User-Agent": "TokokinoExport/1.0",
 }
 
 export async function GET(request: Request) {

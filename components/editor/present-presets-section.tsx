@@ -1478,6 +1478,10 @@ const LayoutPresetCard = React.memo(function LayoutPresetCard({
   )
 })
 
+// Render previews at a fraction of BASE_CANVAS_WIDTH — the sidebar cards
+// are ~260px wide, so 440px gives 2× quality without painting 1100px of pixels.
+const PRESET_PREVIEW_WIDTH = 440
+
 const CanvasPresetPreview = React.memo(function CanvasPresetPreview({
   aspect,
   virtualCanvas,
@@ -1490,8 +1494,8 @@ const CanvasPresetPreview = React.memo(function CanvasPresetPreview({
   const previewRef = React.useRef<HTMLDivElement>(null)
   const aw = aspect.w || 16
   const ah = aspect.h || 10
-  const stageWidth = BASE_CANVAS_WIDTH
-  const stageHeight = (BASE_CANVAS_WIDTH * ah) / aw
+  const stageWidth = PRESET_PREVIEW_WIDTH
+  const stageHeight = (PRESET_PREVIEW_WIDTH * ah) / aw
   const previewScale = useContainScale(previewRef, stageWidth, stageHeight)
   return (
     <div ref={previewRef} className="pointer-events-none absolute inset-0">

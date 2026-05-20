@@ -18,9 +18,18 @@ import type { EditorStore } from "../store"
 
 export const EDITOR_DRAFT_DB_NAME = "tokokino-editor"
 export const EDITOR_DRAFT_STORE_NAME = "drafts"
+// Screenshots live in a separate store as native Blobs — much faster IDB
+// read/write than embedding base64 strings in JSON.
+const SCREENSHOT_BLOB_STORE_NAME = "screenshot-blobs"
 export const EDITOR_DRAFT_KEY = "current"
-export const EDITOR_DRAFT_SCHEMA_VERSION = 1
+// Bumped to 2: adds the screenshot-blobs object store.
+export const EDITOR_DRAFT_SCHEMA_VERSION = 2
 export const EDITOR_DRAFT_SAVE_DELAY_MS = 250
+
+// Prefix that marks a field as a reference into the blob store rather than
+// an inline data URL.  Old v1 drafts with real data URLs are unaffected
+// because data URLs start with "data:".
+const BLOB_SENTINEL_PREFIX = "@idb:"
 
 export type CurrentDraftInfo = {
   id: string
@@ -53,6 +62,332 @@ export type PersistedEditorDraft = {
 
 export const isBrowserIndexedDbAvailable = () =>
   typeof window !== "undefined" && "indexedDB" in window
+
+// ---------------------------------------------------------------------------
+// Blob helpers
+// ---------------------------------------------------------------------------
+
+function isDataUrl(v: string | null | undefined): v is string {
+  return typeof v === "string" && v.startsWith("data:")
+}
+
+function isSentinel(v: string | null | undefined): v is string {
+  return typeof v === "string" && v.startsWith(BLOB_SENTINEL_PREFIX)
+}
+
+function dataUrlToBlob(dataUrl: string): Blob {
+  const comma = dataUrl.indexOf(",")
+  const header = dataUrl.slice(0, comma)
+  const data = dataUrl.slice(comma + 1)
+  const mime = header.match(/:(.*?);/)?.[1] ?? "image/png"
+  const binary = atob(data)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return new Blob([bytes], { type: mime })
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Screenshot extraction (data URLs → Blobs) for write path
+// ---------------------------------------------------------------------------
+
+type BlobMap = Record<string, Blob>
+
+function extractScreenshots(state: EditorState): {
+  stripped: EditorState
+  blobs: BlobMap
+} {
+  const blobs: BlobMap = {}
+
+  const canvases = state.canvases.map((canvas) => {
+    const result: CanvasState = { ...canvas }
+
+    if (isDataUrl(canvas.screenshot)) {
+      const key = `screenshot:${canvas.id}`
+      blobs[key] = dataUrlToBlob(canvas.screenshot)
+      result.screenshot = `${BLOB_SENTINEL_PREFIX}${key}`
+    }
+
+    if (isDataUrl(canvas.originalScreenshot)) {
+      const key = `original:${canvas.id}`
+      blobs[key] = dataUrlToBlob(canvas.originalScreenshot)
+      result.originalScreenshot = `${BLOB_SENTINEL_PREFIX}${key}`
+    }
+
+    // Uploaded background images can also be large data URLs
+    if (
+      canvas.background.type === "image" &&
+      isDataUrl(canvas.background.value)
+    ) {
+      const key = `bg:${canvas.id}`
+      blobs[key] = dataUrlToBlob(canvas.background.value)
+      result.background = {
+        ...canvas.background,
+        value: `${BLOB_SENTINEL_PREFIX}${key}`,
+      }
+    }
+
+    result.screenshotSlots = canvas.screenshotSlots.map((slot) => {
+      if (!isDataUrl(slot.src)) return slot
+      const key = `slot:${canvas.id}:${slot.id}`
+      blobs[key] = dataUrlToBlob(slot.src)
+      return { ...slot, src: `${BLOB_SENTINEL_PREFIX}${key}` }
+    })
+
+    return result
+  })
+
+  return { stripped: { ...state, canvases }, blobs }
+}
+
+// ---------------------------------------------------------------------------
+// Screenshot resolution (Blobs → data URLs) for read path
+// ---------------------------------------------------------------------------
+
+function readBlobsFromDb(
+  db: IDBDatabase,
+  keys: string[]
+): Promise<Record<string, Blob>> {
+  return new Promise<Record<string, Blob>>((resolve) => {
+    const result: Record<string, Blob> = {}
+    if (keys.length === 0) {
+      resolve(result)
+      return
+    }
+    const transaction = db.transaction(SCREENSHOT_BLOB_STORE_NAME, "readonly")
+    const store = transaction.objectStore(SCREENSHOT_BLOB_STORE_NAME)
+    let pending = keys.length
+
+    const done = () => {
+      if (--pending === 0) resolve(result)
+    }
+
+    for (const key of keys) {
+      const req = store.get(key)
+      req.onsuccess = () => {
+        if (req.result instanceof Blob) result[key] = req.result
+        done()
+      }
+      req.onerror = done
+    }
+
+    // Resolve even if the whole transaction errors (blob store may not exist
+    // in an old v1 DB that hasn't been upgraded yet).
+    transaction.onerror = () => resolve(result)
+    transaction.onabort = () => resolve(result)
+  })
+}
+
+async function resolveScreenshots(
+  state: EditorState,
+  db: IDBDatabase
+): Promise<EditorState> {
+  // Collect all sentinel keys that need to be resolved
+  const keys: string[] = []
+  for (const canvas of state.canvases) {
+    if (isSentinel(canvas.screenshot))
+      keys.push(canvas.screenshot.slice(BLOB_SENTINEL_PREFIX.length))
+    if (isSentinel(canvas.originalScreenshot))
+      keys.push(canvas.originalScreenshot.slice(BLOB_SENTINEL_PREFIX.length))
+    if (
+      canvas.background.type === "image" &&
+      isSentinel(canvas.background.value)
+    )
+      keys.push(canvas.background.value.slice(BLOB_SENTINEL_PREFIX.length))
+    for (const slot of canvas.screenshotSlots) {
+      if (isSentinel(slot.src))
+        keys.push(slot.src.slice(BLOB_SENTINEL_PREFIX.length))
+    }
+  }
+
+  if (keys.length === 0) return state
+
+  const blobMap = await readBlobsFromDb(db, keys)
+
+  // Convert all found blobs to data URLs concurrently
+  const dataUrls: Record<string, string> = {}
+  await Promise.all(
+    Object.entries(blobMap).map(async ([key, blob]) => {
+      dataUrls[key] = await blobToDataUrl(blob)
+    })
+  )
+
+  const resolve = (v: string | null | undefined): string | null => {
+    if (!isSentinel(v)) return v ?? null
+    const key = v.slice(BLOB_SENTINEL_PREFIX.length)
+    // If the blob is missing (corrupted store), fall back to null so the
+    // canvas shows the empty-state rather than a broken reference.
+    return dataUrls[key] ?? null
+  }
+
+  const canvases = state.canvases.map((canvas) => ({
+    ...canvas,
+    screenshot: resolve(canvas.screenshot),
+    originalScreenshot: resolve(canvas.originalScreenshot),
+    background:
+      canvas.background.type === "image" &&
+      isSentinel(canvas.background.value)
+        ? { ...canvas.background, value: resolve(canvas.background.value) ?? "" }
+        : canvas.background,
+    screenshotSlots: canvas.screenshotSlots.map((slot) => ({
+      ...slot,
+      src: resolve(slot.src),
+    })),
+  }))
+
+  return { ...state, canvases }
+}
+
+// ---------------------------------------------------------------------------
+// DB open
+// ---------------------------------------------------------------------------
+
+function openEditorDraftDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (!isBrowserIndexedDbAvailable()) {
+      reject(new Error("IndexedDB is not available"))
+      return
+    }
+
+    const request = window.indexedDB.open(
+      EDITOR_DRAFT_DB_NAME,
+      EDITOR_DRAFT_SCHEMA_VERSION
+    )
+
+    request.onupgradeneeded = () => {
+      const db = request.result
+      if (!db.objectStoreNames.contains(EDITOR_DRAFT_STORE_NAME)) {
+        db.createObjectStore(EDITOR_DRAFT_STORE_NAME, { keyPath: "id" })
+      }
+      if (!db.objectStoreNames.contains(SCREENSHOT_BLOB_STORE_NAME)) {
+        db.createObjectStore(SCREENSHOT_BLOB_STORE_NAME)
+      }
+    }
+    request.onerror = () =>
+      reject(request.error ?? new Error("Failed to open editor draft database"))
+    request.onsuccess = () => resolve(request.result)
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+export function readEditorDraft(): Promise<PersistedEditorDraft | null> {
+  return openEditorDraftDb().then(async (db) => {
+    try {
+      // Read the (now small) JSON draft record
+      const draft = await new Promise<PersistedEditorDraft | null>(
+        (resolve, reject) => {
+          const tx = db.transaction(EDITOR_DRAFT_STORE_NAME, "readonly")
+          const req = tx.objectStore(EDITOR_DRAFT_STORE_NAME).get(EDITOR_DRAFT_KEY)
+          req.onsuccess = () =>
+            resolve((req.result as PersistedEditorDraft | undefined) ?? null)
+          req.onerror = () =>
+            reject(req.error ?? new Error("Failed to read editor draft"))
+        }
+      )
+      if (!draft) {
+        db.close()
+        return null
+      }
+      // Resolve blob sentinels back to data URLs
+      const present = await resolveScreenshots(draft.present, db)
+      db.close()
+      return { ...draft, present }
+    } catch (err) {
+      db.close()
+      throw err
+    }
+  })
+}
+
+export function writeEditorDraft(draft: PersistedEditorDraft): Promise<void> {
+  return openEditorDraftDb().then((db) => {
+    return new Promise<void>((resolve, reject) => {
+      // Extract screenshots synchronously before any async IDB operations so
+      // we capture the state at the moment writeEditorDraft was called.
+      const { stripped, blobs } = extractScreenshots(draft.present)
+      const slimDraft: PersistedEditorDraft = { ...draft, present: stripped }
+      const validKeys = new Set(Object.keys(blobs))
+
+      const tx = db.transaction(
+        [EDITOR_DRAFT_STORE_NAME, SCREENSHOT_BLOB_STORE_NAME],
+        "readwrite"
+      )
+      const draftsStore = tx.objectStore(EDITOR_DRAFT_STORE_NAME)
+      const blobsStore = tx.objectStore(SCREENSHOT_BLOB_STORE_NAME)
+
+      // Write the slim JSON draft
+      draftsStore.put(slimDraft)
+
+      // Upsert current blobs
+      for (const [key, blob] of Object.entries(blobs)) {
+        blobsStore.put(blob, key)
+      }
+
+      // Delete orphaned blobs (canvases that were removed since last save)
+      const keysReq = blobsStore.getAllKeys()
+      keysReq.onsuccess = () => {
+        for (const key of keysReq.result as string[]) {
+          if (!validKeys.has(key)) blobsStore.delete(key)
+        }
+      }
+
+      tx.oncomplete = () => {
+        db.close()
+        resolve()
+      }
+      tx.onerror = () => {
+        db.close()
+        reject(tx.error ?? new Error("Failed to save editor draft"))
+      }
+      tx.onabort = () => {
+        db.close()
+        reject(tx.error ?? new Error("Editor draft save aborted"))
+      }
+    })
+  })
+}
+
+// createEditorDraftSnapshot no longer clones the full state with
+// JSON.parse(JSON.stringify) — that was O(screenshot-bytes) on every save.
+// The blob extraction in writeEditorDraft captures the current state values
+// synchronously, so the snapshot reference is safe.
+export function createEditorDraftSnapshot(
+  state: EditorStore
+): PersistedEditorDraft {
+  return {
+    id: EDITOR_DRAFT_KEY,
+    schemaVersion: EDITOR_DRAFT_SCHEMA_VERSION,
+    updatedAt: Date.now(),
+    present: state.present,
+    ui: {
+      bulkEditMode: state.bulkEditMode,
+      bulkViewportZoom: state.bulkViewportZoom,
+      bulkScale: state.bulkScale,
+      presetTab: state.presetTab,
+      activeLayoutPresetId: state.activeLayoutPresetId,
+      activeCustomPresetId: state.activeCustomPresetId,
+      activeSinglePresetId: state.activeSinglePresetId,
+      previewAutoScrollDelay: state.previewAutoScrollDelay,
+      previewAnimation: state.previewAnimation,
+      currentDraft: state.currentDraft,
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// State normalization (unchanged — used on hydration)
+// ---------------------------------------------------------------------------
 
 const cloneEditorState = (state: EditorState): EditorState =>
   JSON.parse(JSON.stringify(state)) as EditorState
@@ -152,99 +487,6 @@ export function normalizeEditorState(
     annotation: { ...fallback.annotation, ...(state.annotation ?? {}) },
     canvases,
     activeCanvasId: activeCanvasId ?? FIRST_CANVAS_ID,
-  }
-}
-
-function openEditorDraftDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (!isBrowserIndexedDbAvailable()) {
-      reject(new Error("IndexedDB is not available"))
-      return
-    }
-
-    const request = window.indexedDB.open(
-      EDITOR_DRAFT_DB_NAME,
-      EDITOR_DRAFT_SCHEMA_VERSION
-    )
-
-    request.onupgradeneeded = () => {
-      const db = request.result
-      if (!db.objectStoreNames.contains(EDITOR_DRAFT_STORE_NAME)) {
-        db.createObjectStore(EDITOR_DRAFT_STORE_NAME, { keyPath: "id" })
-      }
-    }
-    request.onerror = () =>
-      reject(request.error ?? new Error("Failed to open editor draft database"))
-    request.onsuccess = () => resolve(request.result)
-  })
-}
-
-export function readEditorDraft(): Promise<PersistedEditorDraft | null> {
-  return new Promise((resolve, reject) => {
-    void openEditorDraftDb()
-      .then((db) => {
-        const transaction = db.transaction(EDITOR_DRAFT_STORE_NAME, "readonly")
-        const store = transaction.objectStore(EDITOR_DRAFT_STORE_NAME)
-        const request = store.get(EDITOR_DRAFT_KEY)
-
-        request.onerror = () => {
-          db.close()
-          reject(request.error ?? new Error("Failed to read editor draft"))
-        }
-        request.onsuccess = () => {
-          db.close()
-          resolve((request.result as PersistedEditorDraft | undefined) ?? null)
-        }
-      })
-      .catch(reject)
-  })
-}
-
-export function writeEditorDraft(draft: PersistedEditorDraft): Promise<void> {
-  return new Promise((resolve, reject) => {
-    void openEditorDraftDb()
-      .then((db) => {
-        const transaction = db.transaction(EDITOR_DRAFT_STORE_NAME, "readwrite")
-        const store = transaction.objectStore(EDITOR_DRAFT_STORE_NAME)
-        store.put(draft)
-
-        transaction.oncomplete = () => {
-          db.close()
-          resolve()
-        }
-        transaction.onerror = () => {
-          db.close()
-          reject(transaction.error ?? new Error("Failed to save editor draft"))
-        }
-        transaction.onabort = () => {
-          db.close()
-          reject(transaction.error ?? new Error("Editor draft save aborted"))
-        }
-      })
-      .catch(reject)
-  })
-}
-
-export function createEditorDraftSnapshot(
-  state: EditorStore
-): PersistedEditorDraft {
-  return {
-    id: EDITOR_DRAFT_KEY,
-    schemaVersion: EDITOR_DRAFT_SCHEMA_VERSION,
-    updatedAt: Date.now(),
-    present: cloneEditorState(state.present),
-    ui: {
-      bulkEditMode: state.bulkEditMode,
-      bulkViewportZoom: state.bulkViewportZoom,
-      bulkScale: state.bulkScale,
-      presetTab: state.presetTab,
-      activeLayoutPresetId: state.activeLayoutPresetId,
-      activeCustomPresetId: state.activeCustomPresetId,
-      activeSinglePresetId: state.activeSinglePresetId,
-      previewAutoScrollDelay: state.previewAutoScrollDelay,
-      previewAnimation: state.previewAnimation,
-      currentDraft: state.currentDraft,
-    },
   }
 }
 
