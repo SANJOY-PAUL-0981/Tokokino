@@ -22,7 +22,7 @@ export type DeviceMockup = {
   assets: DeviceMockupAsset[]
 }
 
-const R2_PUBLIC_BASE_URL = env.NEXT_PUBLIC_R2_PUBLIC_BASE.replace(/\/$/, "")
+const R2_PUBLIC_BASE_URL = (env.NEXT_PUBLIC_R2_PUBLIC_BASE ?? "").replace(/\/$/, "")
 
 export const DEVICE_MOCKUPS_BASE_URL = `${R2_PUBLIC_BASE_URL}/Device-Mockups/device-mockups`
 export const DEVICE_MOCKUP_THUMBNAILS_BASE_URL = `${DEVICE_MOCKUPS_BASE_URL}/thumbnails`

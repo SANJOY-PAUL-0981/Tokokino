@@ -17,6 +17,6 @@ export function getShareImageUrl(id: string, baseUrl?: string | URL) {
 }
 
 export function getPublicShareImageUrl(id: string) {
-  const publicBase = env.NEXT_PUBLIC_R2_PUBLIC_BASE.replace(/\/$/, "")
+  const publicBase = (env.NEXT_PUBLIC_R2_PUBLIC_BASE ?? "").replace(/\/$/, "")
   return `${publicBase}/${getShareObjectKey(id)}`
 }
