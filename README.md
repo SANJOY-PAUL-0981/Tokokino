@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/b8d39faf-200e-468a-80b1-0bc0025e1867"alt="Tokokino Logo" width="84" height="84" />
+  <img src="https://github.com/user-attachments/assets/1103aebf-c59b-4ed6-b830-b82aa1b71f80" alt="Tokokino Logo" width="184" height="184" />
 </p>
 
 <h1 align="center">Tokokino</h1>
