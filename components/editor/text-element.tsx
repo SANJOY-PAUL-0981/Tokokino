@@ -293,11 +293,6 @@ export function TextElementView({ text, canvasRef, onCenterGuideChange, previewM
       el.style.top = `${clampedY}%`
       setToolbarRect(el.getBoundingClientRect())
     }
-    // Store the latest values for commit
-    drag.startXPct = clampedX
-    drag.startYPct = clampedY
-    drag.startClientX = e.clientX
-    drag.startClientY = e.clientY
   }, [setToolbarRect])
 
   const endDrag = React.useCallback((e: React.PointerEvent<Element>) => {
