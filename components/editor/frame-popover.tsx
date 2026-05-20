@@ -59,6 +59,7 @@ import { cn } from "@/lib/utils"
 const POP_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 type FrameKind = "browser" | "phone" | "tablet" | "watch" | "desktop" | "none"
+type ImageFit = "contain" | "cover" | "fill"
 
 type FrameOption = {
   id: string
@@ -199,10 +200,12 @@ export function FramePopover({
   value,
   onChange,
   previewImage,
+  imageFit = "cover",
 }: {
   value: DeviceFrame
   onChange: (frame: DeviceFrame) => void
   previewImage?: string | null
+  imageFit?: ImageFit
 }) {
   const [open, setOpen] = React.useState(false)
   const [query, setQuery] = React.useState("")
@@ -349,6 +352,7 @@ export function FramePopover({
                       selectedColor={currentColor}
                       active={value.id === option.id}
                       screenshot={previewScreenshot}
+                      imageFit={imageFit}
                       compact={isCompactFrameSection(section.id)}
                       onSelect={selectFrame}
                     />
@@ -416,34 +420,36 @@ export function FramePopover({
                     Orientation
                   </div>
                   <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-secondary/40 p-0.5">
-                    {(["vertical", "horizontal"] as const).map((orientation) => {
-                      const active = effectiveOrientation === orientation
-                      return (
-                        <button
-                          key={orientation}
-                          aria-label={formatOrientation(orientation)}
-                          title={formatOrientation(orientation)}
-                          onClick={() =>
-                            onChange({
-                              id: current.id,
-                              color: currentColor,
-                              orientation,
-                            })
-                          }
-                          className={cn(
-                            "flex flex-1 items-center justify-center rounded-md px-2 py-1.5 transition-colors",
-                            active
-                              ? "bg-background text-foreground shadow-sm"
-                              : "text-muted-foreground"
-                          )}
-                        >
-                          <OrientGlyph
-                            orientation={orientation}
-                            active={active}
-                          />
-                        </button>
-                      )
-                    })}
+                    {(["vertical", "horizontal"] as const).map(
+                      (orientation) => {
+                        const active = effectiveOrientation === orientation
+                        return (
+                          <button
+                            key={orientation}
+                            aria-label={formatOrientation(orientation)}
+                            title={formatOrientation(orientation)}
+                            onClick={() =>
+                              onChange({
+                                id: current.id,
+                                color: currentColor,
+                                orientation,
+                              })
+                            }
+                            className={cn(
+                              "flex flex-1 items-center justify-center rounded-md px-2 py-1.5 transition-colors",
+                              active
+                                ? "bg-background text-foreground shadow-sm"
+                                : "text-muted-foreground"
+                            )}
+                          >
+                            <OrientGlyph
+                              orientation={orientation}
+                              active={active}
+                            />
+                          </button>
+                        )
+                      }
+                    )}
                   </div>
                 </div>
               )}
@@ -459,6 +465,7 @@ const DeviceTile = React.memo(function DeviceTile({
   selectedColor,
   active,
   screenshot,
+  imageFit,
   compact = false,
   onSelect,
 }: {
@@ -466,6 +473,7 @@ const DeviceTile = React.memo(function DeviceTile({
   selectedColor: string
   active: boolean
   screenshot: string | null
+  imageFit: ImageFit
   compact?: boolean
   onSelect: (option: FrameOption) => void
 }) {
@@ -490,9 +498,7 @@ const DeviceTile = React.memo(function DeviceTile({
       className={cn(
         "group flex w-full flex-col items-center rounded-lg transition-colors",
         compact ? "min-h-[132px] gap-1 p-1.5" : "min-h-[150px] gap-1.5 p-2.5",
-        active
-          ? "bg-accent"
-          : "bg-secondary/25 hover:bg-secondary/55"
+        active ? "bg-accent" : "bg-secondary/25 hover:bg-secondary/55"
       )}
     >
       <div
@@ -506,6 +512,7 @@ const DeviceTile = React.memo(function DeviceTile({
             frameId={option.id}
             color={tileColor}
             screenshot={screenshot}
+            imageFit={imageFit}
           />
         ) : preview && spec ? (
           <DeviceTilePreview
@@ -513,6 +520,7 @@ const DeviceTile = React.memo(function DeviceTile({
             preview={preview}
             rotatePreview={rotatePreview}
             screenshot={screenshot}
+            imageFit={imageFit}
           />
         ) : preview ? (
           <img
@@ -542,7 +550,9 @@ const DeviceTile = React.memo(function DeviceTile({
 })
 
 function isCompactFrameSection(sectionId: string) {
-  return sectionId === "iphone" || sectionId === "android" || sectionId === "watch"
+  return (
+    sectionId === "iphone" || sectionId === "android" || sectionId === "watch"
+  )
 }
 
 function frameSectionGridClass(sectionId: string) {
@@ -559,11 +569,13 @@ const DeviceTilePreview = React.memo(function DeviceTilePreview({
   preview,
   rotatePreview,
   screenshot,
+  imageFit,
 }: {
   spec: ReturnType<typeof deviceMockupSpec>
   preview: string
   rotatePreview: boolean
   screenshot: string | null
+  imageFit: ImageFit
 }) {
   const screenRef = React.useRef<HTMLDivElement | null>(null)
   const [stageWidth, setStageWidth] = React.useState<number | undefined>(
@@ -605,7 +617,10 @@ const DeviceTilePreview = React.memo(function DeviceTilePreview({
             <img
               src={screenshot}
               alt=""
-              className="h-full w-full object-cover object-center"
+              className={cn(
+                "h-full w-full object-center",
+                imageFitClassName(imageFit)
+              )}
               loading="lazy"
             />
           ) : (
@@ -633,10 +648,12 @@ const BrowserTilePreview = React.memo(function BrowserTilePreview({
   frameId,
   color,
   screenshot,
+  imageFit,
 }: {
   frameId: string
   color: string
   screenshot: string | null
+  imageFit: ImageFit
 }) {
   const frame = getBrowserFrame(frameId)
   const scale = BROWSER_TILE_PREVIEW_WIDTH / BROWSER_TILE_PREVIEW_VIRTUAL_WIDTH
@@ -660,6 +677,7 @@ const BrowserTilePreview = React.memo(function BrowserTilePreview({
         {frameId === ARC_BROWSER_FRAME_ID ? (
           <Arc
             imageSrc={screenshot ?? frame?.previewImageUrl}
+            imageFit={imageFit}
             colorMode={color === "dark" ? "dark" : "light"}
             frameBorderRadius="5px"
             screenBorderRadius="4px"
@@ -668,6 +686,7 @@ const BrowserTilePreview = React.memo(function BrowserTilePreview({
         ) : frameId === CHROME_BROWSER_FRAME_ID ? (
           <Chrome
             imageSrc={screenshot ?? frame?.previewImageUrl}
+            imageFit={imageFit}
             colorMode={color === "dark" ? "dark" : "light"}
             url={screenshot ? frame?.defaultUrl : frame?.previewUrl}
             frameBorderRadius="5px"
@@ -677,6 +696,7 @@ const BrowserTilePreview = React.memo(function BrowserTilePreview({
         ) : (
           <Safari
             imageSrc={screenshot ?? frame?.previewImageUrl}
+            imageFit={imageFit}
             colorMode={color === "dark" ? "dark" : "light"}
             url={screenshot ? frame?.defaultUrl : frame?.previewUrl}
             screenBorderRadius="0 0 4px 4px"
@@ -687,6 +707,12 @@ const BrowserTilePreview = React.memo(function BrowserTilePreview({
     </div>
   )
 })
+
+function imageFitClassName(imageFit: ImageFit) {
+  if (imageFit === "contain") return "object-contain"
+  if (imageFit === "fill") return "object-fill"
+  return "object-cover"
+}
 
 function ScaledEmptyContent({
   stageWidth,

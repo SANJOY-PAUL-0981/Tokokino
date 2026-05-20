@@ -44,6 +44,7 @@ export function EffectsSidebar({
   const activeCanvasId = useEditorStore((s) => s.present.activeCanvasId)
   const bulkEditMode = useEditorStore((s) => s.bulkEditMode)
   const frame = useActiveCanvasField((c) => c.frame)
+  const objectFit = useActiveCanvasField((c) => c.objectFit)
   const setAspect = useEditorStore((s) => s.setAspect)
   const setCanvasAspect = useEditorStore((s) => s.setCanvasAspect)
   const setFrameForMatchingScreenshots = useEditorStore(
@@ -103,7 +104,14 @@ export function EffectsSidebar({
         showCompatibilityWarning(nextAspect, activeFrame, opt.name)
       }
     },
-    [bulkEditMode, activeCanvasId, setAspect, setCanvasAspect, activeFrame, showCompatibilityWarning]
+    [
+      bulkEditMode,
+      activeCanvasId,
+      setAspect,
+      setCanvasAspect,
+      activeFrame,
+      showCompatibilityWarning,
+    ]
   )
 
   return (
@@ -118,10 +126,7 @@ export function EffectsSidebar({
         <div className="space-y-4">
           <div>
             <SectionLabel>Aspect Ratio</SectionLabel>
-            <AspectPopover
-              value={aspect.id}
-              onChange={handleAspectChange}
-            />
+            <AspectPopover value={aspect.id} onChange={handleAspectChange} />
             {customSize ? (
               <p className="mt-1.5 px-0.5 font-mono text-[10px] text-muted-foreground">
                 Custom · {customSize.w} × {customSize.h}
@@ -133,6 +138,7 @@ export function EffectsSidebar({
             <FramePopover
               value={activeFrame}
               previewImage={selectedSlot ? selectedSlot.src : undefined}
+              imageFit={selectedSlot?.objectFit ?? objectFit ?? "cover"}
               onChange={(nextFrame) => {
                 setFrameForMatchingScreenshots(nextFrame)
                 showCompatibilityWarning(

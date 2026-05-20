@@ -19,6 +19,15 @@ const MOBILE_UA =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
 const DESKTOP_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+const SCREENSHOT_CACHE_TTL_SECONDS = 300
+const MAX_SCREENSHOT_CACHE_ENTRIES = 30
+
+type ScreenshotCacheEntry = {
+  buffer: ArrayBuffer
+  expiresAt: number
+}
+
+const screenshotCache = new Map<string, ScreenshotCacheEntry>()
 
 function heightFromAspect(
   width: number,
@@ -60,10 +69,17 @@ export async function POST(request: Request) {
 
   const { url, device, width, aspectRatio } = payload
   const isMobile = device === "mobile"
+  const cacheKey = screenshotCacheKey(payload)
+  const cached = getCachedScreenshot(cacheKey)
+  if (cached) {
+    return screenshotResponse(cached, "HIT")
+  }
+
   const client = new Cloudflare({ apiToken })
 
   const baseParams = {
     account_id: accountId,
+    cacheTTL: SCREENSHOT_CACHE_TTL_SECONDS,
     url,
     viewport: {
       width,
@@ -77,6 +93,7 @@ export async function POST(request: Request) {
   } satisfies Cloudflare.BrowserRendering.ScreenshotCreateParams
 
   // Some sites have long-polling / analytics that never let the network go
+  // idle. Try the stricter wait first; on timeout, retry with `load`.
   const attempts: Array<{
     waitUntil: "networkidle2" | "load"
     timeout: number
@@ -92,12 +109,8 @@ export async function POST(request: Request) {
         .create({ ...baseParams, gotoOptions })
         .asResponse()
       const buffer = await cfResponse.arrayBuffer()
-      return new NextResponse(buffer, {
-        headers: {
-          "Content-Type": "image/png",
-          "Cache-Control": "public, max-age=300, s-maxage=300",
-        },
-      })
+      setCachedScreenshot(cacheKey, buffer)
+      return screenshotResponse(buffer, "MISS")
     } catch (err) {
       if (!(err instanceof APIError)) throw err
       lastError = err
@@ -112,6 +125,50 @@ export async function POST(request: Request) {
     { error: friendly },
     { status: lastError?.status ?? 500 }
   )
+}
+
+function screenshotCacheKey(payload: z.infer<typeof requestSchema>) {
+  return JSON.stringify({
+    url: payload.url,
+    device: payload.device,
+    width: payload.width,
+    aspectRatio: payload.aspectRatio,
+  })
+}
+
+function getCachedScreenshot(key: string) {
+  const entry = screenshotCache.get(key)
+  if (!entry) return null
+  if (entry.expiresAt <= Date.now()) {
+    screenshotCache.delete(key)
+    return null
+  }
+  screenshotCache.delete(key)
+  screenshotCache.set(key, entry)
+  return entry.buffer
+}
+
+function setCachedScreenshot(key: string, buffer: ArrayBuffer) {
+  screenshotCache.set(key, {
+    buffer: buffer.slice(0),
+    expiresAt: Date.now() + SCREENSHOT_CACHE_TTL_SECONDS * 1000,
+  })
+
+  while (screenshotCache.size > MAX_SCREENSHOT_CACHE_ENTRIES) {
+    const oldestKey = screenshotCache.keys().next().value
+    if (!oldestKey) break
+    screenshotCache.delete(oldestKey)
+  }
+}
+
+function screenshotResponse(buffer: ArrayBuffer, cacheStatus: "HIT" | "MISS") {
+  return new NextResponse(buffer.slice(0), {
+    headers: {
+      "Content-Type": "image/png",
+      "Cache-Control": `public, max-age=${SCREENSHOT_CACHE_TTL_SECONDS}, s-maxage=${SCREENSHOT_CACHE_TTL_SECONDS}`,
+      "X-Screenshot-Cache": cacheStatus,
+    },
+  })
 }
 
 function isTimeoutError(err: APIError | null) {

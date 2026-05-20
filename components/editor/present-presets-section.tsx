@@ -273,6 +273,22 @@ function useContainScale(
 
 type PresetTab = "single" | "multi" | "triple" | "custom"
 
+type CanvasPresetUi = {
+  tab: PresetTab
+  activeLayoutPresetId: string | null
+  activeSinglePresetId: string | null
+  activeCustomPresetId: string | null
+}
+
+function emptyCanvasPresetUi(tab: PresetTab): CanvasPresetUi {
+  return {
+    tab,
+    activeLayoutPresetId: null,
+    activeSinglePresetId: null,
+    activeCustomPresetId: null,
+  }
+}
+
 const TAB_LABELS: Record<PresetTab, string> = {
   single: "Single",
   multi: "Multi",
@@ -288,37 +304,163 @@ function TabIcon({ t, active }: { t: PresetTab; active: boolean }) {
 
   if (t === "single") {
     return (
-      <svg width="44" height="30" viewBox="0 0 44 30" fill="none" className="shrink-0">
-        <rect x="8" y="4" width="28" height="22" rx="3" fill="currentColor" className={fill} />
-        <rect x="8" y="4" width="28" height="22" rx="3" stroke="currentColor" strokeWidth="1.5" className={stroke} />
+      <svg
+        width="44"
+        height="30"
+        viewBox="0 0 44 30"
+        fill="none"
+        className="shrink-0"
+      >
+        <rect
+          x="8"
+          y="4"
+          width="28"
+          height="22"
+          rx="3"
+          fill="currentColor"
+          className={fill}
+        />
+        <rect
+          x="8"
+          y="4"
+          width="28"
+          height="22"
+          rx="3"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className={stroke}
+        />
       </svg>
     )
   }
   if (t === "multi") {
     return (
-      <svg width="44" height="30" viewBox="0 0 44 30" fill="none" className="shrink-0">
-        <rect x="2" y="6" width="20" height="18" rx="2.5" fill="currentColor" className={fill} />
-        <rect x="2" y="6" width="20" height="18" rx="2.5" stroke="currentColor" strokeWidth="1.5" className={stroke} />
-        <rect x="24" y="9" width="18" height="15" rx="2" fill="currentColor" className={fillSm} />
-        <rect x="24" y="9" width="18" height="15" rx="2" stroke="currentColor" strokeWidth="1.5" className={strokeSm} />
+      <svg
+        width="44"
+        height="30"
+        viewBox="0 0 44 30"
+        fill="none"
+        className="shrink-0"
+      >
+        <rect
+          x="2"
+          y="6"
+          width="20"
+          height="18"
+          rx="2.5"
+          fill="currentColor"
+          className={fill}
+        />
+        <rect
+          x="2"
+          y="6"
+          width="20"
+          height="18"
+          rx="2.5"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className={stroke}
+        />
+        <rect
+          x="24"
+          y="9"
+          width="18"
+          height="15"
+          rx="2"
+          fill="currentColor"
+          className={fillSm}
+        />
+        <rect
+          x="24"
+          y="9"
+          width="18"
+          height="15"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className={strokeSm}
+        />
       </svg>
     )
   }
   if (t === "triple") {
     return (
-      <svg width="44" height="30" viewBox="0 0 44 30" fill="none" className="shrink-0">
-        <rect x="1" y="8" width="13" height="14" rx="2" fill="currentColor" className={fill} />
-        <rect x="1" y="8" width="13" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" className={stroke} />
-        <rect x="16" y="6" width="12" height="18" rx="2" fill="currentColor" className={fill} />
-        <rect x="16" y="6" width="12" height="18" rx="2" stroke="currentColor" strokeWidth="1.5" className={stroke} />
-        <rect x="30" y="8" width="13" height="14" rx="2" fill="currentColor" className={fillSm} />
-        <rect x="30" y="8" width="13" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" className={strokeSm} />
+      <svg
+        width="44"
+        height="30"
+        viewBox="0 0 44 30"
+        fill="none"
+        className="shrink-0"
+      >
+        <rect
+          x="1"
+          y="8"
+          width="13"
+          height="14"
+          rx="2"
+          fill="currentColor"
+          className={fill}
+        />
+        <rect
+          x="1"
+          y="8"
+          width="13"
+          height="14"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className={stroke}
+        />
+        <rect
+          x="16"
+          y="6"
+          width="12"
+          height="18"
+          rx="2"
+          fill="currentColor"
+          className={fill}
+        />
+        <rect
+          x="16"
+          y="6"
+          width="12"
+          height="18"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className={stroke}
+        />
+        <rect
+          x="30"
+          y="8"
+          width="13"
+          height="14"
+          rx="2"
+          fill="currentColor"
+          className={fillSm}
+        />
+        <rect
+          x="30"
+          y="8"
+          width="13"
+          height="14"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className={strokeSm}
+        />
       </svg>
     )
   }
   // custom
   return (
-    <svg width="44" height="30" viewBox="0 0 44 30" fill="none" className="shrink-0">
+    <svg
+      width="44"
+      height="30"
+      viewBox="0 0 44 30"
+      fill="none"
+      className="shrink-0"
+    >
       <path
         d="M22 4 L26.6 13.5 L37 14.6 L29.5 21.6 L31.5 32 L22 26.8 L12.5 32 L14.5 21.6 L7 14.6 L17.4 13.5 Z"
         fill="currentColor"
@@ -340,7 +482,6 @@ function isTabDisabled(t: PresetTab, slotCount: number): boolean {
   if (t === "triple") return slotCount > 2
   return false
 }
-
 
 const PRESET_TABS: PresetTab[] = ["single", "multi", "triple", "custom"]
 
@@ -424,7 +565,9 @@ function TabTriggerRow({
                             <span
                               className={cn(
                                 "text-[11px] font-medium",
-                                tab === t ? "text-primary" : "text-muted-foreground"
+                                tab === t
+                                  ? "text-primary"
+                                  : "text-muted-foreground"
                               )}
                             >
                               {TAB_LABELS[t]}
@@ -484,8 +627,51 @@ export function PresentPresetsSection() {
   const [pendingTab, setPendingTab] = React.useState<PresetTab | null>(null)
   const [pendingLayoutPreset, setPendingLayoutPreset] =
     React.useState<LayoutPreset | null>(null)
+  const [bulkPresetUiByCanvasId, setBulkPresetUiByCanvasId] = React.useState<
+    Record<string, CanvasPresetUi>
+  >({})
   const { data: session } = useSession()
   const userId = session?.user?.id ?? null
+
+  const rememberBulkPresetUi = React.useCallback(
+    (patch: Partial<CanvasPresetUi> & { tab: PresetTab }) => {
+      if (!bulkEditMode || !activeCanvasId) return
+      setBulkPresetUiByCanvasId((prev) => {
+        const current = prev[activeCanvasId] ?? emptyCanvasPresetUi(patch.tab)
+        return {
+          ...prev,
+          [activeCanvasId]: {
+            ...current,
+            ...patch,
+          },
+        }
+      })
+    },
+    [activeCanvasId, bulkEditMode]
+  )
+
+  const bulkPresetUi =
+    bulkEditMode && activeCanvasId
+      ? bulkPresetUiByCanvasId[activeCanvasId]
+      : null
+  const displayTab = bulkEditMode ? (bulkPresetUi?.tab ?? tab) : tab
+  const displayActiveLayoutPresetId = bulkEditMode
+    ? (bulkPresetUi?.activeLayoutPresetId ?? null)
+    : activeLayoutPresetId
+  const displayActiveSinglePresetId = bulkEditMode
+    ? (bulkPresetUi?.activeSinglePresetId ?? null)
+    : activeSinglePresetId
+  const displayActiveCustomPresetId = bulkEditMode
+    ? (bulkPresetUi?.activeCustomPresetId ?? null)
+    : activeCustomPresetId
+
+  const handleTabChange = React.useCallback(
+    (nextTab: PresetTab) => {
+      setTab(nextTab)
+      rememberBulkPresetUi(emptyCanvasPresetUi(nextTab))
+    },
+    [rememberBulkPresetUi, setTab]
+  )
 
   React.useEffect(() => {
     if (!userId) {
@@ -582,11 +768,18 @@ export function PresentPresetsSection() {
       })
       setActiveSinglePresetId(preset.id)
       setActiveCustomPresetId(null)
+      rememberBulkPresetUi({
+        tab: "single",
+        activeLayoutPresetId: null,
+        activeSinglePresetId: preset.id,
+        activeCustomPresetId: null,
+      })
     },
     [
       activeCanvasId,
       aspect,
       canvas,
+      rememberBulkPresetUi,
       setActiveCustomPresetId,
       setActiveSinglePresetId,
       setScreenshotPosition,
@@ -629,11 +822,18 @@ export function PresentPresetsSection() {
       setScreenshotOffset(plan.screenshotOffset)
       setActiveLayoutPresetId(preset.id)
       setActiveCustomPresetId(null)
+      rememberBulkPresetUi({
+        tab: preset.slots.length === 2 ? "triple" : "multi",
+        activeLayoutPresetId: preset.id,
+        activeSinglePresetId: null,
+        activeCustomPresetId: null,
+      })
     },
     [
       addScreenshotSlot,
       aspect,
       canvas,
+      rememberBulkPresetUi,
       setActiveCustomPresetId,
       setActiveLayoutPresetId,
       setScreenshotOffset,
@@ -657,9 +857,16 @@ export function PresentPresetsSection() {
       setActiveCustomPresetId(preset.id)
       setActiveLayoutPresetId(null)
       setActiveSinglePresetId(null)
+      rememberBulkPresetUi({
+        tab: "custom",
+        activeLayoutPresetId: null,
+        activeSinglePresetId: null,
+        activeCustomPresetId: preset.id,
+      })
     },
     [
       applyPresetSnapshot,
+      rememberBulkPresetUi,
       setActiveCustomPresetId,
       setActiveLayoutPresetId,
       setActiveSinglePresetId,
@@ -691,9 +898,16 @@ export function PresentPresetsSection() {
       setScreenshotOffset(plan.screenshotOffset)
       setActiveLayoutPresetId(pendingLayoutPreset.id)
       setActiveCustomPresetId(null)
+      rememberBulkPresetUi({
+        tab: pendingLayoutPreset.slots.length === 2 ? "triple" : "multi",
+        activeLayoutPresetId: pendingLayoutPreset.id,
+        activeSinglePresetId: null,
+        activeCustomPresetId: null,
+      })
       setPendingLayoutPreset(null)
     } else if (pendingTab) {
       setTab(pendingTab)
+      rememberBulkPresetUi(emptyCanvasPresetUi(pendingTab))
       setPendingTab(null)
     }
     setDowngradeDialogOpen(false)
@@ -701,6 +915,7 @@ export function PresentPresetsSection() {
     aspect,
     canvas,
     deleteScreenshotSlot,
+    rememberBulkPresetUi,
     pendingLayoutPreset,
     pendingTab,
     setActiveCustomPresetId,
@@ -718,12 +933,17 @@ export function PresentPresetsSection() {
 
   return (
     <div className="space-y-3">
-      <AlertDialog open={downgradeDialogOpen} onOpenChange={setDowngradeDialogOpen}>
+      <AlertDialog
+        open={downgradeDialogOpen}
+        onOpenChange={setDowngradeDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Apply preset?</AlertDialogTitle>
             <AlertDialogDescription>
-              This preset supports fewer screenshot boxes than you currently have. Applying it will delete the last screenshot slot. This cannot be undone.
+              This preset supports fewer screenshot boxes than you currently
+              have. Applying it will delete the last screenshot slot. This
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -760,13 +980,17 @@ export function PresentPresetsSection() {
             </button>
           )}
         </div>
-        <TabTriggerRow tab={tab} slotCount={canvas.screenshotSlots.length} onTabChange={setTab} />
+        <TabTriggerRow
+          tab={displayTab}
+          slotCount={canvas.screenshotSlots.length}
+          onTabChange={handleTabChange}
+        />
       </div>
 
-      {tab === "single" && (
+      {displayTab === "single" && (
         <div className="space-y-2">
           {PRESENT_PRESETS.map((preset) => {
-            const active = activeSinglePresetId === preset.id
+            const active = displayActiveSinglePresetId === preset.id
 
             return (
               <SinglePresetCard
@@ -782,12 +1006,14 @@ export function PresentPresetsSection() {
         </div>
       )}
 
-      {(tab === "multi" || tab === "triple") && (
+      {(displayTab === "multi" || displayTab === "triple") && (
         <div className="space-y-2">
           {LAYOUT_PRESETS.filter((p) =>
-            tab === "triple" ? p.slots.length === 2 : p.slots.length === 1
+            displayTab === "triple"
+              ? p.slots.length === 2
+              : p.slots.length === 1
           ).map((preset) => {
-            const active = activeLayoutPresetId === preset.id
+            const active = displayActiveLayoutPresetId === preset.id
             return (
               <LayoutPresetCard
                 key={preset.id}
@@ -802,12 +1028,12 @@ export function PresentPresetsSection() {
         </div>
       )}
 
-      {tab === "custom" && (
+      {displayTab === "custom" && (
         <CustomPresetList
           presets={customPresets}
           loaded={customPresetsLoaded}
           loggedIn={Boolean(userId)}
-          activeCustomPresetId={activeCustomPresetId}
+          activeCustomPresetId={displayActiveCustomPresetId}
           canvas={canvas}
           aspect={aspect}
           onApply={applyCustomPreset}
@@ -856,8 +1082,11 @@ function CustomPresetList({
   if (presets.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border/60 bg-secondary/20 p-4 text-center text-[12px] text-muted-foreground">
-        No custom presets yet. Use <span className="font-medium text-foreground">Save → Save as preset</span> to capture
-        the current layout.
+        No custom presets yet. Use{" "}
+        <span className="font-medium text-foreground">
+          Save → Save as preset
+        </span>{" "}
+        to capture the current layout.
       </div>
     )
   }
@@ -897,7 +1126,10 @@ const CustomPresetCard = React.memo(function CustomPresetCard({
   const aw = aspect.w || 16
   const ah = aspect.h || 10
   const aspectStyle: React.CSSProperties = { aspectRatio: `${aw} / ${ah}` }
-  const handleApply = React.useCallback(() => onApply(preset), [onApply, preset])
+  const handleApply = React.useCallback(
+    () => onApply(preset),
+    [onApply, preset]
+  )
 
   const virtualCanvas = React.useMemo<CanvasState>(() => {
     const geometry: CustomPresetGeometry = preset.geometry
@@ -983,7 +1215,10 @@ const CustomPresetCard = React.memo(function CustomPresetCard({
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); setDeleteOpen(true) }}
+          onClick={(e) => {
+            e.stopPropagation()
+            setDeleteOpen(true)
+          }}
           aria-label={`Delete ${preset.name}`}
           className="absolute top-3 right-3 z-[1] inline-flex size-6 items-center justify-center rounded-full border border-white/12 bg-background/80 text-muted-foreground opacity-0 transition-opacity group-hover/preset:opacity-100 hover:border-destructive/45 hover:text-destructive focus:opacity-100"
         >
@@ -993,7 +1228,8 @@ const CustomPresetCard = React.memo(function CustomPresetCard({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete preset?</AlertDialogTitle>
             <AlertDialogDescription>
-              &ldquo;{preset.name}&rdquo; will be permanently deleted. This cannot be undone.
+              &ldquo;{preset.name}&rdquo; will be permanently deleted. This
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
