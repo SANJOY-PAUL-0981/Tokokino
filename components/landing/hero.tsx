@@ -10,8 +10,17 @@ function StarCount() {
   const rounded = useTransform(count, (v) => Math.round(v))
 
   useEffect(() => {
-    const controls = animate(count, 120, { duration: 1, ease: "easeOut", delay: 0.2 })
-    return controls.stop
+    fetch("https://api.github.com/repos/ShivaBhattacharjee/noctivy")
+      .then((r) => r.json())
+      .then((data: { stargazers_count?: number }) => {
+        const stars = data.stargazers_count ?? 0
+        const controls = animate(count, stars, { duration: 1, ease: "easeOut", delay: 0.2 })
+        return controls.stop
+      })
+      .catch(() => {
+        const controls = animate(count, 0, { duration: 0.5, ease: "easeOut" })
+        return controls.stop
+      })
   }, [count])
 
   return (
