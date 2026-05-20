@@ -77,7 +77,6 @@ export async function POST(request: Request) {
   } satisfies Cloudflare.BrowserRendering.ScreenshotCreateParams
 
   // Some sites have long-polling / analytics that never let the network go
-  // idle. Try the stricter wait first; on timeout, retry with `load`.
   const attempts: Array<{
     waitUntil: "networkidle2" | "load"
     timeout: number
@@ -117,7 +116,16 @@ export async function POST(request: Request) {
 
 function isTimeoutError(err: APIError | null) {
   if (!err) return false
-  const body = err.error as unknown
-  if (body?.errors?.some((e: unknown) => e.code === 6002)) return true
+  if (hasCloudflareErrorCode(err.error, 6002)) return true
   return /timeout/i.test(err.message ?? "")
+}
+
+function hasCloudflareErrorCode(body: unknown, code: number) {
+  if (!body || typeof body !== "object") return false
+  const errors = (body as { errors?: unknown }).errors
+  if (!Array.isArray(errors)) return false
+  return errors.some((entry) => {
+    if (!entry || typeof entry !== "object") return false
+    return (entry as { code?: unknown }).code === code
+  })
 }
