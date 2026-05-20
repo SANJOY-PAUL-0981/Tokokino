@@ -1,10 +1,19 @@
-import { MongoClient } from "mongodb"
+import { MongoClient, type MongoClientOptions } from "mongodb"
 
 import { env } from "@/lib/env"
 
 const globalForMongo = globalThis as unknown as {
   mongoClient?: MongoClient
   mongoClientPromise?: Promise<MongoClient>
+}
+
+const mongoClientOptions: MongoClientOptions = {
+  connectTimeoutMS: 8000,
+  maxPoolSize: 5,
+  serverMonitoringMode: "poll",
+  serverSelectionTimeoutMS: 8000,
+  socketTimeoutMS: 10000,
+  waitQueueTimeoutMS: 8000,
 }
 
 function getMongoUri() {
@@ -16,7 +25,7 @@ function getMongoUri() {
 
 export function getMongoClient() {
   if (!globalForMongo.mongoClient) {
-    globalForMongo.mongoClient = new MongoClient(getMongoUri())
+    globalForMongo.mongoClient = new MongoClient(getMongoUri(), mongoClientOptions)
   }
   return globalForMongo.mongoClient
 }

@@ -13,7 +13,7 @@ function createAuth() {
   return betterAuth({
     baseURL: authConfig.baseURL,
     secret: authConfig.secret,
-    database: mongodbAdapter(db, { client }),
+    database: mongodbAdapter(db, { client, transaction: false }),
     emailAndPassword: {
       enabled: true,
     },
