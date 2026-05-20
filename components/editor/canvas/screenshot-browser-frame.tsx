@@ -18,7 +18,12 @@ import {
 } from "@/lib/browser-frame"
 import type { EditorTool, ScreenshotLayer } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
-import { framePositionTransform } from "./helpers"
+import {
+  frameFitStyle,
+  framePositionedStyle,
+  framePositionTransform,
+} from "./helpers"
+import { InnerLightingOverlay } from "./inner-lighting-overlay"
 
 type SelectEvent = {
   stopPropagation: () => void
@@ -112,9 +117,17 @@ export function ScreenshotBrowserFrame({
   const frameRef = React.useRef<HTMLDivElement>(null)
   const [editOpen, setEditOpen] = React.useState(false)
   const frame = getBrowserFrame(frameId)
-  const frameFitStyle = browserFrameFitStyle(
-    frame?.aspectRatio ?? BROWSER_FRAME_ASPECT_RATIO
-  )
+  const aspectRatio = frame?.aspectRatio ?? BROWSER_FRAME_ASPECT_RATIO
+  const fitStyle = frameFitStyle(aspectRatio)
+  const positionedStyle = framePositionedStyle({
+    aspectRatio,
+    anchor: screenshotAnchor,
+    offset: screenshotOffset,
+    transform,
+    shadowFilter,
+    enhanceFilter,
+    layer: screenshotLayer,
+  })
   return (
     <div
       data-box-hover-target
@@ -134,26 +147,7 @@ export function ScreenshotBrowserFrame({
             : "transition-all duration-300 ease-out",
           activeTool === "pointer" && "cursor-grab"
         )}
-        style={{
-          ...frameFitStyle,
-          left: "50%",
-          top: "50%",
-          transform: framePositionTransform({
-            anchor: screenshotAnchor,
-            offset: screenshotOffset,
-            transform,
-          }),
-          transformOrigin: "center",
-          transformStyle: "preserve-3d",
-          filter:
-            [shadowFilter, enhanceFilter].filter(Boolean).join(" ") ||
-            undefined,
-          opacity: screenshotLayer.hidden ? 0 : screenshotLayer.opacity / 100,
-          mixBlendMode:
-            screenshotLayer.blendMode && screenshotLayer.blendMode !== "normal"
-              ? screenshotLayer.blendMode
-              : undefined,
-        }}
+        style={positionedStyle}
         onClick={onSelect}
         onKeyDown={(e) => {
           if (e.key !== "Enter" && e.key !== " ") return
@@ -204,13 +198,10 @@ export function ScreenshotBrowserFrame({
           />
         )}
 
-        {innerLightingStyle ? (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[inherit]"
-            style={innerLightingStyle}
-          />
-        ) : null}
+        <InnerLightingOverlay
+          style={innerLightingStyle}
+          className="overflow-hidden rounded-[inherit]"
+        />
       </div>
       {showHoverActions &&
       activeTool === "pointer" &&
@@ -218,7 +209,7 @@ export function ScreenshotBrowserFrame({
         <div
           className="pointer-events-none absolute top-0 left-0 max-h-full max-w-full"
           style={{
-            ...frameFitStyle,
+            ...fitStyle,
             left: "50%",
             top: "50%",
             transform: framePositionTransform({
@@ -282,9 +273,16 @@ export function BrowserFrameEmptyState({
 }: BrowserFrameEmptyStateProps) {
   const [url, setUrl] = React.useState("")
   const frame = getBrowserFrame(frameId)
-  const frameFitStyle = browserFrameFitStyle(
-    frame?.aspectRatio ?? BROWSER_FRAME_ASPECT_RATIO
-  )
+  const aspectRatio = frame?.aspectRatio ?? BROWSER_FRAME_ASPECT_RATIO
+  const fitStyle = frameFitStyle(aspectRatio)
+  const positionedStyle = framePositionedStyle({
+    aspectRatio,
+    anchor: screenshotAnchor,
+    offset: screenshotOffset,
+    transform,
+    shadowFilter,
+    enhanceFilter,
+  })
 
   return (
     <div
@@ -302,21 +300,7 @@ export function BrowserFrameEmptyState({
             : "transition-all duration-300 ease-out",
           activeTool === "pointer" && !isScreenshotDragging && "cursor-grab"
         )}
-        style={{
-          ...frameFitStyle,
-          left: "50%",
-          top: "50%",
-          transform: framePositionTransform({
-            anchor: screenshotAnchor,
-            offset: screenshotOffset,
-            transform,
-          }),
-          transformOrigin: "center",
-          transformStyle: "preserve-3d",
-          filter:
-            [shadowFilter, enhanceFilter].filter(Boolean).join(" ") ||
-            undefined,
-        }}
+        style={positionedStyle}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -367,19 +351,16 @@ export function BrowserFrameEmptyState({
           </Safari>
         )}
 
-        {innerLightingStyle ? (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[inherit]"
-            style={innerLightingStyle}
-          />
-        ) : null}
+        <InnerLightingOverlay
+          style={innerLightingStyle}
+          className="overflow-hidden rounded-[inherit]"
+        />
       </div>
       {compact ? (
         <div
           className="pointer-events-none absolute top-0 left-0 max-h-full max-w-full"
           style={{
-            ...frameFitStyle,
+            ...fitStyle,
             left: "50%",
             top: "50%",
             transform: framePositionTransform({
@@ -402,25 +383,6 @@ export function BrowserFrameEmptyState({
 
 export function browserFrameColorFromValue(color: string) {
   return resolveBrowserFrameColor(color)
-}
-
-function browserFrameFitStyle(aspectRatio: string): React.CSSProperties {
-  const ratio = parseAspectRatio(aspectRatio) ?? 16 / 10
-
-  return {
-    aspectRatio,
-    width: `min(100cqw, calc(100cqh * ${ratio}))`,
-    height: "auto",
-  }
-}
-
-function parseAspectRatio(aspectRatio: string) {
-  const [width, height] = aspectRatio
-    .split("/")
-    .map((part) => Number(part.trim()))
-
-  if (!width || !height) return null
-  return width / height
 }
 
 function BrowserFrameEmptyContent({

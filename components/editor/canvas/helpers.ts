@@ -8,7 +8,11 @@ import {
 } from "@/lib/browser-frame"
 import { hexToRgb } from "@/lib/editor/color-utils"
 import { DEVICE_MOCKUP_SPECS } from "@/lib/mockups"
-import type { BackdropLighting, PortraitMode } from "@/lib/editor/store"
+import type {
+  BackdropLighting,
+  PortraitMode,
+  ScreenshotLayer,
+} from "@/lib/editor/store"
 
 export const NOISE_DATA_URL =
   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.85'/></svg>\")"
@@ -366,13 +370,79 @@ function mockupScreenAspectWidth(aspectRatio: string) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null
 }
 
-function parseAspectRatio(aspectRatio: string) {
+export function parseAspectRatio(aspectRatio: string) {
   const [width, height] = aspectRatio
     .split("/")
     .map((part) => Number(part.trim()))
 
-  if (!width || !height) return null
+  if (!Number.isFinite(width) || !Number.isFinite(height)) return null
+  if (!width || !height || height <= 0) return null
   return width / height
+}
+
+export function isDesktopMockup(deviceId: string) {
+  return (
+    deviceId.startsWith("macbook") ||
+    deviceId.startsWith("imac") ||
+    deviceId.includes("display")
+  )
+}
+
+/**
+ * Centralized style block for a positioned device/browser frame box.
+ * Used by ScreenshotBrowserFrame, ScreenshotMockup, BrowserFrameEmptyState,
+ * and MockupEmptyState — they share the same fit/position/filter math.
+ *
+ * Pass `layer` only when rendering a content variant (with src); empty-state
+ * variants omit it so opacity/blendMode are left unset.
+ */
+export function framePositionedStyle({
+  aspectRatio,
+  rotation = 0,
+  scopeToMinSide = false,
+  fitFraction,
+  anchor,
+  offset,
+  transform,
+  shadowFilter,
+  enhanceFilter,
+  layer,
+}: {
+  aspectRatio: string
+  rotation?: number
+  scopeToMinSide?: boolean
+  fitFraction?: number
+  anchor: { x: number; y: number }
+  offset: { x: number; y: number }
+  transform: string
+  shadowFilter?: string
+  enhanceFilter?: string
+  layer?: ScreenshotLayer
+}): React.CSSProperties {
+  const filter =
+    [shadowFilter, enhanceFilter].filter(Boolean).join(" ") || undefined
+
+  return {
+    ...frameFitStyle(aspectRatio, rotation, {
+      scopeToMinSide,
+      ...(fitFraction !== undefined ? { fitFraction } : {}),
+    }),
+    left: "50%",
+    top: "50%",
+    transform: framePositionTransform({ anchor, offset, transform, rotation }),
+    transformOrigin: "center",
+    transformStyle: "preserve-3d",
+    filter,
+    ...(layer
+      ? {
+          opacity: layer.hidden ? 0 : layer.opacity / 100,
+          mixBlendMode:
+            layer.blendMode && layer.blendMode !== "normal"
+              ? layer.blendMode
+              : undefined,
+        }
+      : null),
+  }
 }
 
 export function screenshotPlacementStyle(

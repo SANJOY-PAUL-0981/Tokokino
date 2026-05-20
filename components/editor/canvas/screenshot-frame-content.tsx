@@ -14,12 +14,14 @@ import { BoxEmptyState } from "./box-empty-state"
 import { CanvasEmptyState } from "./canvas-empty-state"
 import { MockupEmptyState } from "./mockup-empty-state"
 import { deviceMockupSpec, framePositionTransform } from "./helpers"
+import { InnerLightingOverlay } from "./inner-lighting-overlay"
 import { ScreenshotBare } from "./screenshot-bare"
 import {
   BrowserFrameEmptyState,
   ScreenshotBrowserFrame,
 } from "./screenshot-browser-frame"
 import { ScreenshotMockup } from "./screenshot-mockup"
+import type { CaptureDevice, CaptureSettings } from "./upload-card"
 
 type ScreenshotFrameContentProps = {
   src: string | null
@@ -60,6 +62,8 @@ type ScreenshotFrameContentProps = {
   /** Cap the mockup empty frame to the smaller canvas dimension (canvas-level only). */
   mockupScopeToMinSide?: boolean
   innerLightingStyle?: React.CSSProperties | null
+  onCapture?: (url: string, settings: CaptureSettings) => void | Promise<void>
+  captureDefaultDevice?: CaptureDevice
 }
 
 const CENTER_ANCHOR = { x: 50, y: 50 }
@@ -112,6 +116,8 @@ export function ScreenshotFrameContent({
   aspectH,
   mockupScopeToMinSide = false,
   innerLightingStyle,
+  onCapture,
+  captureDefaultDevice,
 }: ScreenshotFrameContentProps) {
   const browserFrame = isBrowserFrame(frame.id)
   const browserFrameColor = resolveBrowserFrameColor(frame.color)
@@ -278,6 +284,8 @@ export function ScreenshotFrameContent({
         mockupSpec={mockupSpec}
         isDragOver={isDragOver}
         onBrowse={onBrowse}
+        onCapture={onCapture}
+        defaultCaptureDevice={captureDefaultDevice}
         transform={contentTransform}
         shadowFilter={shadowFilter}
         enhanceFilter={imageFilter}
@@ -319,6 +327,8 @@ export function ScreenshotFrameContent({
         <CanvasEmptyState
           isDragOver={isDragOver}
           onBrowse={onBrowse}
+          onCapture={onCapture}
+          defaultCaptureDevice={captureDefaultDevice}
           compact={emptyCompact}
           previewStyle={emptyPreviewStyle}
           aspectW={aspectW}
@@ -328,16 +338,12 @@ export function ScreenshotFrameContent({
         />
       ) : (
         <>
-          {innerLightingStyle ? (
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 z-10"
-              style={innerLightingStyle}
-            />
-          ) : null}
+          <InnerLightingOverlay style={innerLightingStyle} />
           <BoxEmptyState
             isDragOver={isDragOver}
             onBrowse={onBrowse}
+            onCapture={onCapture}
+            defaultCaptureDevice={captureDefaultDevice}
             compact={emptyCompact}
           />
         </>

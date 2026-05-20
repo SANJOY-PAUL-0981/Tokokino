@@ -6,11 +6,14 @@ import { cn } from "@/lib/utils"
 import { useEditor } from "@/lib/editor/store"
 import { BoxEmptyState } from "./box-empty-state"
 import { frameFitStyle, framePositionTransform } from "./helpers"
+import { InnerLightingOverlay } from "./inner-lighting-overlay"
+import type { CaptureDevice, CaptureSettings } from "./upload-card"
 
 type CanvasEmptyStateProps = {
   isDragOver: boolean
   onBrowse: () => void
-  onCapture?: () => void
+  onCapture?: (url: string, settings: CaptureSettings) => void
+  defaultCaptureDevice?: CaptureDevice
   isActive?: boolean
   previewStyle?: React.CSSProperties
   compact?: boolean
@@ -35,6 +38,7 @@ export function CanvasEmptyState({
   isDragOver,
   onBrowse,
   onCapture,
+  defaultCaptureDevice,
   isActive = false,
   previewStyle,
   compact = false,
@@ -110,18 +114,13 @@ export function CanvasEmptyState({
             filter: shadowFilter || undefined,
           }}
         >
-          {innerLightingStyle ? (
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 z-10"
-              style={innerLightingStyle}
-            />
-          ) : null}
+          <InnerLightingOverlay style={innerLightingStyle} />
           <BoxEmptyState
             isDragOver={isDragOver}
             onBrowse={onBrowse}
             onCapture={onCapture}
             compact={useCompact}
+            defaultCaptureDevice={defaultCaptureDevice}
           />
         </div>
       </div>
@@ -156,13 +155,7 @@ export function CanvasEmptyState({
           isPortrait ? "h-auto max-h-[85%] w-[85%]" : "h-full w-full"
         )}
       >
-        {innerLightingStyle ? (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 z-10"
-            style={innerLightingStyle}
-          />
-        ) : null}
+        <InnerLightingOverlay style={innerLightingStyle} />
         <BoxEmptyState
           isDragOver={isDragOver}
           onBrowse={onBrowse}

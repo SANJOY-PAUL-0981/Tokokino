@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils"
 import { frameSelectionRadius } from "./helpers"
 import { ScreenshotEditMenu } from "./screenshot-edit-menu"
 import { ScreenshotFrameContent } from "./screenshot-frame-content"
+import type { CaptureDevice, CaptureSettings } from "./upload-card"
 
 /**
  * Pure presentational core. Both the interactive row item and the preset
@@ -69,6 +70,8 @@ type MainScreenshotRenderProps = {
   previewMode?: boolean
   emptyCompact?: boolean
   innerLightingStyle?: React.CSSProperties | null
+  onCapture?: (url: string, settings: CaptureSettings) => void | Promise<void>
+  captureDefaultDevice?: CaptureDevice
 }
 
 export function MainScreenshotRender({
@@ -106,6 +109,8 @@ export function MainScreenshotRender({
   previewMode = false,
   emptyCompact = false,
   innerLightingStyle,
+  onCapture,
+  captureDefaultDevice,
 }: MainScreenshotRenderProps) {
   const baseTransform = style.transform ?? ""
   const mergedStyle: React.CSSProperties = {
@@ -196,6 +201,8 @@ export function MainScreenshotRender({
             onReplaceFile={onReplaceFile}
             onDelete={onDelete}
             innerLightingStyle={innerLightingStyle}
+            onCapture={onCapture}
+            captureDefaultDevice={captureDefaultDevice}
           />
 
           {showEditMenu ? (
@@ -275,6 +282,8 @@ type MainScreenshotRowItemProps = {
   previewMode?: boolean
   emptyCompact?: boolean
   innerLightingStyle?: React.CSSProperties | null
+  onCapture?: (url: string, settings: CaptureSettings) => void | Promise<void>
+  captureDefaultDevice?: CaptureDevice
 }
 
 export function MainScreenshotRowItem({
@@ -316,6 +325,8 @@ export function MainScreenshotRowItem({
   previewMode = false,
   emptyCompact = false,
   innerLightingStyle,
+  onCapture,
+  captureDefaultDevice,
 }: MainScreenshotRowItemProps) {
   const rowRef = React.useRef<HTMLDivElement | null>(null)
   const [editOpen, setEditOpen] = React.useState(false)
@@ -379,6 +390,8 @@ export function MainScreenshotRowItem({
         previewMode={previewMode}
         emptyCompact={emptyCompact}
         innerLightingStyle={innerLightingStyle}
+        onCapture={onCapture}
+        captureDefaultDevice={captureDefaultDevice}
       />
 
       {isSelected &&

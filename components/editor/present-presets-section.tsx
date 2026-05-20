@@ -744,7 +744,7 @@ export function PresentPresetsSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <div className="sticky top-0 z-10 bg-sidebar pb-1">
+      <div className="sticky top-0 z-10 bg-[color:var(--editor-panel-bg,var(--color-sidebar))] pb-1">
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-[13px] font-medium text-foreground">Presets</p>
           {ENABLE_DEBUG_PRESETS && (

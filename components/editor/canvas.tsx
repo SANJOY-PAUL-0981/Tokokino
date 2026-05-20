@@ -30,7 +30,11 @@ import {
   useEditor,
   useEditorStore,
 } from "@/lib/editor/store"
-import { getDeviceMockup, getDeviceMockupAsset } from "@/lib/mockups"
+import {
+  defaultCaptureDeviceForFrame,
+  getDeviceMockup,
+  getDeviceMockupAsset,
+} from "@/lib/mockups"
 
 import { AnnotationLayer } from "./canvas/annotation-layer"
 import { CanvasBackdrop } from "./canvas/canvas-backdrop"
@@ -197,19 +201,72 @@ function CanvasViewInner({
   const selectedScreenshotSlotId = useEditorStore(
     (s) => s.selectedScreenshotSlotId
   )
+  const setMainScreenshotImage = React.useCallback(
+    (src: string) => {
+      setScreenshot(src)
+      setNaturalDims(null)
+    },
+    [setScreenshot]
+  )
   const handleImageFile = React.useCallback(
     (src: string) => {
       if (selectedScreenshotSlotId) {
         setScreenshotSlotImage(selectedScreenshotSlotId, src)
         return
       }
-      setScreenshot(src)
-      setNaturalDims(null)
+      setMainScreenshotImage(src)
     },
-    [selectedScreenshotSlotId, setScreenshot, setScreenshotSlotImage]
+    [selectedScreenshotSlotId, setMainScreenshotImage, setScreenshotSlotImage]
   )
   const { fileInputRef, fileInputProps, isDragOver, readFile, dropHandlers } =
     useImageFileIntake(handleImageFile)
+
+  const handleCaptureWebsite = React.useCallback(
+    async (
+      rawUrl: string,
+      settings: import("./canvas/upload-card").CaptureSettings
+    ) => {
+      let target: URL
+      try {
+        target = new URL(rawUrl)
+      } catch {
+        toast.error("Enter a valid URL")
+        return
+      }
+      try {
+        const res = await fetch("/api/screenshot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: target.toString(),
+            device: settings.device,
+            width: settings.width,
+            aspectRatio: settings.aspectRatio,
+            theme: settings.theme,
+          }),
+        })
+        if (!res.ok) {
+          const { error } = await res
+            .json()
+            .catch(() => ({ error: "Capture failed" }))
+          throw new Error(error || "Capture failed")
+        }
+        const blob = await res.blob()
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const fr = new FileReader()
+          fr.onload = () => resolve(fr.result as string)
+          fr.onerror = () => reject(fr.error)
+          fr.readAsDataURL(blob)
+        })
+        setMainScreenshotImage(dataUrl)
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Could not capture screenshot"
+        )
+      }
+    },
+    [setMainScreenshotImage]
+  )
 
   const isAuto = aspect.id === "auto" || aspect.w === 0 || aspect.h === 0
   const autoDims = isAuto && naturalDims && !inRowMode ? naturalDims : null
@@ -231,6 +288,7 @@ function CanvasViewInner({
   const isRotatedPortraitDevice =
     frame.orientation === "horizontal" &&
     mockupDevice?.orientations.includes("portrait") === true
+  const captureDefaultDevice = defaultCaptureDeviceForFrame(frame)
   // Keep portrait mockups visually balanced when they are either shown on a
   // portrait/square canvas or rotated into landscape.
   const shouldScopeFrame =
@@ -559,6 +617,8 @@ function CanvasViewInner({
               onPointerUp={stopMockupDrag}
               previewMode={isCanvasPreview}
               emptyCompact={inRowMode}
+              onCapture={handleCaptureWebsite}
+              captureDefaultDevice={captureDefaultDevice}
             />
           ) : null}
 
@@ -633,6 +693,8 @@ function CanvasViewInner({
                     stageRef={stageRef}
                     imageRef={imageRef}
                     scopeToMinSide={shouldScopeFrame}
+                    onCaptureWebsite={handleCaptureWebsite}
+                    captureDefaultDevice={captureDefaultDevice}
                     onSelect={handleScreenshotClickSelect}
                     onPointerDown={(e) => {
                       if (document.activeElement instanceof HTMLElement) {
@@ -735,6 +797,8 @@ function CanvasViewInner({
                   mockupSpec={mockupSpec}
                   isDragOver={isDragOver}
                   onBrowse={() => fileInputRef.current?.click()}
+                  onCapture={handleCaptureWebsite}
+                  defaultCaptureDevice={captureDefaultDevice}
                   transform={transform}
                   shadowFilter={computedShadowFilter}
                   enhanceFilter={enhanceFilter}
@@ -765,6 +829,8 @@ function CanvasViewInner({
                 <CanvasEmptyState
                   isDragOver={isDragOver}
                   onBrowse={() => fileInputRef.current?.click()}
+                  onCapture={handleCaptureWebsite}
+                  defaultCaptureDevice={captureDefaultDevice}
                   innerLightingStyle={innerLightingStyle}
                   screenshotAnchor={screenshotAnchor}
                   screenshotOffset={effectiveOffset}

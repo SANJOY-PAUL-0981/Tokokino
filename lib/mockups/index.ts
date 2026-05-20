@@ -159,6 +159,23 @@ export function getDeviceMockupSrc(file: DeviceMockupFile) {
   return `${DEVICE_MOCKUPS_BASE_URL}/${file}`
 }
 
+/**
+ * Decide the default "device" for the website-capture popover based on which
+ * frame the user is currently using. Phones (iPhone/Galaxy/Pixel/Nothing Phone)
+ * and any other portrait-oriented device mockup default to "mobile"; browser
+ * frames and desktop/laptop devices default to "desktop".
+ */
+export function defaultCaptureDeviceForFrame(frame: {
+  id: string
+  orientation: "vertical" | "horizontal"
+}): "desktop" | "mobile" {
+  const device = getDeviceMockup(frame.id)
+  if (!device) return "desktop"
+  if (/^(iphone|galaxy|pixel|nothing_phone)/i.test(device.id)) return "mobile"
+  if (frame.orientation === "vertical") return "mobile"
+  return "desktop"
+}
+
 export function getDeviceMockupThumbnailSrc(deviceId: string) {
   return `${DEVICE_MOCKUP_THUMBNAILS_BASE_URL}/${deviceId}.webp`
 }

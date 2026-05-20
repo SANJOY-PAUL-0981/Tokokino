@@ -7,12 +7,14 @@ import type { EditorTool } from "@/lib/editor/store"
 import type { DeviceMockupAsset, DEVICE_MOCKUP_SPECS } from "@/lib/mockups"
 
 import { BoxEmptyState } from "./box-empty-state"
+import type { CaptureDevice, CaptureSettings } from "./upload-card"
 import {
-  frameFitStyle,
-  framePositionTransform,
+  framePositionedStyle,
+  isDesktopMockup,
   mockupScreenClipStyle,
   mockupScreenTransform,
 } from "./helpers"
+import { InnerLightingOverlay } from "./inner-lighting-overlay"
 
 type DeviceMockupSpec = (typeof DEVICE_MOCKUP_SPECS)[string]
 
@@ -36,6 +38,8 @@ type MockupEmptyStateProps = {
   /** Cap frame size to min(cqw, cqh) so it stays consistent across canvas aspect ratios. */
   scopeToMinSide?: boolean
   innerLightingStyle?: React.CSSProperties | null
+  onCapture?: (url: string, settings: CaptureSettings) => void | Promise<void>
+  defaultCaptureDevice?: CaptureDevice
 }
 
 export function MockupEmptyState({
@@ -57,6 +61,8 @@ export function MockupEmptyState({
   compact = false,
   scopeToMinSide = false,
   innerLightingStyle,
+  onCapture,
+  defaultCaptureDevice,
 }: MockupEmptyStateProps) {
   const screenRef = React.useRef<HTMLDivElement | null>(null)
   const [stageWidth, setStageWidth] = React.useState<number | undefined>(
@@ -91,21 +97,16 @@ export function MockupEmptyState({
         )}
         data-editor-shadow-filter-target
         data-editor-shadow-filter-base={shadowFilter || ""}
-        style={{
-          ...frameFitStyle(mockupSpec.aspectRatio, mockupRotation, { scopeToMinSide }),
-          left: "50%",
-          top: "50%",
-          transform: framePositionTransform({
-            anchor: screenshotAnchor,
-            offset: screenshotOffset,
-            transform,
-            rotation: mockupRotation,
-          }),
-          transformOrigin: "center",
-          transformStyle: "preserve-3d",
-          filter:
-            [shadowFilter, enhanceFilter].filter(Boolean).join(" ") || undefined,
-        }}
+        style={framePositionedStyle({
+          aspectRatio: mockupSpec.aspectRatio,
+          rotation: mockupRotation,
+          scopeToMinSide,
+          anchor: screenshotAnchor,
+          offset: screenshotOffset,
+          transform,
+          shadowFilter,
+          enhanceFilter,
+        })}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -124,17 +125,13 @@ export function MockupEmptyState({
             <BoxEmptyState
               isDragOver={isDragOver}
               onBrowse={onBrowse}
+              onCapture={onCapture}
+              defaultCaptureDevice={defaultCaptureDevice}
               contentRotation={mockupRotation ? -mockupRotation : 0}
               compact={compact || !desktopFrame}
               plainWideCard={desktopFrame}
             />
-            {innerLightingStyle ? (
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 z-10"
-                style={innerLightingStyle}
-              />
-            ) : null}
+            <InnerLightingOverlay style={innerLightingStyle} />
           </div>
         </div>
         <img
@@ -150,10 +147,3 @@ export function MockupEmptyState({
   )
 }
 
-function isDesktopMockup(deviceId: string) {
-  return (
-    deviceId.startsWith("macbook") ||
-    deviceId.startsWith("imac") ||
-    deviceId.includes("display")
-  )
-}

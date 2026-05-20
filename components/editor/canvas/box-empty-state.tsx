@@ -5,12 +5,16 @@ import { RiAddLine } from "@remixicon/react"
 
 import { cn } from "@/lib/utils"
 import { EmptyStateBackdrop } from "./empty-state-backdrop"
-import { UploadCard } from "./upload-card"
+import {
+  UploadCard,
+  type CaptureDevice,
+  type CaptureSettings,
+} from "./upload-card"
 
 type BoxEmptyStateProps = {
   isDragOver?: boolean
   onBrowse: () => void
-  onCapture?: () => void
+  onCapture?: (url: string, settings: CaptureSettings) => void
   url?: string
   onUrlChange?: (value: string) => void
   /** Force compact `+` trigger. Otherwise auto-detected by container width. */
@@ -21,6 +25,8 @@ type BoxEmptyStateProps = {
   presentational?: boolean
   /** Use the normal fixed-size upload card instead of cqw fluid sizing. */
   plainWideCard?: boolean
+  /** Default capture device for the inner UploadCard (e.g. "mobile" when the canvas frame is a phone). */
+  defaultCaptureDevice?: CaptureDevice
 }
 
 export function BoxEmptyState({
@@ -31,8 +37,11 @@ export function BoxEmptyState({
   contentRotation = 0,
   presentational = false,
   plainWideCard = false,
+  defaultCaptureDevice,
 }: BoxEmptyStateProps) {
-  const handleCapture = onCapture ? () => onCapture() : undefined
+  const handleCapture = onCapture
+    ? (url: string, settings: CaptureSettings) => onCapture(url, settings)
+    : undefined
   const rotationStyle = contentRotation
     ? { transform: `rotate(${contentRotation}deg)` }
     : undefined
@@ -71,13 +80,14 @@ export function BoxEmptyState({
             onBrowse={onBrowse}
             onCapture={handleCapture}
             showHint
+            defaultDevice={defaultCaptureDevice}
           />
         </div>
       ) : (
         <>
           {/* Wide containers (desktop, browser, iPad horizontal) — full card */}
           <div
-            className="@container hidden w-full max-w-[400px] @md:block"
+            className="@container hidden w-full max-w-[340px] @md:block"
             style={{ containerType: "inline-size", ...rotationStyle }}
           >
             <UploadCard
@@ -86,6 +96,7 @@ export function BoxEmptyState({
               onBrowse={onBrowse}
               onCapture={handleCapture}
               showHint
+              defaultDevice={defaultCaptureDevice}
               className="w-full"
             />
           </div>
@@ -97,6 +108,7 @@ export function BoxEmptyState({
               onBrowse={onBrowse}
               onCapture={handleCapture}
               showHint
+              defaultDevice={defaultCaptureDevice}
             />
           </div>
         </>

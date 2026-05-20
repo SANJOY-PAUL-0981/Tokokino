@@ -16,6 +16,11 @@ import {
   ScreenshotFrameSettings,
 } from "@/components/editor/canvas/screenshot-edit-menu"
 import { ScreenshotFrameContent } from "@/components/editor/canvas/screenshot-frame-content"
+import type {
+  CaptureDevice,
+  CaptureSettings,
+} from "@/components/editor/canvas/upload-card"
+import { defaultCaptureDeviceForFrame } from "@/lib/mockups"
 import { ImageFitPicker } from "@/components/editor/toolbar/image-fit-picker"
 import {
   bulkToolbarScale,
@@ -91,6 +96,8 @@ type ScreenshotSlotRenderProps = {
   onDragLeave?: () => void
   onDrop?: (e: React.DragEvent<HTMLDivElement>) => void
   previewMode?: boolean
+  onCapture?: (url: string, settings: CaptureSettings) => void | Promise<void>
+  captureDefaultDevice?: CaptureDevice
 }
 
 type CanvasSharedStyle = {
@@ -149,6 +156,8 @@ export function ScreenshotSlotRender({
   onDragLeave,
   onDrop,
   previewMode = false,
+  onCapture,
+  captureDefaultDevice,
 }: ScreenshotSlotRenderProps) {
   const shared = useCanvasSharedStyle()
   const effectiveShadow = slot.shadow ?? shared.shadow
@@ -295,6 +304,8 @@ export function ScreenshotSlotRender({
               onReplaceFile={onReplaceFile}
               onDelete={onDeleteFromMenu}
               innerLightingStyle={innerLightingStyle}
+              onCapture={onCapture}
+              captureDefaultDevice={captureDefaultDevice}
             />
 
             {showEditMenu ? (
@@ -490,6 +501,51 @@ export function ScreenshotSlotView({
     [setScreenshotSlotImage, slot.id]
   )
 
+  const captureDefaultDevice = defaultCaptureDeviceForFrame(canvasFrame)
+  const handleSlotCapture = React.useCallback(
+    async (rawUrl: string, settings: CaptureSettings) => {
+      let target: URL
+      try {
+        target = new URL(rawUrl)
+      } catch {
+        toast.error("Enter a valid URL")
+        return
+      }
+      try {
+        const res = await fetch("/api/screenshot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: target.toString(),
+            device: settings.device,
+            width: settings.width,
+            aspectRatio: settings.aspectRatio,
+            theme: settings.theme,
+          }),
+        })
+        if (!res.ok) {
+          const { error } = await res
+            .json()
+            .catch(() => ({ error: "Capture failed" }))
+          throw new Error(error || "Capture failed")
+        }
+        const blob = await res.blob()
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const fr = new FileReader()
+          fr.onload = () => resolve(fr.result as string)
+          fr.onerror = () => reject(fr.error)
+          fr.readAsDataURL(blob)
+        })
+        setScreenshotSlotImage(slot.id, dataUrl)
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Could not capture screenshot"
+        )
+      }
+    },
+    [setScreenshotSlotImage, slot.id]
+  )
+
   const startDrag = (e: React.PointerEvent<Element>) => {
     if (!canvasRef.current) return
     e.stopPropagation()
@@ -623,6 +679,8 @@ export function ScreenshotSlotView({
           setIsDragOver(false)
           void handleFiles(e.dataTransfer.files)
         }}
+        onCapture={handleSlotCapture}
+        captureDefaultDevice={captureDefaultDevice}
       />
 
       {!previewMode &&

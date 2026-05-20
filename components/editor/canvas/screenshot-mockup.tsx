@@ -7,12 +7,15 @@ import type { EditorTool, ScreenshotLayer } from "@/lib/editor/store"
 import type { DeviceMockupAsset, DEVICE_MOCKUP_SPECS } from "@/lib/mockups"
 
 import {
-  frameFitStyle,
-  framePositionTransform,
+  framePositionedStyle,
+  isDesktopMockup,
   mockupScreenClipStyle,
   mockupScreenTransform,
+  parseAspectRatio,
 } from "./helpers"
+import { InnerLightingOverlay } from "./inner-lighting-overlay"
 import { ScreenshotEditMenu } from "./screenshot-edit-menu"
+import type { CaptureDevice, CaptureSettings } from "./upload-card"
 
 type DeviceMockupSpec = (typeof DEVICE_MOCKUP_SPECS)[string]
 
@@ -50,7 +53,11 @@ type ScreenshotMockupProps = {
   onCropClick: () => void
   onReplaceFile: (file: File) => void
   onDelete: () => void
-  onCaptureWebsite?: (url: string) => void
+  onCaptureWebsite?: (
+    url: string,
+    settings: CaptureSettings
+  ) => void | Promise<void>
+  captureDefaultDevice?: CaptureDevice
   showHoverActions?: boolean
   /** Cap the frame to min(cqw, cqh) so it doesn't fill tall canvases. */
   scopeToMinSide?: boolean
@@ -83,6 +90,7 @@ export function ScreenshotMockup({
   onReplaceFile,
   onDelete,
   onCaptureWebsite,
+  captureDefaultDevice,
   showHoverActions = true,
   scopeToMinSide = false,
   innerLightingStyle,
@@ -135,29 +143,17 @@ export function ScreenshotMockup({
         )}
         data-editor-shadow-filter-target
         data-editor-shadow-filter-base={shadowFilter || ""}
-        style={{
-          ...frameFitStyle(mockupSpec.aspectRatio, mockupRotation, {
-            scopeToMinSide,
-          }),
-          left: "50%",
-          top: "50%",
-          transform: framePositionTransform({
-            anchor: screenshotAnchor,
-            offset: screenshotOffset,
-            transform,
-            rotation: mockupRotation,
-          }),
-          transformOrigin: "center",
-          transformStyle: "preserve-3d",
-          filter:
-            [shadowFilter, enhanceFilter].filter(Boolean).join(" ") ||
-            undefined,
-          opacity: screenshotLayer.hidden ? 0 : screenshotLayer.opacity / 100,
-          mixBlendMode:
-            screenshotLayer.blendMode && screenshotLayer.blendMode !== "normal"
-              ? screenshotLayer.blendMode
-              : undefined,
-        }}
+        style={framePositionedStyle({
+          aspectRatio: mockupSpec.aspectRatio,
+          rotation: mockupRotation,
+          scopeToMinSide,
+          anchor: screenshotAnchor,
+          offset: screenshotOffset,
+          transform,
+          shadowFilter,
+          enhanceFilter,
+          layer: screenshotLayer,
+        })}
         onClick={onSelect}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -189,13 +185,7 @@ export function ScreenshotMockup({
               )}
               style={horizontalScreenStyle}
             />
-            {innerLightingStyle ? (
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 z-10"
-                style={innerLightingStyle}
-              />
-            ) : null}
+            <InnerLightingOverlay style={innerLightingStyle} />
           </div>
         </div>
         <img
@@ -238,6 +228,7 @@ export function ScreenshotMockup({
                   onReplaceFile={onReplaceFile}
                   onDelete={onDelete}
                   onCaptureWebsite={onCaptureWebsite}
+                  captureDefaultDevice={captureDefaultDevice}
                 />
               </div>
             </div>
@@ -261,19 +252,12 @@ export function ScreenshotMockup({
               onReplaceFile={onReplaceFile}
               onDelete={onDelete}
               onCaptureWebsite={onCaptureWebsite}
+              captureDefaultDevice={captureDefaultDevice}
             />
           </div>
         ) : null}
       </div>
     </div>
-  )
-}
-
-function isDesktopMockup(deviceId: string) {
-  return (
-    deviceId.startsWith("macbook") ||
-    deviceId.startsWith("imac") ||
-    deviceId.includes("display")
   )
 }
 
@@ -290,14 +274,4 @@ function rotatedScreenContentStyle(
     height: `${ratio * 100}%`,
     transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
   }
-}
-
-function parseAspectRatio(aspectRatio: string) {
-  const [width, height] = aspectRatio
-    .split("/")
-    .map((part) => Number(part.trim()))
-  if (!Number.isFinite(width) || !Number.isFinite(height) || height <= 0) {
-    return null
-  }
-  return width / height
 }

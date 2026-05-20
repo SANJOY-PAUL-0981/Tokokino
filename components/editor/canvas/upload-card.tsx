@@ -5,9 +5,12 @@ import {
   RiAddLine,
   RiCameraLine,
   RiLink,
+  RiLoader4Line,
   RiSettings3Line,
   RiUploadLine,
 } from "@remixicon/react"
+
+import { motion, LayoutGroup } from "motion/react"
 
 import { cn } from "@/lib/utils"
 import {
@@ -19,7 +22,7 @@ import {
 export type CaptureDevice = "desktop" | "mobile"
 export type CaptureTheme = "light" | "dark"
 export type CaptureDelay = "none" | "2s" | "5s"
-export type AspectRatio = "4:3" | "16:9" | "1:1"
+export type AspectRatio = "4:3" | "16:9" | "1:1" | "9:16" | "9:19.5"
 
 export type CaptureSettings = {
   device: CaptureDevice
@@ -37,26 +40,55 @@ export const DEFAULT_CAPTURE_SETTINGS: CaptureSettings = {
   delay: "none",
 }
 
+const MOBILE_CAPTURE_DEFAULTS: CaptureSettings = {
+  device: "mobile",
+  aspectRatio: "9:19.5",
+  width: 390,
+  theme: "light",
+  delay: "none",
+}
+
+function initialCaptureSettings(
+  defaultDevice: CaptureDevice | undefined
+): CaptureSettings {
+  return defaultDevice === "mobile"
+    ? MOBILE_CAPTURE_DEFAULTS
+    : DEFAULT_CAPTURE_SETTINGS
+}
+
+const DESKTOP_ASPECT_RATIOS: AspectRatio[] = ["4:3", "16:9", "1:1"]
+const MOBILE_ASPECT_RATIOS: AspectRatio[] = ["9:19.5", "9:16", "1:1"]
+const DESKTOP_WIDTHS = [1280, 1440, 1920]
+const MOBILE_WIDTHS = [390, 414, 430]
+
 type ToggleChipProps = {
   active: boolean
   onClick: () => void
   children: React.ReactNode
+  layoutId: string
 }
 
-function ToggleChip({ active, onClick, children }: ToggleChipProps) {
+function ToggleChip({ active, onClick, children, layoutId }: ToggleChipProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       onPointerDown={(e) => e.stopPropagation()}
       className={cn(
-        "rounded-lg px-3 py-1.5 text-[12px] font-medium transition-all",
+        "relative rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors",
         active
-          ? "bg-neutral-200 text-neutral-950 shadow-sm dark:bg-white/15 dark:text-white"
+          ? "text-neutral-950 dark:text-white"
           : "text-neutral-500 hover:text-neutral-800 dark:text-white/60 dark:hover:text-white/85"
       )}
     >
-      {children}
+      {active && (
+        <motion.span
+          layoutId={layoutId}
+          className="absolute inset-0 rounded-lg bg-neutral-200 shadow-sm dark:bg-white/15"
+          transition={{ type: "spring", stiffness: 420, damping: 34 }}
+        />
+      )}
+      <span className="relative z-10">{children}</span>
     </button>
   )
 }
@@ -64,12 +96,16 @@ function ToggleChip({ active, onClick, children }: ToggleChipProps) {
 function CaptureSettingsPopover({
   settings,
   onChange,
+  triggerClassName,
+  iconClassName,
 }: {
   settings: CaptureSettings
   onChange: <K extends keyof CaptureSettings>(
     key: K,
     value: CaptureSettings[K]
   ) => void
+  triggerClassName?: string
+  iconClassName?: string
 }) {
   return (
     <Popover>
@@ -79,9 +115,12 @@ function CaptureSettingsPopover({
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
           aria-label="Capture settings"
-          className="grid size-10 shrink-0 place-items-center rounded-md border border-neutral-200 bg-neutral-50 text-neutral-500 transition-all hover:bg-neutral-100 hover:text-neutral-800 data-[state=open]:bg-neutral-100 data-[state=open]:text-neutral-900 dark:border-white/10 dark:bg-white/8 dark:text-white/60 dark:hover:bg-white/12 dark:hover:text-white dark:data-[state=open]:bg-white/15 dark:data-[state=open]:text-white"
+          className={cn(
+            "grid shrink-0 place-items-center border border-neutral-200 bg-neutral-50 text-neutral-500 transition-all hover:bg-neutral-100 hover:text-neutral-800 data-[state=open]:bg-neutral-100 data-[state=open]:text-neutral-900 dark:border-white/10 dark:bg-white/8 dark:text-white/60 dark:hover:bg-white/12 dark:hover:text-white dark:data-[state=open]:bg-white/15 dark:data-[state=open]:text-white",
+            triggerClassName ?? "size-10 rounded-md"
+          )}
         >
-          <RiSettings3Line className="size-4" />
+          <RiSettings3Line className={iconClassName ?? "size-4"} />
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -96,87 +135,101 @@ function CaptureSettingsPopover({
             <span className="text-[13px] text-neutral-500 dark:text-white/55">
               Device
             </span>
-            <div className="flex items-center gap-0.5 rounded-xl bg-neutral-100 p-0.5 dark:bg-white/8">
-              <ToggleChip
-                active={settings.device === "desktop"}
-                onClick={() => onChange("device", "desktop")}
-              >
-                Desktop
-              </ToggleChip>
-              <ToggleChip
-                active={settings.device === "mobile"}
-                onClick={() => onChange("device", "mobile")}
-              >
-                Mobile
-              </ToggleChip>
-            </div>
+            <LayoutGroup id="capture-device">
+              <div className="flex items-center gap-0.5 rounded-xl bg-neutral-100 p-0.5 dark:bg-white/8">
+                {(["desktop", "mobile"] as CaptureDevice[]).map((d) => (
+                  <ToggleChip
+                    key={d}
+                    active={settings.device === d}
+                    layoutId="capture-device-pill"
+                    onClick={() => {
+                      const isMobile = d === "mobile"
+                      onChange("device", d)
+                      onChange("aspectRatio", isMobile ? "9:19.5" : "16:9")
+                      onChange("width", isMobile ? 390 : 1280)
+                    }}
+                  >
+                    {d === "desktop" ? "Desktop" : "Mobile"}
+                  </ToggleChip>
+                ))}
+              </div>
+            </LayoutGroup>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
             <span className="text-[13px] text-neutral-500 dark:text-white/55">
               Aspect Ratio
             </span>
-            <div className="flex items-center gap-0.5 rounded-xl bg-neutral-100 p-0.5 dark:bg-white/8">
-              {(["4:3", "16:9", "1:1"] as AspectRatio[]).map((r) => (
-                <ToggleChip
-                  key={r}
-                  active={settings.aspectRatio === r}
-                  onClick={() => onChange("aspectRatio", r)}
-                >
-                  {r}
-                </ToggleChip>
-              ))}
-            </div>
+            <LayoutGroup id="capture-aspect">
+              <div className="flex items-center gap-0.5 rounded-xl bg-neutral-100 p-0.5 dark:bg-white/8">
+                {(settings.device === "mobile" ? MOBILE_ASPECT_RATIOS : DESKTOP_ASPECT_RATIOS).map((r) => (
+                  <ToggleChip
+                    key={r}
+                    active={settings.aspectRatio === r}
+                    layoutId="capture-aspect-pill"
+                    onClick={() => onChange("aspectRatio", r)}
+                  >
+                    {r}
+                  </ToggleChip>
+                ))}
+              </div>
+            </LayoutGroup>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
             <span className="text-[13px] text-neutral-500 dark:text-white/55">
               Width
             </span>
-            <div className="flex items-center gap-0.5 rounded-xl bg-neutral-100 p-0.5 dark:bg-white/8">
-              {([1280, 1440, 1920] as number[]).map((w) => (
-                <ToggleChip
-                  key={w}
-                  active={settings.width === w}
-                  onClick={() => onChange("width", w)}
-                >
-                  {w}
-                </ToggleChip>
-              ))}
-            </div>
+            <LayoutGroup id="capture-width">
+              <div className="flex items-center gap-0.5 rounded-xl bg-neutral-100 p-0.5 dark:bg-white/8">
+                {(settings.device === "mobile" ? MOBILE_WIDTHS : DESKTOP_WIDTHS).map((w) => (
+                  <ToggleChip
+                    key={w}
+                    active={settings.width === w}
+                    layoutId="capture-width-pill"
+                    onClick={() => onChange("width", w)}
+                  >
+                    {w}
+                  </ToggleChip>
+                ))}
+              </div>
+            </LayoutGroup>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
             <span className="text-[13px] text-neutral-500 dark:text-white/55">
               Theme
             </span>
-            <div className="flex items-center gap-0.5 rounded-xl bg-neutral-100 p-0.5 dark:bg-white/8">
-              <ToggleChip
-                active={settings.theme === "light"}
-                onClick={() => onChange("theme", "light")}
-              >
-                Light
-              </ToggleChip>
-              <ToggleChip
-                active={settings.theme === "dark"}
-                onClick={() => onChange("theme", "dark")}
-              >
-                Dark
-              </ToggleChip>
-            </div>
+            <LayoutGroup id="capture-theme">
+              <div className="flex items-center gap-0.5 rounded-xl bg-neutral-100 p-0.5 dark:bg-white/8">
+                {(["light", "dark"] as CaptureTheme[]).map((t) => (
+                  <ToggleChip
+                    key={t}
+                    active={settings.theme === t}
+                    layoutId="capture-theme-pill"
+                    onClick={() => onChange("theme", t)}
+                  >
+                    {t === "light" ? "Light" : "Dark"}
+                  </ToggleChip>
+                ))}
+              </div>
+            </LayoutGroup>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
             <span className="text-[13px] text-neutral-500 dark:text-white/55">
               Delay
             </span>
-            <div className="flex items-center gap-0.5 rounded-xl bg-neutral-100 p-0.5 dark:bg-white/8">
-              {(["none", "2s", "5s"] as CaptureDelay[]).map((d) => (
-                <ToggleChip
-                  key={d}
-                  active={settings.delay === d}
-                  onClick={() => onChange("delay", d)}
-                >
-                  {d === "none" ? "None" : d}
-                </ToggleChip>
-              ))}
-            </div>
+            <LayoutGroup id="capture-delay">
+              <div className="flex items-center gap-0.5 rounded-xl bg-neutral-100 p-0.5 dark:bg-white/8">
+                {(["none", "2s", "5s"] as CaptureDelay[]).map((d) => (
+                  <ToggleChip
+                    key={d}
+                    active={settings.delay === d}
+                    layoutId="capture-delay-pill"
+                    onClick={() => onChange("delay", d)}
+                  >
+                    {d === "none" ? "None" : d}
+                  </ToggleChip>
+                ))}
+              </div>
+            </LayoutGroup>
           </div>
         </div>
       </PopoverContent>
@@ -187,7 +240,7 @@ function CaptureSettingsPopover({
 type UploadCardProps = {
   isDragOver?: boolean
   onBrowse: () => void
-  onCapture?: (url: string, settings: CaptureSettings) => void
+  onCapture?: (url: string, settings: CaptureSettings) => void | Promise<void>
   showHint?: boolean
   /** Pass custom className overrides for the outer card shell */
   className?: string
@@ -195,6 +248,8 @@ type UploadCardProps = {
   fluid?: boolean
   /** Render only a small trigger icon; full upload UI opens in a popover */
   compact?: boolean
+  /** Seed capture settings for the active frame (e.g. "mobile" when the canvas has a phone frame). */
+  defaultDevice?: CaptureDevice
 }
 
 export function UploadCard({
@@ -205,17 +260,24 @@ export function UploadCard({
   className,
   fluid = false,
   compact = false,
+  defaultDevice,
 }: UploadCardProps) {
   const PREFIX = "https://"
   const [url, setUrl] = React.useState(PREFIX)
-  const [settings, setSettings] = React.useState<CaptureSettings>(
-    DEFAULT_CAPTURE_SETTINGS
+  const [settings, setSettings] = React.useState<CaptureSettings>(() =>
+    initialCaptureSettings(defaultDevice)
   )
+  const userTouchedDeviceRef = React.useRef(false)
+  React.useEffect(() => {
+    if (userTouchedDeviceRef.current) return
+    setSettings(initialCaptureSettings(defaultDevice))
+  }, [defaultDevice])
 
   function handleSettingChange<K extends keyof CaptureSettings>(
     key: K,
     value: CaptureSettings[K]
   ) {
+    if (key === "device") userTouchedDeviceRef.current = true
     setSettings((prev) => ({ ...prev, [key]: value }))
   }
 
@@ -230,11 +292,35 @@ export function UploadCard({
     setUrl(PREFIX + stripped)
   }
 
-  function handleCapture(e: React.MouseEvent | React.KeyboardEvent) {
+  const [isCapturing, setIsCapturing] = React.useState(false)
+  const [countdown, setCountdown] = React.useState<number | null>(null)
+
+  async function handleCapture(e: React.MouseEvent | React.KeyboardEvent) {
     e.stopPropagation()
-    if (url === PREFIX) return
-    onCapture?.(url, settings)
+    if (url === PREFIX || isCapturing || !onCapture) return
+    const delaySec =
+      settings.delay === "2s" ? 2 : settings.delay === "5s" ? 5 : 0
+    setIsCapturing(true)
+    try {
+      for (let s = delaySec; s > 0; s--) {
+        setCountdown(s)
+        await new Promise((r) => setTimeout(r, 1000))
+      }
+      setCountdown(null)
+      await onCapture(url, settings)
+    } finally {
+      setIsCapturing(false)
+      setCountdown(null)
+    }
   }
+
+  const captureDisabled = url === PREFIX || isCapturing
+  const captureLabel =
+    countdown !== null
+      ? `Capturing in ${countdown}s…`
+      : isCapturing
+        ? "Capturing screenshot…"
+        : "Capture Screenshot"
 
   if (compact) {
     return (
@@ -275,95 +361,17 @@ export function UploadCard({
             onBrowse={onBrowse}
             onCapture={onCapture}
             showHint={showHint}
+            defaultDevice={defaultDevice}
           />
         </PopoverContent>
       </Popover>
     )
   }
 
-  if (fluid) {
-    return (
-      <div
-        className={cn(
-          "flex w-full flex-col gap-[2cqw] overflow-hidden p-[2cqw]",
-          className
-        )}
-      >
-        <button
-          type="button"
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation()
-            onBrowse()
-          }}
-          className={cn(
-            "flex w-full items-center justify-center gap-[2cqw] rounded-[3cqw] px-[4cqw] py-[3cqw] text-[clamp(0.55rem,2.2cqw,0.9rem)] font-semibold text-white transition-all",
-            isDragOver
-              ? "bg-primary/70"
-              : "bg-primary hover:brightness-110 active:brightness-95"
-          )}
-        >
-          <RiUploadLine className="size-[clamp(0.6rem,2cqw,0.85rem)] shrink-0" />
-          Upload Screenshot
-        </button>
-        <div className="flex items-center gap-[1.5cqw]">
-          <label
-            onPointerDown={(e) => e.stopPropagation()}
-            className="flex min-h-[8cqw] flex-1 items-center gap-[2cqw] rounded-[2.5cqw] bg-foreground/[0.06] px-[3cqw] transition-colors focus-within:bg-foreground/[0.1]"
-          >
-            <RiLink className="size-[clamp(0.55rem,1.9cqw,0.8rem)] shrink-0 text-muted-foreground/60" />
-            <input
-              type="text"
-              inputMode="url"
-              placeholder="example.com"
-              aria-label="Website URL"
-              value={url}
-              onChange={(e) => handleUrlChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleCapture(e)
-              }}
-              className="min-w-0 flex-1 bg-transparent text-[clamp(0.5rem,1.8cqw,0.78rem)] text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </label>
-          <CaptureSettingsPopover
-            settings={settings}
-            onChange={handleSettingChange}
-          />
-        </div>
-        <button
-          type="button"
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation()
-            handleCapture(e)
-          }}
-          className="flex w-full items-center justify-center gap-[2cqw] rounded-[2.5cqw] bg-foreground/[0.06] py-[2.5cqw] text-[clamp(0.5rem,1.8cqw,0.78rem)] font-medium text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground"
-        >
-          <RiCameraLine className="size-[clamp(0.55rem,1.9cqw,0.8rem)]" />
-          Capture Screenshot
-        </button>
-        {showHint && (
-          <div className="-mx-[2cqw] mt-[0.5cqw] -mb-[2cqw] flex items-center justify-center border-t border-border/30 px-[3cqw] py-[2cqw]">
-            <span className="inline-flex items-center gap-[1.5cqw] text-[clamp(0.45rem,1.4cqw,0.7rem)] text-muted-foreground/50">
-              <kbd className="rounded border border-border/50 bg-foreground/[0.06] px-[1.2cqw] py-[0.3cqw] font-mono text-[clamp(0.4rem,1.2cqw,0.62rem)] text-muted-foreground">
-                ⌘V
-              </kbd>
-              paste · drop · or click upload
-            </span>
-          </div>
-        )}
-      </div>
-    )
-  }
+  const sizing = fluid ? FLUID_SIZING : DEFAULT_SIZING
 
   return (
-    <div
-      className={cn(
-        "flex flex-col gap-2 p-2.5 text-neutral-950 dark:text-white",
-        className
-      )}
-    >
+    <div className={cn(sizing.outer, className)}>
       <button
         type="button"
         onPointerDown={(e) => e.stopPropagation()}
@@ -372,21 +380,21 @@ export function UploadCard({
           onBrowse()
         }}
         className={cn(
-          "flex w-full items-center justify-center gap-2.5 rounded-lg px-5 py-4 text-[14px] font-semibold tracking-[-0.02em] transition-all",
+          sizing.uploadButton,
           isDragOver
             ? "bg-primary/70 text-white"
             : "bg-primary text-white hover:brightness-110 active:brightness-95"
         )}
       >
-        <RiUploadLine className="size-4 shrink-0" />
+        <RiUploadLine className={cn(sizing.icon, "shrink-0")} />
         Upload Screenshot
       </button>
-      <div className="flex items-center gap-1.5">
+      <div className={sizing.urlRow}>
         <label
           onPointerDown={(e) => e.stopPropagation()}
-          className="flex min-h-10 flex-1 items-center gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-3 text-left transition-colors focus-within:border-neutral-300 focus-within:bg-white dark:border-white/10 dark:bg-white/8 dark:focus-within:bg-white/12"
+          className={sizing.urlLabel}
         >
-          <RiLink className="size-4 shrink-0 text-neutral-400 dark:text-white/35" />
+          <RiLink className={cn(sizing.icon, "shrink-0", sizing.urlIconTint)} />
           <input
             type="text"
             inputMode="url"
@@ -397,33 +405,42 @@ export function UploadCard({
             onKeyDown={(e) => {
               if (e.key === "Enter") handleCapture(e)
             }}
-            className="min-w-0 flex-1 bg-transparent text-[13px] text-neutral-950 placeholder:text-neutral-400 focus:outline-none dark:text-white dark:placeholder:text-white/35"
+            className={sizing.urlInput}
             onClick={(e) => e.stopPropagation()}
           />
         </label>
         <CaptureSettingsPopover
           settings={settings}
           onChange={handleSettingChange}
+          triggerClassName={sizing.settingsTrigger}
+          iconClassName={sizing.settingsIcon}
         />
       </div>
       <button
         type="button"
+        disabled={captureDisabled}
+        aria-busy={isCapturing}
         onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => handleCapture(e)}
+        onClick={(e) => {
+          e.stopPropagation()
+          handleCapture(e)
+        }}
         className={cn(
-          "flex w-full items-center justify-center gap-2 rounded-md border border-neutral-200 bg-neutral-50 py-2.5 text-[13px] font-medium text-neutral-500 transition-all hover:bg-neutral-100 hover:text-neutral-800 dark:border-white/10 dark:bg-white/8 dark:text-white/45 dark:hover:bg-white/12 dark:hover:text-white/75",
-          url === PREFIX && "cursor-default opacity-50"
+          sizing.captureButton,
+          captureDisabled && sizing.captureDisabled
         )}
       >
-        <RiCameraLine className="size-4" />
-        Capture Screenshot
+        {isCapturing ? (
+          <RiLoader4Line className={cn(sizing.icon, "animate-spin")} />
+        ) : (
+          <RiCameraLine className={sizing.icon} />
+        )}
+        {captureLabel}
       </button>
       {showHint && (
-        <div className="-mx-2.5 mt-0.5 -mb-2.5 flex items-center justify-center border-t border-neutral-200 px-4 py-2.5 dark:border-white/10">
-          <span className="inline-flex items-center gap-1.5 text-[11px] text-neutral-400 dark:text-white/40">
-            <kbd className="rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 font-mono text-[10px] text-neutral-500 dark:border-white/10 dark:bg-white/10 dark:text-white/70">
-              ⌘V
-            </kbd>
+        <div className={sizing.hintBox}>
+          <span className={sizing.hintText}>
+            <kbd className={sizing.hintKbd}>⌘V</kbd>
             paste · drop · or click upload
           </span>
         </div>
@@ -431,3 +448,53 @@ export function UploadCard({
     </div>
   )
 }
+
+const FLUID_SIZING = {
+  outer: "flex w-full flex-col gap-[2cqw] overflow-hidden p-[2cqw]",
+  uploadButton:
+    "flex w-full items-center justify-center gap-[2cqw] rounded-[3cqw] px-[4cqw] py-[4.5cqw] text-[clamp(0.65rem,2.8cqw,1rem)] font-semibold transition-all",
+  urlRow: "flex items-center gap-[1.5cqw]",
+  urlLabel:
+    "flex flex-1 items-center gap-[2cqw] rounded-[3cqw] bg-foreground/[0.06] px-[3cqw] py-[4.5cqw] transition-colors focus-within:bg-foreground/[0.1]",
+  urlIconTint: "text-muted-foreground/60",
+  urlInput:
+    "min-w-0 flex-1 bg-transparent text-[clamp(0.65rem,2.8cqw,1rem)] text-foreground placeholder:text-muted-foreground/40 focus:outline-none",
+  captureButton:
+    "flex w-full items-center justify-center gap-[2cqw] rounded-[3cqw] bg-foreground/[0.06] py-[4.5cqw] text-[clamp(0.65rem,2.8cqw,1rem)] font-medium text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground",
+  captureDisabled:
+    "cursor-default opacity-60 hover:bg-foreground/[0.06] hover:text-muted-foreground",
+  icon: "size-[clamp(0.7rem,2.5cqw,1rem)]",
+  settingsTrigger: "rounded-[3cqw] py-[4.5cqw] px-[4.5cqw]",
+  settingsIcon: "size-[clamp(1rem,6cqw,2rem)]",
+  hintBox:
+    "-mx-[2cqw] mt-[0.5cqw] -mb-[2cqw] flex items-center justify-center border-t border-border/30 px-[3cqw] py-[2cqw]",
+  hintText:
+    "inline-flex items-center gap-[1.5cqw] text-[clamp(0.45rem,1.4cqw,0.7rem)] text-muted-foreground/50",
+  hintKbd:
+    "rounded border border-border/50 bg-foreground/[0.06] px-[1.2cqw] py-[0.3cqw] font-mono text-[clamp(0.4rem,1.2cqw,0.62rem)] text-muted-foreground",
+} as const
+
+const DEFAULT_SIZING = {
+  outer: "flex flex-col gap-2 p-2.5 text-neutral-950 dark:text-white",
+  uploadButton:
+    "flex w-full items-center justify-center gap-2.5 rounded-lg px-5 py-4 text-[14px] font-semibold tracking-[-0.02em] transition-all",
+  urlRow: "flex items-center gap-1.5",
+  urlLabel:
+    "flex min-h-10 flex-1 items-center gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-3 text-left transition-colors focus-within:border-neutral-300 focus-within:bg-white dark:border-white/10 dark:bg-white/8 dark:focus-within:bg-white/12",
+  urlIconTint: "text-neutral-400 dark:text-white/35",
+  urlInput:
+    "min-w-0 flex-1 bg-transparent text-[13px] text-neutral-950 placeholder:text-neutral-400 focus:outline-none dark:text-white dark:placeholder:text-white/35",
+  captureButton:
+    "flex w-full items-center justify-center gap-2 rounded-md border border-neutral-200 bg-neutral-50 py-2.5 text-[13px] font-medium text-neutral-500 transition-all hover:bg-neutral-100 hover:text-neutral-800 dark:border-white/10 dark:bg-white/8 dark:text-white/45 dark:hover:bg-white/12 dark:hover:text-white/75",
+  captureDisabled:
+    "cursor-default opacity-60 hover:bg-neutral-50 hover:text-neutral-500 dark:hover:bg-white/8 dark:hover:text-white/45",
+  icon: "size-4",
+  settingsTrigger: "size-10 rounded-md",
+  settingsIcon: "size-4",
+  hintBox:
+    "-mx-2.5 mt-0.5 -mb-2.5 flex items-center justify-center border-t border-neutral-200 px-4 py-2.5 dark:border-white/10",
+  hintText:
+    "inline-flex items-center gap-1.5 text-[11px] text-neutral-400 dark:text-white/40",
+  hintKbd:
+    "rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 font-mono text-[10px] text-neutral-500 dark:border-white/10 dark:bg-white/10 dark:text-white/70",
+} as const

@@ -32,7 +32,12 @@ export function IpadProSidebar() {
       </DrawerTrigger>
       <DrawerContent className="!inset-y-0">
         <DrawerTitle className="sr-only">Design</DrawerTitle>
-        <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
+        <div
+          className="relative flex h-full min-h-0 flex-col overflow-hidden"
+          style={
+            { "--editor-panel-bg": "var(--color-popover)" } as React.CSSProperties
+          }
+        >
           <EffectsSidebar
             stacked
             className="!h-full !w-full !border-none !bg-transparent"

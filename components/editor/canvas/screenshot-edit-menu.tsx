@@ -10,7 +10,11 @@ import {
 import { motion } from "motion/react"
 import { Select as SelectPrimitive } from "radix-ui"
 
-import { UploadCard } from "@/components/editor/canvas/upload-card"
+import {
+  UploadCard,
+  type CaptureDevice,
+  type CaptureSettings,
+} from "@/components/editor/canvas/upload-card"
 import { ScrollFadeBody } from "@/components/editor/scroll-fade"
 import {
   Popover,
@@ -40,7 +44,11 @@ type ScreenshotEditMenuProps = {
   onReplaceFile: (file: File) => void
   onDelete: () => void
   showDelete?: boolean
-  onCaptureWebsite?: (url: string) => void
+  onCaptureWebsite?: (
+    url: string,
+    settings: CaptureSettings
+  ) => void | Promise<void>
+  captureDefaultDevice?: CaptureDevice
 }
 
 export function ScreenshotEditMenu({
@@ -51,6 +59,7 @@ export function ScreenshotEditMenu({
   onDelete,
   showDelete = true,
   onCaptureWebsite,
+  captureDefaultDevice,
 }: ScreenshotEditMenuProps) {
   const replaceInputRef = React.useRef<HTMLInputElement>(null)
 
@@ -120,8 +129,9 @@ export function ScreenshotEditMenu({
           >
             <UploadCard
               onBrowse={() => replaceInputRef.current?.click()}
-              onCapture={(url) => {
-                onCaptureWebsite?.(url)
+              defaultDevice={captureDefaultDevice}
+              onCapture={async (url, settings) => {
+                await onCaptureWebsite?.(url, settings)
                 handleOpenChange(false)
               }}
             />
