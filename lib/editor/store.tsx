@@ -653,15 +653,6 @@ export const useEditorStore = create<EditorStore>((set, get) => {
       }, "preset:apply")
     },
     setScreenshot: (screenshot, canvasId) => {
-      const state = get()
-      const targetCanvasId = canvasId ?? state.present.activeCanvasId
-      const targetCanvas = state.present.canvases.find(
-        (canvas) => canvas.id === targetCanvasId
-      )
-      const activeLayoutGeometry = targetCanvas
-        ? resolveActiveLayoutGeometry(state, targetCanvas.frame)
-        : null
-      const presetOffset = resolveMainOffsetPx(activeLayoutGeometry?.mainOffset)
       commitCanvas(
         canvasId,
         (canvas) => ({
@@ -669,8 +660,6 @@ export const useEditorStore = create<EditorStore>((set, get) => {
           originalScreenshot: screenshot,
           lastCropRegion: null,
           objectFit: canvas.objectFit ?? "cover",
-          screenshotPosition: "center",
-          screenshotOffset: presetOffset,
           screenshotLayer: {
             ...canvas.screenshotLayer,
             zIndex:

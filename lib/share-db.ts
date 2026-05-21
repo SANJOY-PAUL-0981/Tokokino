@@ -2,7 +2,7 @@ import "server-only"
 
 import { createHash } from "node:crypto"
 
-import { and, desc, eq, sql } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 
 import { shares, shareViews } from "@/lib/db/schema"
 import { fromD1Date, getDb, toD1Date } from "@/lib/d1"
@@ -91,24 +91,6 @@ export async function createShareRecord({
       viewCount: 0,
       uniqueViewCount: 0,
     })
-}
-
-export async function findShareByImageHashForUser({
-  imageHash,
-  userId,
-}: {
-  imageHash: string
-  userId: string
-}) {
-  const row = await getDb()
-    .select()
-    .from(shares)
-    .where(and(eq(shares.imageHash, imageHash), eq(shares.userId, userId)))
-    .orderBy(desc(shares.createdAt))
-    .limit(1)
-    .get()
-
-  return row ? rowToShare(row) : null
 }
 
 export async function recordShareView(id: string, requestHeaders: Headers) {

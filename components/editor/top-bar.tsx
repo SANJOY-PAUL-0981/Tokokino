@@ -40,6 +40,7 @@ import {
   useEditorStore,
 } from "@/lib/editor/store"
 import type {
+  AspectState,
   CanvasState,
   CurrentDraftInfo,
   CustomPresetGeometry,
@@ -114,6 +115,7 @@ type ShareDialogState = {
   open: boolean
   status: "idle" | "preparing" | "ready" | "error"
   url: string | null
+  signature: string | null
   error: string | null
 }
 
@@ -134,6 +136,58 @@ function waitForNextPaint() {
       window.requestAnimationFrame(() => resolve())
     })
   })
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value)
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(",")}]`
+  }
+
+  const record = value as Record<string, unknown>
+  return `{${Object.keys(record)
+    .sort()
+    .filter((key) => record[key] !== undefined)
+    .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
+    .join(",")}}`
+}
+
+function shareableCanvasSource(canvas: CanvasState, fallbackAspect: AspectState) {
+  const {
+    id: _id,
+    position: _position,
+    originalScreenshot: _originalScreenshot,
+    lastCropRegion: _lastCropRegion,
+    aspect,
+    ...source
+  } = canvas
+
+  return {
+    version: 1,
+    aspect: aspect ?? fallbackAspect,
+    ...source,
+  }
+}
+
+async function createShareSignature(canvasId: string) {
+  const state = useEditorStore.getState()
+  const canvas = state.present.canvases.find((item) => item.id === canvasId)
+  if (!canvas) return null
+
+  const source = stableStringify(
+    shareableCanvasSource(canvas, state.present.aspect)
+  )
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(source)
+  )
+
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("")
 }
 
 export function TopBar() {
@@ -158,6 +212,7 @@ export function TopBar() {
     open: false,
     status: "idle",
     url: null,
+    signature: null,
     error: null,
   })
   const [isShareLinkCopied, setIsShareLinkCopied] = React.useState(false)
@@ -247,12 +302,25 @@ export function TopBar() {
     if (shareDialog.status === "preparing") return
 
     const skeletonStartedAt = performance.now()
+    const signature = await createShareSignature(activeCanvasId)
+
+    if (
+      signature &&
+      shareDialog.status === "ready" &&
+      shareDialog.url &&
+      shareDialog.signature === signature
+    ) {
+      setIsShareLinkCopied(false)
+      setShareDialog((current) => ({ ...current, open: true }))
+      return
+    }
 
     setIsShareLinkCopied(false)
     setShareDialog({
       open: true,
       status: "preparing",
       url: null,
+      signature: null,
       error: null,
     })
 
@@ -281,6 +349,7 @@ export function TopBar() {
         open: true,
         status: "ready",
         url: result.url,
+        signature,
         error: null,
       })
     } catch (err) {
@@ -292,11 +361,12 @@ export function TopBar() {
         open: true,
         status: "error",
         url: null,
+        signature: null,
         error: message,
       })
       toast.error(message)
     }
-  }, [activeCanvasId, shareDialog.status])
+  }, [activeCanvasId, shareDialog.signature, shareDialog.status, shareDialog.url])
 
   const handleProtectedAction = React.useCallback(
     (action: ProtectedTopBarAction) => {
@@ -1544,7 +1614,7 @@ function ShareControls({
               variant="outline"
               size="lg"
               onClick={() => {
-                if (!open && status === "idle") onShare()
+                if (!open && status !== "preparing") onShare()
               }}
             >
               <RiShareForwardLine />

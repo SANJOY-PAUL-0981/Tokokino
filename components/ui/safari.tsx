@@ -1,4 +1,5 @@
 import {
+  type CSSProperties,
   useId,
   type HTMLAttributes,
   type ReactNode,
@@ -90,6 +91,8 @@ export function Safari({
   const toolbarFillClass = toolbarFill
     ? undefined
     : "fill-white dark:fill-[#262626]"
+  const screenBg = screenBgClass(colorMode)
+  const screenBgStyle = screenBgCss(colorMode)
 
   return (
     <div
@@ -103,12 +106,13 @@ export function Safari({
     >
       {hasVideo && (
         <div
-          className="pointer-events-none absolute z-0 overflow-hidden"
+          className={`pointer-events-none absolute z-0 overflow-hidden ${screenBg}`}
           style={{
             left: `${LEFT_PCT}%`,
             top: `${TOP_PCT}%`,
             width: `${WIDTH_PCT}%`,
             height: `${HEIGHT_PCT}%`,
+            ...screenBgStyle,
           }}
         >
           <video
@@ -126,13 +130,14 @@ export function Safari({
       {!hasVideo && imageSrc && (
         <div
           ref={screenRef}
-          className={`pointer-events-none absolute z-0 overflow-hidden ${imageFit === "contain" ? screenBgClass(colorMode) : ""}`}
+          className={`pointer-events-none absolute z-0 overflow-hidden ${screenBg}`}
           style={{
             left: `${LEFT_PCT}%`,
             top: `${TOP_PCT}%`,
             width: `${WIDTH_PCT}%`,
             height: `${HEIGHT_PCT}%`,
             borderRadius: screenBorderRadius,
+            ...screenBgStyle,
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -149,13 +154,14 @@ export function Safari({
       {!hasMedia && children ? (
         <div
           ref={screenRef}
-          className="absolute z-0 overflow-hidden"
+          className={`absolute z-0 overflow-hidden ${screenBg}`}
           style={{
             left: `${LEFT_PCT}%`,
             top: `${TOP_PCT}%`,
             width: `${WIDTH_PCT}%`,
             height: `${HEIGHT_PCT}%`,
             borderRadius: screenBorderRadius,
+            ...screenBgStyle,
           }}
         >
           {children}
@@ -350,7 +356,13 @@ function imageFitClassName(imageFit: ImageFit) {
 }
 
 function screenBgClass(colorMode: SafariColorMode | undefined) {
-  if (colorMode === "dark") return "bg-[#404040]"
-  if (colorMode === "light") return "bg-[#E5E5E5]"
-  return "bg-[#E5E5E5] dark:bg-[#404040]"
+  if (colorMode === "dark") return "bg-[#262626]"
+  if (colorMode === "light") return "bg-white"
+  return "bg-white dark:bg-[#262626]"
+}
+
+function screenBgCss(colorMode: SafariColorMode | undefined): CSSProperties {
+  if (colorMode === "dark") return { backgroundColor: "#262626" }
+  if (colorMode === "light") return { backgroundColor: "#ffffff" }
+  return {}
 }

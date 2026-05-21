@@ -2,7 +2,7 @@ import { createHash } from "node:crypto"
 import { NextResponse } from "next/server"
 
 import { getAuth } from "@/lib/auth"
-import { createShareRecord, findShareByImageHashForUser } from "@/lib/share-db"
+import { createShareRecord } from "@/lib/share-db"
 import {
   getShareImageUrl,
   getShareObjectKey,
@@ -48,21 +48,6 @@ export async function POST(request: Request) {
   }
 
   const imageHash = createHash("sha256").update(image).digest("hex")
-  const existingShare = await findShareByImageHashForUser({
-    imageHash,
-    userId: session.user.id,
-  })
-
-  if (existingShare) {
-    const existingUrl = new URL(`/share/${existingShare.id}`, request.url)
-    return NextResponse.json({
-      id: existingShare.id,
-      url: existingUrl.toString(),
-      imageUrl: getShareImageUrl(existingShare.id, request.url),
-      views: existingShare.uniqueViewCount,
-      reused: true,
-    })
-  }
 
   const id = crypto.randomUUID()
   if (!isValidShareId(id)) {

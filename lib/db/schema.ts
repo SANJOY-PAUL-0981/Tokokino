@@ -74,7 +74,6 @@ export const shares = sqliteTable(
   },
   (table) => [
     index("idx_shares_user_created").on(table.userId, table.createdAt),
-    index("idx_shares_user_hash").on(table.userId, table.imageHash),
   ]
 )
 

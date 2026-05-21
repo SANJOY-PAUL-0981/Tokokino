@@ -100,8 +100,6 @@ CREATE TABLE IF NOT EXISTS "shares" (
 
 CREATE INDEX IF NOT EXISTS "shares_user_created_idx"
   ON "shares" ("user_id", "created_at" DESC);
-CREATE INDEX IF NOT EXISTS "shares_user_image_hash_idx"
-  ON "shares" ("user_id", "image_hash");
 
 CREATE TABLE IF NOT EXISTS "share_views" (
   "share_id" TEXT NOT NULL,
