@@ -63,7 +63,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {
   Popover,
-  PopoverAnchor,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
@@ -1525,17 +1524,23 @@ function ShareControls({
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverAnchor asChild>
-        <Tooltip open={open ? false : undefined}>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="lg" onClick={onShare}>
+      <Tooltip open={open ? false : undefined}>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => {
+                if (!open && status === "idle") onShare()
+              }}
+            >
               <RiShareForwardLine />
               <span className="hidden lg:inline">Share</span>
             </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">Share screenshot</TooltipContent>
-        </Tooltip>
-      </PopoverAnchor>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Share screenshot</TooltipContent>
+      </Tooltip>
       <PopoverContent
         align="center"
         sideOffset={12}
