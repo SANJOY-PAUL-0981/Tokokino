@@ -111,10 +111,7 @@ export async function POST(request: Request) {
   const endpoint = new URL(
     `https://api.cloudflare.com/client/v4/accounts/${accountId}/browser-rendering/screenshot`
   )
-  endpoint.searchParams.set(
-    "cacheTTL",
-    String(SCREENSHOT_CACHE_TTL_SECONDS)
-  )
+  endpoint.searchParams.set("cacheTTL", String(SCREENSHOT_CACHE_TTL_SECONDS))
 
   try {
     const cfResponse = await fetch(endpoint, {
@@ -131,7 +128,10 @@ export async function POST(request: Request) {
     if (!cfResponse.ok) {
       const errorBody = await parseCloudflareErrorBody(cfResponse)
       const friendly = screenshotErrorMessage(errorBody, cfResponse.statusText)
-      return NextResponse.json({ error: friendly }, { status: cfResponse.status })
+      return NextResponse.json(
+        { error: friendly },
+        { status: cfResponse.status }
+      )
     }
 
     const buffer = await cfResponse.arrayBuffer()
@@ -196,7 +196,9 @@ function screenshotResponse(buffer: ArrayBuffer, cacheStatus: "HIT" | "MISS") {
 async function parseCloudflareErrorBody(response: Response) {
   const contentType = response.headers.get("content-type") ?? ""
   if (!contentType.includes("application/json")) return null
-  return (await response.json().catch(() => null)) as CloudflareApiErrorBody | null
+  return (await response
+    .json()
+    .catch(() => null)) as CloudflareApiErrorBody | null
 }
 
 function screenshotErrorMessage(
@@ -211,7 +213,10 @@ function screenshotErrorMessage(
   return message ?? fallback ?? "Capture failed"
 }
 
-function hasCloudflareErrorCode(body: CloudflareApiErrorBody | null, code: number) {
+function hasCloudflareErrorCode(
+  body: CloudflareApiErrorBody | null,
+  code: number
+) {
   if (!body || typeof body !== "object") return false
   return body.errors?.some((entry) => entry.code === code) ?? false
 }

@@ -9,8 +9,7 @@ import { TermsIndex } from "./terms-index"
 
 export const metadata: Metadata = {
   title: "Terms & Conditions — Tokokino",
-  description:
-    "Review the terms governing access to and use of Tokokino.",
+  description: "Review the terms governing access to and use of Tokokino.",
 }
 
 const EFFECTIVE_DATE = "May 17, 2026"
@@ -153,16 +152,14 @@ const sections: TermsSection[] = [
         <ExternalLink href="https://github.com/shivabhattacharjee/tokokino">
           github.com/shivabhattacharjee/tokokino
         </ExternalLink>
-        , through the project repository when an issues or discussions channel is
-        available, by email at{" "}
+        , through the project repository when an issues or discussions channel
+        is available, by email at{" "}
         <ExternalLink href="mailto:hello@theshiva.xyz">
           hello@theshiva.xyz
         </ExternalLink>
         , or on X at{" "}
-        <ExternalLink href="https://x.com/sh17va">
-          x.com/sh17va
-        </ExternalLink>{" "}
-        if you want to contact the owner or developer directly. Where relevant,
+        <ExternalLink href="https://x.com/sh17va">x.com/sh17va</ExternalLink> if
+        you want to contact the owner or developer directly. Where relevant,
         please include clear details about copyright, asset ownership, or
         infringement concerns.
       </>,

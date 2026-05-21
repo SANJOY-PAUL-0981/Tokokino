@@ -5,7 +5,11 @@ export function DashedH() {
     <div
       aria-hidden
       className="relative h-px"
-      style={{ width: "100vw", marginLeft: "calc(50% - 50vw)", ...RAIL_H_STYLE }}
+      style={{
+        width: "100vw",
+        marginLeft: "calc(50% - 50vw)",
+        ...RAIL_H_STYLE,
+      }}
     />
   )
 }

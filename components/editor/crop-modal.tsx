@@ -24,7 +24,12 @@ function dataURLtoFile(dataurl: string, filename: string) {
   return new File([u8arr], filename, { type: mime })
 }
 
-type Preset = { label: string; aspect: number | undefined; w: number; h: number }
+type Preset = {
+  label: string
+  aspect: number | undefined
+  w: number
+  h: number
+}
 
 const PRESETS: Preset[] = [
   { label: "Free", aspect: undefined, w: 18, h: 12 },
@@ -96,7 +101,14 @@ export function CropModal({
             className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             aria-label="Close"
           >
-            <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <svg
+              viewBox="0 0 16 16"
+              className="size-3.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            >
               <path d="M3 3l10 10M13 3L3 13" />
             </svg>
           </button>
@@ -140,7 +152,7 @@ export function CropModal({
                     key={p.label}
                     onClick={() => setAspect(p.aspect)}
                     className={cn(
-                      "group flex shrink-0 items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[11.5px] font-medium tracking-tight transition-all cursor-pointer",
+                      "group flex shrink-0 cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[11.5px] font-medium tracking-tight transition-all",
                       isActive
                         ? "border-foreground/80 bg-foreground text-background"
                         : "border-border/60 bg-transparent text-muted-foreground hover:border-border hover:bg-secondary/60 hover:text-foreground"

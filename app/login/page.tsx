@@ -15,7 +15,10 @@ export const metadata: Metadata = {
 
 const DEFAULT_AUTH_REDIRECT = "/app"
 
-function resolveCallbackRedirect(callbackURL: string | undefined, origin: string) {
+function resolveCallbackRedirect(
+  callbackURL: string | undefined,
+  origin: string
+) {
   if (!callbackURL) return DEFAULT_AUTH_REDIRECT
   try {
     const target = new URL(callbackURL, origin)
@@ -74,7 +77,7 @@ export default async function LoginPage({
           />
 
           <div className="relative z-10 flex h-full flex-col justify-between p-6 text-white lg:p-8">
-            <BrandLogo  />
+            <BrandLogo />
 
             <div className="space-y-7">
               <div className="h-px w-10 bg-[oklch(0.7_0.2_18)]/80" />

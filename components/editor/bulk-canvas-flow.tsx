@@ -193,9 +193,7 @@ function CanvasNodeToolbar({
 
 function CanvasNode({ data }: NodeProps<CanvasFlowNode>) {
   const { canvasId, widthPx, heightPx } = data
-  const isActive = useEditorStore(
-    (s) => s.present.activeCanvasId === canvasId
-  )
+  const isActive = useEditorStore((s) => s.present.activeCanvasId === canvasId)
   const canvasCount = useEditorStore((s) => s.present.canvases.length)
   const setActiveCanvasId = useEditorStore((s) => s.setActiveCanvasId)
   const removeCanvas = useEditorStore((s) => s.removeCanvas)
@@ -249,7 +247,10 @@ function buildNodes(
     return {
       id: c.id,
       type: "canvas",
-      position: { x: c.position.x - widthPx / 2, y: c.position.y - heightPx / 2 },
+      position: {
+        x: c.position.x - widthPx / 2,
+        y: c.position.y - heightPx / 2,
+      },
       data: { canvasId: c.id, widthPx, heightPx },
     }
   })

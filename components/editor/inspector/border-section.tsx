@@ -92,12 +92,7 @@ export function BorderSection() {
     return () => {
       active = false
     }
-  }, [
-    background.thumbUrl,
-    background.type,
-    background.value,
-    screenshot,
-  ])
+  }, [background.thumbUrl, background.type, background.value, screenshot])
 
   const presets =
     dynamicColors.length > 0
@@ -263,9 +258,11 @@ export function BorderSection() {
               }}
               className={cn(
                 "flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border p-1.5 transition-all",
-                (t.id === "none"
-                  ? !enabled
-                  : enabled && (border.style || "solid") === t.id)
+                (
+                  t.id === "none"
+                    ? !enabled
+                    : enabled && (border.style || "solid") === t.id
+                )
                   ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
                   : "border-border/60 bg-secondary/20 hover:border-foreground/30"
               )}
@@ -274,9 +271,11 @@ export function BorderSection() {
               <span
                 className={cn(
                   "text-[9px] font-medium",
-                  (t.id === "none"
-                    ? !enabled
-                    : enabled && (border.style || "solid") === t.id)
+                  (
+                    t.id === "none"
+                      ? !enabled
+                      : enabled && (border.style || "solid") === t.id
+                  )
                     ? "text-primary"
                     : "text-muted-foreground"
                 )}

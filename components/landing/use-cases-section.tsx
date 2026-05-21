@@ -44,7 +44,10 @@ const PIPELINE = [
 
 export function UseCasesSection() {
   return (
-    <section id="use-cases" className="relative px-5 py-16 sm:px-8 sm:py-24 lg:px-12">
+    <section
+      id="use-cases"
+      className="relative px-5 py-16 sm:px-8 sm:py-24 lg:px-12"
+    >
       <div className="grid gap-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
@@ -60,7 +63,9 @@ export function UseCasesSection() {
             Made for the screenshot jobs that keep coming back.
           </h2>
           <p className="max-w-lg text-sm leading-7 text-foreground/58">
-            Tokokino keeps repeat visual work short: choose the right frame, apply a sharp backdrop, add only the context that helps, then export.
+            Tokokino keeps repeat visual work short: choose the right frame,
+            apply a sharp backdrop, add only the context that helps, then
+            export.
           </p>
 
           <div className="mt-2 overflow-hidden rounded-md border border-border/70 bg-background/50 backdrop-blur-sm">

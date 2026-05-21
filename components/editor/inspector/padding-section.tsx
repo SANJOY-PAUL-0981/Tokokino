@@ -4,10 +4,7 @@ import * as React from "react"
 
 import { EditableValue } from "@/components/editor/editable-value"
 import { Slider } from "@/components/ui/slider"
-import {
-  useActiveCanvasField,
-  useEditorStore,
-} from "@/lib/editor/store"
+import { useActiveCanvasField, useEditorStore } from "@/lib/editor/store"
 import { useScreenshotStyleTarget } from "@/lib/editor/screenshot-style-target"
 import { cn } from "@/lib/utils"
 

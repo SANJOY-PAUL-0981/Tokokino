@@ -111,7 +111,10 @@ async function fetchImage(url: URL, redirectCount = 0): Promise<Response> {
     !["http:", "https:"].includes(nextUrl.protocol) ||
     isBlockedHost(nextUrl.hostname)
   ) {
-    return NextResponse.json({ error: "Blocked image redirect" }, { status: 400 })
+    return NextResponse.json(
+      { error: "Blocked image redirect" },
+      { status: 400 }
+    )
   }
 
   return fetchImage(nextUrl, redirectCount + 1)

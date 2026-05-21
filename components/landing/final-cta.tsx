@@ -33,26 +33,15 @@ const asciiOrnaments = [
   },
   {
     className: "bottom-[10%] left-[18%] hidden text-foreground/28 sm:block",
-    text: [
-      "  /\\",
-      " /nn\\",
-      "/nnnn\\",
-      "\\nnnn/",
-      " \\nn/",
-      "  \\/",
-    ].join("\n"),
+    text: ["  /\\", " /nn\\", "/nnnn\\", "\\nnnn/", " \\nn/", "  \\/"].join(
+      "\n"
+    ),
   },
   {
     className: "bottom-[12%] right-[18%] hidden text-foreground/30 md:block",
-    text: [
-      "+++++",
-      "+   +",
-      "++ ++",
-      " +++",
-      "++ ++",
-      "+   +",
-      "+++++",
-    ].join("\n"),
+    text: ["+++++", "+   +", "++ ++", " +++", "++ ++", "+   +", "+++++"].join(
+      "\n"
+    ),
   },
 ]
 
@@ -89,14 +78,17 @@ export function FinalCta() {
         transition={{ duration: 0.65, ease }}
         className="relative mx-auto flex max-w-5xl flex-col items-center text-center"
       >
-        <span className="font-mono text-[10px] tracking-[0.28em] text-primary/80 uppercase">{"// Last call"}</span>
+        <span className="font-mono text-[10px] tracking-[0.28em] text-primary/80 uppercase">
+          {"// Last call"}
+        </span>
         <h2 className="mt-5 text-[1.65rem] leading-[1.05] font-medium tracking-[-0.04em] text-balance sm:text-4xl lg:text-[3.75rem]">
           Screenshot and mockup
           <br />
           <span className="text-primary">polish that ships.</span>
         </h2>
         <p className="mt-6 max-w-xl text-[14px] leading-relaxed text-balance text-foreground/58 sm:text-[15px]">
-          Create professional screenshot and device-mockup visuals with clean framing, balanced styling, and export-ready output.
+          Create professional screenshot and device-mockup visuals with clean
+          framing, balanced styling, and export-ready output.
         </p>
         <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
           <Link

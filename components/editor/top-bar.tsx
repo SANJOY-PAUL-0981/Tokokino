@@ -155,7 +155,10 @@ function stableStringify(value: unknown): string {
     .join(",")}}`
 }
 
-function shareableCanvasSource(canvas: CanvasState, fallbackAspect: AspectState) {
+function shareableCanvasSource(
+  canvas: CanvasState,
+  fallbackAspect: AspectState
+) {
   return {
     version: 1,
     aspect: canvas.aspect ?? fallbackAspect,
@@ -238,7 +241,9 @@ export function TopBar() {
   const [isCopiedPng, setIsCopiedPng] = React.useState(false)
 
   const setScreenshot = useEditorStore((s) => s.setScreenshot)
-  const selectedScreenshotSlotId = useEditorStore((s) => s.selectedScreenshotSlotId)
+  const selectedScreenshotSlotId = useEditorStore(
+    (s) => s.selectedScreenshotSlotId
+  )
   const setScreenshotSlotImage = useEditorStore((s) => s.setScreenshotSlotImage)
 
   const [showNewAlert, setShowNewAlert] = React.useState(false)
@@ -251,9 +256,9 @@ export function TopBar() {
   const [isDraftSaving, setIsDraftSaving] = React.useState(false)
   const [isPresetSaving, setIsPresetSaving] = React.useState(false)
   const [draftChoiceOpen, setDraftChoiceOpen] = React.useState(false)
-  const [saveDraftMode, setSaveDraftMode] = React.useState<
-    "auto" | "create"
-  >("auto")
+  const [saveDraftMode, setSaveDraftMode] = React.useState<"auto" | "create">(
+    "auto"
+  )
   const currentDraft = useEditorStore((s) => s.currentDraft)
   const setCurrentDraft = useEditorStore((s) => s.setCurrentDraft)
   const loadDraftState = useEditorStore((s) => s.loadDraftState)
@@ -380,7 +385,12 @@ export function TopBar() {
       })
       toast.error(message)
     }
-  }, [activeCanvasId, shareDialog.signature, shareDialog.status, shareDialog.url])
+  }, [
+    activeCanvasId,
+    shareDialog.signature,
+    shareDialog.status,
+    shareDialog.url,
+  ])
 
   const handleProtectedAction = React.useCallback(
     (action: ProtectedTopBarAction) => {
@@ -456,7 +466,9 @@ export function TopBar() {
         })),
         mainOffset: {
           xPct: round(
-            designWidth ? (activeCanvas.screenshotOffset.x / designWidth) * 100 : 0
+            designWidth
+              ? (activeCanvas.screenshotOffset.x / designWidth) * 100
+              : 0
           ),
           yPct: round(
             designHeight
@@ -564,7 +576,9 @@ export function TopBar() {
         })),
         mainOffset: {
           xPct: round(
-            designWidth ? (activeCanvas.screenshotOffset.x / designWidth) * 100 : 0
+            designWidth
+              ? (activeCanvas.screenshotOffset.x / designWidth) * 100
+              : 0
           ),
           yPct: round(
             designHeight
@@ -615,7 +629,9 @@ export function TopBar() {
         return true
       } catch (err) {
         console.error(err)
-        toast.error(err instanceof Error ? err.message : "Could not update preset")
+        toast.error(
+          err instanceof Error ? err.message : "Could not update preset"
+        )
         return false
       } finally {
         setIsPresetSaving(false)
@@ -965,8 +981,8 @@ export function TopBar() {
             <AlertDialogHeader>
               <AlertDialogTitle>Start new project?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will discard all your changes and restore the editor to
-                a fresh canvas. This action can be undone.
+                This will discard all your changes and restore the editor to a
+                fresh canvas. This action can be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1035,11 +1051,15 @@ export function TopBar() {
         <PresetChoiceDialog
           open={presetChoiceOpen}
           onOpenChange={setPresetChoiceOpen}
-          presetName={customPresets.find((p) => p.id === activeCustomPresetId)?.name ?? ""}
+          presetName={
+            customPresets.find((p) => p.id === activeCustomPresetId)?.name ?? ""
+          }
           isSaving={isPresetSaving}
           onUpdateExisting={async () => {
             if (!activeCustomPresetId) return
-            const name = customPresets.find((p) => p.id === activeCustomPresetId)?.name ?? ""
+            const name =
+              customPresets.find((p) => p.id === activeCustomPresetId)?.name ??
+              ""
             const ok = await handleUpdatePreset(activeCustomPresetId, name)
             if (ok) setPresetChoiceOpen(false)
           }}
@@ -1206,7 +1226,10 @@ function ExportControls() {
             >
               <RiArrowUpCircleLine className="size-4 shrink-0" />
               <span className="relative inline-grid text-[12px] font-medium tracking-tight [&>span]:col-start-1 [&>span]:row-start-1">
-                <span className="invisible pr-0.5 whitespace-nowrap" aria-hidden>
+                <span
+                  className="invisible pr-0.5 whitespace-nowrap"
+                  aria-hidden
+                >
                   {EXPORT_BUTTON_MAX_LABEL}
                 </span>
                 <AnimatePresence mode="wait" initial={false}>
@@ -1232,7 +1255,13 @@ function ExportControls() {
         <div className="w-px bg-white/20" />
 
         {/* Settings Zone */}
-        <Popover open={open} onOpenChange={(o) => { setOpen(o); setTopBarPopoverOpen(o) }}>
+        <Popover
+          open={open}
+          onOpenChange={(o) => {
+            setOpen(o)
+            setTopBarPopoverOpen(o)
+          }}
+        >
           <Tooltip open={open ? false : undefined}>
             <TooltipTrigger asChild>
               <PopoverTrigger asChild>
@@ -1392,7 +1421,10 @@ function BulkExportDialog({
         </div>
 
         {/* Canvas previews grid */}
-        <div className="grid grid-cols-3 gap-3 overflow-y-auto p-4" style={{ maxHeight: "340px" }}>
+        <div
+          className="grid grid-cols-3 gap-3 overflow-y-auto p-4"
+          style={{ maxHeight: "340px" }}
+        >
           {canvases.map((canvas, idx) => {
             const isChecked = selected.has(canvas.id)
             const aspect = canvas.aspect ?? globalAspect
@@ -1553,7 +1585,9 @@ function SegmentedRow({
   onChange: (v: string) => void
 }) {
   return (
-    <LayoutGroup id={`segmented-row-${options.map((opt) => opt.value).join("-")}`}>
+    <LayoutGroup
+      id={`segmented-row-${options.map((opt) => opt.value).join("-")}`}
+    >
       <div className="flex w-full items-center gap-1 rounded-full bg-secondary/50 p-1">
         {options.map((opt) => {
           const active = opt.value === value
@@ -2107,7 +2141,8 @@ function DraftChoiceDialog({
         <DialogHeader>
           <DialogTitle>Save draft</DialogTitle>
           <DialogDescription>
-            You&apos;re editing &ldquo;{draftName}&rdquo;. Update it or save as a new draft.
+            You&apos;re editing &ldquo;{draftName}&rdquo;. Update it or save as
+            a new draft.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2">
@@ -2161,7 +2196,8 @@ function PresetChoiceDialog({
         <DialogHeader>
           <DialogTitle>Save preset</DialogTitle>
           <DialogDescription>
-            You&apos;re editing &ldquo;{presetName}&rdquo;. Update it or save as a new preset.
+            You&apos;re editing &ldquo;{presetName}&rdquo;. Update it or save as
+            a new preset.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2">
@@ -2318,7 +2354,9 @@ function OpenProjectDialog({
   const [error, setError] = React.useState<string | null>(null)
   const [busyId, setBusyId] = React.useState<string | null>(null)
   const [deletingId, setDeletingId] = React.useState<string | null>(null)
-  const [confirmDeleteId, setConfirmDeleteId] = React.useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = React.useState<string | null>(
+    null
+  )
 
   React.useEffect(() => {
     if (!open) return
@@ -2385,99 +2423,109 @@ function OpenProjectDialog({
 
   return (
     <>
-    <AlertDialog
-      open={confirmDeleteId !== null}
-      onOpenChange={(open) => { if (!open) setConfirmDeleteId(null) }}
-    >
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete &ldquo;{draftToDelete?.name}&rdquo;?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will permanently delete this draft. This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            variant="destructive"
-            className="cursor-pointer"
-            onClick={() => {
-              if (confirmDeleteId) void handleDelete(confirmDeleteId)
-              setConfirmDeleteId(null)
-            }}
-          >
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      <AlertDialog
+        open={confirmDeleteId !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDeleteId(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete &ldquo;{draftToDelete?.name}&rdquo;?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this draft. This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="cursor-pointer">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              className="cursor-pointer"
+              onClick={() => {
+                if (confirmDeleteId) void handleDelete(confirmDeleteId)
+                setConfirmDeleteId(null)
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-0 p-0 sm:max-w-[640px]">
-        <div className="border-b border-border/60 px-5 py-4">
-          <DialogTitle className="text-[15px]">Open project</DialogTitle>
-          <DialogDescription className="mt-0.5 text-[12px]">
-            Pick a saved draft to resume editing.
-          </DialogDescription>
-        </div>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="gap-0 p-0 sm:max-w-[640px]">
+          <div className="border-b border-border/60 px-5 py-4">
+            <DialogTitle className="text-[15px]">Open project</DialogTitle>
+            <DialogDescription className="mt-0.5 text-[12px]">
+              Pick a saved draft to resume editing.
+            </DialogDescription>
+          </div>
 
-        <div className="max-h-[60vh] overflow-y-auto p-4">
-          {drafts === null && !error ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="aspect-[16/10] w-full rounded-lg" />
-              ))}
-            </div>
-          ) : null}
+          <div className="max-h-[60vh] overflow-y-auto p-4">
+            {drafts === null && !error ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton
+                    key={i}
+                    className="aspect-[16/10] w-full rounded-lg"
+                  />
+                ))}
+              </div>
+            ) : null}
 
-          {error ? (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-[12px] text-destructive">
-              {error}
-            </div>
-          ) : null}
+            {error ? (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-[12px] text-destructive">
+                {error}
+              </div>
+            ) : null}
 
-          {drafts && drafts.length === 0 && !error ? (
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border/60 bg-secondary/20 px-4 py-8 text-center">
-              <span className="inline-flex size-10 items-center justify-center rounded-full bg-secondary text-muted-foreground">
-                <RiDraftLine className="size-5" />
-              </span>
-              <p className="text-[13px] font-medium text-foreground">
-                No saved projects yet
-              </p>
-              <p className="text-[12px] text-muted-foreground">
-                Use Save → Save as draft to keep your work in the cloud.
-              </p>
-            </div>
-          ) : null}
+            {drafts && drafts.length === 0 && !error ? (
+              <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border/60 bg-secondary/20 px-4 py-8 text-center">
+                <span className="inline-flex size-10 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+                  <RiDraftLine className="size-5" />
+                </span>
+                <p className="text-[13px] font-medium text-foreground">
+                  No saved projects yet
+                </p>
+                <p className="text-[12px] text-muted-foreground">
+                  Use Save → Save as draft to keep your work in the cloud.
+                </p>
+              </div>
+            ) : null}
 
-          {drafts && drafts.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {drafts.map((draft) => (
-                <DraftCard
-                  key={draft.id}
-                  draft={draft}
-                  isCurrent={currentDraftId === draft.id}
-                  isOpening={busyId === draft.id}
-                  isDeleting={deletingId === draft.id}
-                  onOpen={() => void handleOpen(draft.id)}
-                  onDelete={() => setConfirmDeleteId(draft.id)}
-                />
-              ))}
-            </div>
-          ) : null}
-        </div>
+            {drafts && drafts.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {drafts.map((draft) => (
+                  <DraftCard
+                    key={draft.id}
+                    draft={draft}
+                    isCurrent={currentDraftId === draft.id}
+                    isOpening={busyId === draft.id}
+                    isDeleting={deletingId === draft.id}
+                    onOpen={() => void handleOpen(draft.id)}
+                    onDelete={() => setConfirmDeleteId(draft.id)}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
 
-        <DialogFooter className="border-t border-border/60 px-5 py-3">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => onOpenChange(false)}
-          >
-            Close
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter className="border-t border-border/60 px-5 py-3">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => onOpenChange(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

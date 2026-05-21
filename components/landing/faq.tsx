@@ -1,7 +1,12 @@
 "use client"
 
 import { motion } from "motion/react"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 import { ease } from "@/components/landing/constants"
 
 const faqs = [
@@ -51,10 +56,19 @@ const faqs = [
   },
 ]
 
-
-function FaqColumn({ items, offset = 0 }: { items: typeof faqs; offset?: number }) {
+function FaqColumn({
+  items,
+  offset = 0,
+}: {
+  items: typeof faqs
+  offset?: number
+}) {
   return (
-    <Accordion type="single" collapsible className="overflow-hidden rounded-xl border border-border/60">
+    <Accordion
+      type="single"
+      collapsible
+      className="overflow-hidden rounded-xl border border-border/60"
+    >
       {items.map((item, i) => (
         <motion.div
           key={i}
@@ -87,8 +101,12 @@ export function Faq() {
       <div className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between md:gap-16">
         {/* Left — sticky title */}
         <div className="flex-shrink-0 md:w-64 md:pt-1">
-          <span className="font-mono text-[10px] tracking-widest text-primary/80 uppercase">{"// FAQ"}</span>
-          <h2 className="mt-2 text-2xl tracking-tight whitespace-nowrap">Common questions</h2>
+          <span className="font-mono text-[10px] tracking-widest text-primary/80 uppercase">
+            {"// FAQ"}
+          </span>
+          <h2 className="mt-2 text-2xl tracking-tight whitespace-nowrap">
+            Common questions
+          </h2>
         </div>
 
         {/* Right — full accordion */}

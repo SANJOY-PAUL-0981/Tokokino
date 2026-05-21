@@ -63,12 +63,14 @@ const TEXT_EFFECTS: {
     label: "Glow",
     previewStyle: {
       color: "#ffffff",
-      textShadow: "0 0 8px rgba(255,255,255,0.9), 0 0 20px rgba(255,255,255,0.6)",
+      textShadow:
+        "0 0 8px rgba(255,255,255,0.9), 0 0 20px rgba(255,255,255,0.6)",
     },
     patch: {
       strokeColor: null,
       strokeWidth: 0,
-      textShadow: "0 0 8px rgba(255,255,255,0.9), 0 0 20px rgba(255,255,255,0.6)",
+      textShadow:
+        "0 0 8px rgba(255,255,255,0.9), 0 0 20px rgba(255,255,255,0.6)",
     },
   },
   {
@@ -136,9 +138,13 @@ function TextToolbarBody({
   } = useEditor()
 
   const [fontQuery, setFontQuery] = React.useState("")
-  const [fontCategory, setFontCategory] = React.useState<"all" | FontCategory>("all")
+  const [fontCategory, setFontCategory] = React.useState<"all" | FontCategory>(
+    "all"
+  )
   const [fontSettingsOpen, setFontSettingsOpen] = React.useState(false)
-  const [fontSizeInput, setFontSizeInput] = React.useState(String(text.fontSize))
+  const [fontSizeInput, setFontSizeInput] = React.useState(
+    String(text.fontSize)
+  )
 
   const setSize = React.useCallback(
     (n: number) =>
@@ -258,40 +264,42 @@ function TextToolbarBody({
           </ToolbarButton>
         )}
       >
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-1.5">
-              <div className="relative flex-1">
-                <RiSearchLine className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={fontQuery}
-                  onChange={(e) => setFontQuery(e.target.value)}
-                  placeholder="Search fonts..."
-                  className="h-8 !pl-8 text-[12px]"
-                />
-              </div>
-              <button
-                onClick={() => setFontSettingsOpen((v) => !v)}
-                aria-label="Typography settings"
-                className={cn(
-                  "inline-flex size-8 items-center justify-center rounded-md border border-border/60 transition-colors cursor-pointer",
-                  fontSettingsOpen
-                    ? "bg-accent text-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                )}
-              >
-                {fontSettingsOpen ? (
-                  <RiSettings4Fill className="size-4" />
-                ) : (
-                  <RiSettings4Line className="size-4" />
-                )}
-              </button>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-1.5">
+            <div className="relative flex-1">
+              <RiSearchLine className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={fontQuery}
+                onChange={(e) => setFontQuery(e.target.value)}
+                placeholder="Search fonts..."
+                className="h-8 !pl-8 text-[12px]"
+              />
             </div>
-
-            <div className="h-72 rounded-md border border-border/50 bg-secondary/30 p-2">
+            <button
+              onClick={() => setFontSettingsOpen((v) => !v)}
+              aria-label="Typography settings"
+              className={cn(
+                "inline-flex size-8 cursor-pointer items-center justify-center rounded-md border border-border/60 transition-colors",
+                fontSettingsOpen
+                  ? "bg-accent text-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              )}
+            >
               {fontSettingsOpen ? (
-                <div className="h-full overflow-y-auto">
+                <RiSettings4Fill className="size-4" />
+              ) : (
+                <RiSettings4Line className="size-4" />
+              )}
+            </button>
+          </div>
+
+          <div className="h-72 rounded-md border border-border/50 bg-secondary/30 p-2">
+            {fontSettingsOpen ? (
+              <div className="h-full overflow-y-auto">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="text-[10px] font-medium text-muted-foreground">Typography</span>
+                  <span className="text-[10px] font-medium text-muted-foreground">
+                    Typography
+                  </span>
                   <button
                     onClick={() =>
                       updateText(text.id, {
@@ -310,19 +318,27 @@ function TextToolbarBody({
                 </div>
 
                 <div className="mb-1.5 flex items-center justify-between">
-                  <span className="text-[10px] font-medium text-muted-foreground">Weight</span>
-                  <span className="font-mono text-[10px] text-foreground">{text.fontWeight}</span>
+                  <span className="text-[10px] font-medium text-muted-foreground">
+                    Weight
+                  </span>
+                  <span className="font-mono text-[10px] text-foreground">
+                    {text.fontWeight}
+                  </span>
                 </div>
                 <Slider
                   value={[text.fontWeight]}
                   min={100}
                   max={900}
                   step={100}
-                  onValueChange={([v]) => updateText(text.id, { fontWeight: v })}
+                  onValueChange={([v]) =>
+                    updateText(text.id, { fontWeight: v })
+                  }
                 />
 
                 <div className="mt-3 mb-1.5 flex items-center justify-between">
-                  <span className="text-[10px] font-medium text-muted-foreground">Line Height</span>
+                  <span className="text-[10px] font-medium text-muted-foreground">
+                    Line Height
+                  </span>
                   <span className="font-mono text-[10px] text-foreground">
                     {(text.lineHeight ?? 1.3).toFixed(2)}
                   </span>
@@ -332,11 +348,15 @@ function TextToolbarBody({
                   min={0.8}
                   max={2.4}
                   step={0.05}
-                  onValueChange={([v]) => updateText(text.id, { lineHeight: Number(v.toFixed(2)) })}
+                  onValueChange={([v]) =>
+                    updateText(text.id, { lineHeight: Number(v.toFixed(2)) })
+                  }
                 />
 
                 <div className="mt-3 mb-1.5 flex items-center justify-between">
-                  <span className="text-[10px] font-medium text-muted-foreground">Letter Spacing</span>
+                  <span className="text-[10px] font-medium text-muted-foreground">
+                    Letter Spacing
+                  </span>
                   <span className="font-mono text-[10px] text-foreground">
                     {(text.letterSpacing ?? 0).toFixed(1)}px
                   </span>
@@ -346,11 +366,15 @@ function TextToolbarBody({
                   min={-2}
                   max={20}
                   step={0.1}
-                  onValueChange={([v]) => updateText(text.id, { letterSpacing: Number(v.toFixed(1)) })}
+                  onValueChange={([v]) =>
+                    updateText(text.id, { letterSpacing: Number(v.toFixed(1)) })
+                  }
                 />
 
                 <div className="mt-3 mb-1.5 flex items-center justify-between">
-                  <span className="text-[10px] font-medium text-muted-foreground">Stroke Width</span>
+                  <span className="text-[10px] font-medium text-muted-foreground">
+                    Stroke Width
+                  </span>
                   <span className="font-mono text-[10px] text-foreground">
                     {(text.strokeWidth ?? 0).toFixed(1)}px
                   </span>
@@ -360,16 +384,31 @@ function TextToolbarBody({
                   min={0}
                   max={10}
                   step={0.5}
-                  onValueChange={([v]) => updateText(text.id, { strokeWidth: v, strokeColor: v > 0 ? (text.strokeColor || "#000000") : null })}
+                  onValueChange={([v]) =>
+                    updateText(text.id, {
+                      strokeWidth: v,
+                      strokeColor: v > 0 ? text.strokeColor || "#000000" : null,
+                    })
+                  }
                 />
 
                 <div className="mt-3 mb-1.5 flex items-center justify-between">
-                  <span className="text-[10px] font-medium text-muted-foreground">Stroke Color</span>
+                  <span className="text-[10px] font-medium text-muted-foreground">
+                    Stroke Color
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <ColorPickerPopover
                     value={text.strokeColor || "#000000"}
-                    onChange={(hex) => updateText(text.id, { strokeColor: hex, strokeWidth: text.strokeWidth && text.strokeWidth > 0 ? text.strokeWidth : 1 })}
+                    onChange={(hex) =>
+                      updateText(text.id, {
+                        strokeColor: hex,
+                        strokeWidth:
+                          text.strokeWidth && text.strokeWidth > 0
+                            ? text.strokeWidth
+                            : 1,
+                      })
+                    }
                     side="top"
                     align="center"
                   >
@@ -379,7 +418,9 @@ function TextToolbarBody({
                     >
                       <span
                         className="size-4 rounded-full border border-border/70"
-                        style={{ backgroundColor: text.strokeColor || "#000000" }}
+                        style={{
+                          backgroundColor: text.strokeColor || "#000000",
+                        }}
                       />
                     </button>
                   </ColorPickerPopover>
@@ -389,7 +430,9 @@ function TextToolbarBody({
                 </div>
 
                 <div className="mt-3 mb-1.5">
-                  <span className="text-[10px] font-medium text-muted-foreground">Quick Effects</span>
+                  <span className="text-[10px] font-medium text-muted-foreground">
+                    Quick Effects
+                  </span>
                 </div>
                 <div className="grid grid-cols-3 gap-1.5">
                   {TEXT_EFFECTS.map((effect) => (
@@ -397,7 +440,7 @@ function TextToolbarBody({
                       key={effect.id}
                       onClick={() => updateText(text.id, effect.patch)}
                       className={cn(
-                        "flex flex-col items-center gap-1 rounded-md border p-1.5 transition-all cursor-pointer",
+                        "flex cursor-pointer flex-col items-center gap-1 rounded-md border p-1.5 transition-all",
                         "border-border/60 bg-secondary/20 hover:border-foreground/30"
                       )}
                     >
@@ -407,13 +450,15 @@ function TextToolbarBody({
                       >
                         Aa
                       </span>
-                      <span className="text-[9px] font-medium text-muted-foreground">{effect.label}</span>
+                      <span className="text-[9px] font-medium text-muted-foreground">
+                        {effect.label}
+                      </span>
                     </button>
                   ))}
                 </div>
-                </div>
-              ) : (
-                <div className="flex h-full flex-col gap-2">
+              </div>
+            ) : (
+              <div className="flex h-full flex-col gap-2">
                 <div className="flex flex-wrap gap-1">
                   {[
                     { id: "all", label: "All" },
@@ -425,9 +470,11 @@ function TextToolbarBody({
                   ].map((opt) => (
                     <button
                       key={opt.id}
-                      onClick={() => setFontCategory(opt.id as "all" | FontCategory)}
+                      onClick={() =>
+                        setFontCategory(opt.id as "all" | FontCategory)
+                      }
                       className={cn(
-                        "rounded-md px-2 py-1 text-[10px] font-medium transition-colors cursor-pointer",
+                        "cursor-pointer rounded-md px-2 py-1 text-[10px] font-medium transition-colors",
                         fontCategory === opt.id
                           ? "bg-accent text-foreground"
                           : "bg-secondary/60 text-muted-foreground hover:text-foreground"
@@ -443,15 +490,20 @@ function TextToolbarBody({
                     {visibleFonts.map((f) => (
                       <button
                         key={f.id}
-                        onClick={() => updateText(text.id, { fontFamily: f.css })}
+                        onClick={() =>
+                          updateText(text.id, { fontFamily: f.css })
+                        }
                         className={cn(
-                          "flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent cursor-pointer",
-                          text.fontFamily === f.css && "bg-accent text-foreground"
+                          "flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent",
+                          text.fontFamily === f.css &&
+                            "bg-accent text-foreground"
                         )}
                         style={{ fontFamily: f.css }}
                       >
                         <span>{f.label}</span>
-                        <span className="text-[10px] text-muted-foreground uppercase">{f.category}</span>
+                        <span className="text-[10px] text-muted-foreground uppercase">
+                          {f.category}
+                        </span>
                       </button>
                     ))}
                     {visibleFonts.length === 0 ? (
@@ -461,10 +513,10 @@ function TextToolbarBody({
                     ) : null}
                   </div>
                 </div>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
+        </div>
       </ToolbarPopover>
 
       {/* Text color — title only; ColorPickerPopover wraps with PopoverTrigger asChild and won't accept a Tooltip provider as its child */}
@@ -472,7 +524,9 @@ function TextToolbarBody({
         value={text.color}
         side="top"
         align="center"
-        onChange={(hex) => updateText(text.id, { color: hex, autoColor: false })}
+        onChange={(hex) =>
+          updateText(text.id, { color: hex, autoColor: false })
+        }
       >
         <button
           aria-label="Text color"
@@ -495,7 +549,10 @@ function TextToolbarBody({
             {text.borderColor ? (
               <span
                 className="size-5 rounded-md border-2"
-                style={{ borderColor: text.borderColor, borderStyle: text.borderStyle || "solid" }}
+                style={{
+                  borderColor: text.borderColor,
+                  borderStyle: text.borderStyle || "solid",
+                }}
               />
             ) : (
               <RiCheckboxBlankLine className="size-4" />
@@ -555,7 +612,9 @@ function TextBorderSettings({
   const currentStyle = text.borderStyle || "solid"
   const isCustomColor =
     enabled &&
-    !TEXT_BORDER_PRESETS.some((c) => c.toLowerCase() === currentColor.toLowerCase())
+    !TEXT_BORDER_PRESETS.some(
+      (c) => c.toLowerCase() === currentColor.toLowerCase()
+    )
 
   return (
     <div className="flex flex-col gap-3">
@@ -566,11 +625,13 @@ function TextBorderSettings({
           onClick={() =>
             updateText(text.id, {
               borderColor: enabled ? null : "#ffffff",
-              borderWidth: enabled ? text.borderWidth : Math.max(1, text.borderWidth),
+              borderWidth: enabled
+                ? text.borderWidth
+                : Math.max(1, text.borderWidth),
             })
           }
           className={cn(
-            "h-5 w-9 rounded-full transition-colors cursor-pointer",
+            "h-5 w-9 cursor-pointer rounded-full transition-colors",
             enabled ? "bg-primary" : "bg-muted"
           )}
         >
@@ -585,7 +646,9 @@ function TextBorderSettings({
 
       {/* Color presets */}
       <div>
-        <span className="mb-1.5 block text-[10px] font-medium text-muted-foreground">Color</span>
+        <span className="mb-1.5 block text-[10px] font-medium text-muted-foreground">
+          Color
+        </span>
         <div className="grid grid-cols-7 gap-1.5">
           {TEXT_BORDER_PRESETS.map((c) => {
             const active =
@@ -595,9 +658,9 @@ function TextBorderSettings({
                 key={c}
                 onClick={() => updateText(text.id, { borderColor: c })}
                 className={cn(
-                  "aspect-square rounded-full border cursor-pointer transition-all",
+                  "aspect-square cursor-pointer rounded-full border transition-all",
                   active
-                    ? "ring-2 ring-primary ring-offset-1 ring-offset-background border-transparent"
+                    ? "border-transparent ring-2 ring-primary ring-offset-1 ring-offset-background"
                     : "border-border/60 hover:scale-110"
                 )}
               >
@@ -617,9 +680,9 @@ function TextBorderSettings({
           >
             <button
               className={cn(
-                "relative aspect-square rounded-full border cursor-pointer transition-all",
+                "relative aspect-square cursor-pointer rounded-full border transition-all",
                 isCustomColor
-                  ? "ring-2 ring-primary ring-offset-1 ring-offset-background border-transparent"
+                  ? "border-transparent ring-2 ring-primary ring-offset-1 ring-offset-background"
                   : "border-border/60 hover:scale-110"
               )}
               aria-label="Custom border color"
@@ -641,29 +704,45 @@ function TextBorderSettings({
       {/* Width */}
       <div>
         <div className="mb-1.5 flex items-center justify-between">
-          <span className="text-[10px] font-medium text-muted-foreground">Width</span>
-          <span className="font-mono text-[10px] text-foreground">{text.borderWidth}px</span>
+          <span className="text-[10px] font-medium text-muted-foreground">
+            Width
+          </span>
+          <span className="font-mono text-[10px] text-foreground">
+            {text.borderWidth}px
+          </span>
         </div>
         <Slider
           min={0}
           max={12}
           step={1}
           value={[text.borderWidth]}
-          onValueChange={([v]) => updateText(text.id, { borderWidth: v, borderColor: text.borderColor || "#ffffff" })}
+          onValueChange={([v]) =>
+            updateText(text.id, {
+              borderWidth: v,
+              borderColor: text.borderColor || "#ffffff",
+            })
+          }
           className="cursor-pointer"
         />
       </div>
 
       {/* Style */}
       <div>
-        <span className="mb-1.5 block text-[10px] font-medium text-muted-foreground">Style</span>
+        <span className="mb-1.5 block text-[10px] font-medium text-muted-foreground">
+          Style
+        </span>
         <div className="grid grid-cols-3 gap-1.5">
           {TEXT_BORDER_STYLES.map((s) => (
             <button
               key={s.id}
-              onClick={() => updateText(text.id, { borderStyle: s.id, borderColor: text.borderColor || "#ffffff" })}
+              onClick={() =>
+                updateText(text.id, {
+                  borderStyle: s.id,
+                  borderColor: text.borderColor || "#ffffff",
+                })
+              }
               className={cn(
-                "flex flex-col items-center gap-1 rounded-md border p-1.5 transition-all cursor-pointer",
+                "flex cursor-pointer flex-col items-center gap-1 rounded-md border p-1.5 transition-all",
                 currentStyle === s.id
                   ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
                   : "border-border/60 bg-secondary/20 hover:border-foreground/30"
@@ -678,7 +757,9 @@ function TextBorderSettings({
               <span
                 className={cn(
                   "text-[9px] font-medium",
-                  currentStyle === s.id ? "text-primary" : "text-muted-foreground"
+                  currentStyle === s.id
+                    ? "text-primary"
+                    : "text-muted-foreground"
                 )}
               >
                 {s.label}

@@ -76,15 +76,9 @@ export function useFloatingToolbarRect({
       }
       window.setTimeout(() => setHideFloatingToolbar(false), durationMs)
     }
-    window.addEventListener(
-      "tokokino:hide-floating-toolbar",
-      onHide
-    )
+    window.addEventListener("tokokino:hide-floating-toolbar", onHide)
     return () =>
-      window.removeEventListener(
-        "tokokino:hide-floating-toolbar",
-        onHide
-      )
+      window.removeEventListener("tokokino:hide-floating-toolbar", onHide)
   }, [elementId, kind, trackPositionAnimate])
 
   // 2. ResizeObserver + scroll / resize: keep rect in sync while selected
@@ -108,8 +102,8 @@ export function useFloatingToolbarRect({
       window.removeEventListener("scroll", update, true)
       window.removeEventListener("resize", update)
     }
-  // elRef is a stable ref object — its identity doesn't change
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // elRef is a stable ref object — its identity doesn't change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bulkCanvasDragging, isSelected])
 
   // 3. rAF after hide→show flip: re-measure at the settled (post-transition) position
@@ -126,14 +120,14 @@ export function useFloatingToolbarRect({
       setToolbarRect(elRef.current.getBoundingClientRect())
     })
     return () => window.cancelAnimationFrame(rafId)
-  // elementId as a dep so this re-fires whenever "which element is selected" changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // elementId as a dep so this re-fires whenever "which element is selected" changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bulkCanvasDragging, hideFloatingToolbar, isSelected, elementId])
 
   const measureRect = React.useCallback(() => {
     if (!elRef.current) return
     setToolbarRect(elRef.current.getBoundingClientRect())
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return {

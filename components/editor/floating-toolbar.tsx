@@ -637,7 +637,7 @@ export function FloatingToolbar() {
           data-mode={isAnnotateMode ? "annotate" : "default"}
           className={cn(
             "pointer-events-auto flex items-center gap-0.5 overflow-x-auto rounded-xl border border-border/70 bg-popover/90 p-1 shadow-lg backdrop-blur-md",
-            "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           )}
         >
           <AnimatePresence mode="wait" initial={false}>
@@ -744,7 +744,8 @@ function DefaultToolbarContents() {
   const hasScalableContent = selectedSlot ? true : hasMainScreenshotTarget
   const hasAnyScreenshotContent =
     Boolean(screenshot) || hasDeviceFrame || screenshotSlots.length > 0
-  const screenshotBoxCount = (hasMainScreenshot ? 1 : 0) + screenshotSlots.length
+  const screenshotBoxCount =
+    (hasMainScreenshot ? 1 : 0) + screenshotSlots.length
   const canGroupAllScreenshots = screenshotBoxCount > 1
   const positionTarget: PositionTarget =
     groupAllScreenshots && canGroupAllScreenshots && hasAnyScreenshotContent

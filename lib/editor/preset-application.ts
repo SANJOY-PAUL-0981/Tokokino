@@ -41,8 +41,7 @@ export type PresetPlan = {
   slots: PlannedSlotPatch[]
 }
 
-const aspectRatio = (aspect: AspectState) =>
-  (aspect.w || 16) / (aspect.h || 10)
+const aspectRatio = (aspect: AspectState) => (aspect.w || 16) / (aspect.h || 10)
 
 export function planSinglePreset(
   preset: PresentPreset,

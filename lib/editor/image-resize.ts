@@ -181,7 +181,10 @@ export function getPlaceholderUrlSync(url: string): string | null {
   return placeholderUrlCache.get(url) ?? null
 }
 
-export function seedPlaceholderUrl(sourceUrl: string, placeholderUrl: string): void {
+export function seedPlaceholderUrl(
+  sourceUrl: string,
+  placeholderUrl: string
+): void {
   if (!sourceUrl || !placeholderUrl) return
   if (sourceUrl.startsWith("data:") || placeholderUrl.startsWith("data:")) {
     // Pointless to placeholder a data URL with another data URL.

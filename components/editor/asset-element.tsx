@@ -99,15 +99,20 @@ export function AssetElementView({
   const [isDragging, setIsDragging] = React.useState(false)
   const [isResizing, setIsResizing] = React.useState(false)
 
-  const { toolbarRect, hideFloatingToolbar, shouldAnimatePositionMove, measureRect, setToolbarRect } =
-    useFloatingToolbarRect({
-      elRef,
-      isSelected,
-      bulkCanvasDragging,
-      kind: "asset",
-      elementId: asset.id,
-      trackPositionAnimate: true,
-    })
+  const {
+    toolbarRect,
+    hideFloatingToolbar,
+    shouldAnimatePositionMove,
+    measureRect,
+    setToolbarRect,
+  } = useFloatingToolbarRect({
+    elRef,
+    isSelected,
+    bulkCanvasDragging,
+    kind: "asset",
+    elementId: asset.id,
+    trackPositionAnimate: true,
+  })
 
   React.useEffect(() => {
     if (bulkCanvasDragging || !isSelected) return
@@ -174,7 +179,7 @@ export function AssetElementView({
       moved: false,
     }
     setIsDragging(true)
-    ;(e.currentTarget).setPointerCapture(e.pointerId)
+    e.currentTarget.setPointerCapture(e.pointerId)
   }
 
   const moveDrag = (e: React.PointerEvent<Element>) => {
@@ -375,7 +380,8 @@ export function AssetElementView({
           className={cn(
             "block h-full w-full select-none",
             asset.heightPct != null ? "object-fill" : "object-contain",
-            isSelected && !previewMode &&
+            isSelected &&
+              !previewMode &&
               "outline-2 outline-offset-2 outline-[#9BCD64]/95 outline-dashed"
           )}
         />
@@ -487,9 +493,7 @@ export function AssetElementView({
                     top,
                     left,
                     transform: floatingToolbarTransform(flipBelow, scale),
-                    transformOrigin: flipBelow
-                      ? "top center"
-                      : "bottom center",
+                    transformOrigin: flipBelow ? "top center" : "bottom center",
                   }}
                 >
                   <div className="pointer-events-auto">

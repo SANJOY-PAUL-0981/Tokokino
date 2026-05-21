@@ -184,13 +184,14 @@ export function Chrome({
     children
   )
 
-  const screenBg = imageFit === "contain"
-    ? colorMode === "dark"
-      ? "bg-[#292a2d]"
-      : colorMode === "light"
-        ? "bg-[#f1f3f4]"
-        : "bg-[#f1f3f4] dark:bg-[#292a2d]"
-    : "bg-white dark:bg-[#292a2d]"
+  const screenBg =
+    imageFit === "contain"
+      ? colorMode === "dark"
+        ? "bg-[#292a2d]"
+        : colorMode === "light"
+          ? "bg-[#f1f3f4]"
+          : "bg-[#f1f3f4] dark:bg-[#292a2d]"
+      : "bg-white dark:bg-[#292a2d]"
   const screenStyle: CSSProperties =
     imageFit === "contain"
       ? colorMode === "dark"

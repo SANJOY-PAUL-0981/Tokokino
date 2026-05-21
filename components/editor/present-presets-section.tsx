@@ -641,8 +641,7 @@ export function PresentPresetsSection() {
   >({})
   const { data: session, isPending: isAuthPending } = useSession()
   const userId = session?.user?.id ?? null
-  const [customPresetsLoading, setCustomPresetsLoading] =
-    React.useState(false)
+  const [customPresetsLoading, setCustomPresetsLoading] = React.useState(false)
 
   const rememberBulkPresetUi = React.useCallback(
     (patch: Partial<CanvasPresetUi> & { tab: PresetTab }) => {

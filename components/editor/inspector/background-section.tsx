@@ -309,7 +309,9 @@ function BackgroundTile({
         title={item.name}
         className={cn(
           "block aspect-video w-full cursor-pointer overflow-hidden rounded-lg border transition-colors",
-          active ? "border-transparent" : "border-border/60 hover:border-foreground/30"
+          active
+            ? "border-transparent"
+            : "border-border/60 hover:border-foreground/30"
         )}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -443,9 +445,7 @@ function BackgroundLibrary({
                   key={item.id}
                   item={item}
                   active={activeSourceUrl === item.full}
-                  onClick={() =>
-                    onSelect(item.full, item.thumb, item.preview)
-                  }
+                  onClick={() => onSelect(item.full, item.thumb, item.preview)}
                   layoutId={`bg-tile-ring-${category.key}`}
                 />
               ))}
@@ -691,7 +691,10 @@ export function BackgroundSection() {
             const canvas = state.present.canvases.find((c) => c.id === canvasId)
             const currentSource =
               canvas?.background.sourceUrl ?? canvas?.background.value
-            if (canvas?.background.type !== "image" || currentSource !== sourceUrl) {
+            if (
+              canvas?.background.type !== "image" ||
+              currentSource !== sourceUrl
+            ) {
               return
             }
             setBackground(
@@ -840,13 +843,10 @@ export function BackgroundSection() {
     [gradientOverrides]
   )
   const gradientCategoryOptions = React.useMemo(() => {
-    const offsets = GRADIENT_LIBRARY.reduce<number[]>(
-      (acc, category, idx) => {
-        acc.push((acc[idx - 1] ?? 0) + category.items.length)
-        return acc
-      },
-      []
-    )
+    const offsets = GRADIENT_LIBRARY.reduce<number[]>((acc, category, idx) => {
+      acc.push((acc[idx - 1] ?? 0) + category.items.length)
+      return acc
+    }, [])
     return GRADIENT_LIBRARY.map((category, idx) => {
       const start = idx === 0 ? 0 : offsets[idx - 1]
       const end = offsets[idx]
@@ -1284,7 +1284,11 @@ export function BackgroundSection() {
                           <motion.span
                             layoutId="gradient-category-pill"
                             className="absolute inset-0 rounded-[5px] bg-primary shadow-sm"
-                            transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 380,
+                              damping: 32,
+                            }}
                           />
                         ) : null}
                         <CategoryIcon className="relative z-10 size-3.5 shrink-0" />
@@ -1315,31 +1319,41 @@ export function BackgroundSection() {
                               background.type === "gradient" &&
                               background.value === option.value
                             return (
-                              <motion.div key={option.id} variants={TILE_ITEM_VARIANTS} className="relative">
-                              <button
-                                onClick={() =>
-                                  setBackground({
-                                    type: "gradient",
-                                    value: option.value,
-                                  })
-                                }
-                                className={cn(
-                                  "aspect-video w-full cursor-pointer overflow-hidden rounded-xl border",
-                                  active ? "border-transparent" : "border-border/60"
-                                )}
+                              <motion.div
+                                key={option.id}
+                                variants={TILE_ITEM_VARIANTS}
+                                className="relative"
                               >
-                                <span
-                                  className="block size-full rounded-[inherit]"
-                                  style={{ background: option.value }}
-                                />
-                              </button>
-                              {active ? (
-                                <motion.span
-                                  layoutId={`gradient-tile-ring-${activeCategory.key}`}
-                                  className="pointer-events-none absolute -inset-0.5 rounded-[13px] ring-1 ring-primary/45"
-                                  transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                                />
-                              ) : null}
+                                <button
+                                  onClick={() =>
+                                    setBackground({
+                                      type: "gradient",
+                                      value: option.value,
+                                    })
+                                  }
+                                  className={cn(
+                                    "aspect-video w-full cursor-pointer overflow-hidden rounded-xl border",
+                                    active
+                                      ? "border-transparent"
+                                      : "border-border/60"
+                                  )}
+                                >
+                                  <span
+                                    className="block size-full rounded-[inherit]"
+                                    style={{ background: option.value }}
+                                  />
+                                </button>
+                                {active ? (
+                                  <motion.span
+                                    layoutId={`gradient-tile-ring-${activeCategory.key}`}
+                                    className="pointer-events-none absolute -inset-0.5 rounded-[13px] ring-1 ring-primary/45"
+                                    transition={{
+                                      type: "spring",
+                                      stiffness: 380,
+                                      damping: 32,
+                                    }}
+                                  />
+                                ) : null}
                                 {active && gradientConfig ? (
                                   <GradientCustomizerPopover
                                     ariaLabel="Customize gradient"
@@ -1371,31 +1385,41 @@ export function BackgroundSection() {
                             background.type === "gradient" &&
                             background.value === option.value
                           return (
-                            <motion.div key={option.id} variants={TILE_ITEM_VARIANTS} className="relative">
-                            <button
-                              onClick={() =>
-                                setBackground({
-                                  type: "gradient",
-                                  value: option.value,
-                                })
-                              }
-                              className={cn(
-                                "aspect-video w-full cursor-pointer overflow-hidden rounded-xl border",
-                                active ? "border-transparent" : "border-border/60"
-                              )}
+                            <motion.div
+                              key={option.id}
+                              variants={TILE_ITEM_VARIANTS}
+                              className="relative"
                             >
-                              <span
-                                className="block size-full rounded-[inherit]"
-                                style={{ background: option.value }}
-                              />
-                            </button>
-                            {active ? (
-                              <motion.span
-                                layoutId={`gradient-tile-ring-${activeCategory.key}`}
-                                className="pointer-events-none absolute -inset-0.5 rounded-[13px] ring-1 ring-primary/45"
-                                transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                              />
-                            ) : null}
+                              <button
+                                onClick={() =>
+                                  setBackground({
+                                    type: "gradient",
+                                    value: option.value,
+                                  })
+                                }
+                                className={cn(
+                                  "aspect-video w-full cursor-pointer overflow-hidden rounded-xl border",
+                                  active
+                                    ? "border-transparent"
+                                    : "border-border/60"
+                                )}
+                              >
+                                <span
+                                  className="block size-full rounded-[inherit]"
+                                  style={{ background: option.value }}
+                                />
+                              </button>
+                              {active ? (
+                                <motion.span
+                                  layoutId={`gradient-tile-ring-${activeCategory.key}`}
+                                  className="pointer-events-none absolute -inset-0.5 rounded-[13px] ring-1 ring-primary/45"
+                                  transition={{
+                                    type: "spring",
+                                    stiffness: 380,
+                                    damping: 32,
+                                  }}
+                                />
+                              ) : null}
                               {active && gradientConfig ? (
                                 <GradientCustomizerPopover
                                   ariaLabel="Customize gradient"
@@ -1516,7 +1540,11 @@ export function BackgroundSection() {
                         <motion.span
                           layoutId="auto-gradient-tile-ring"
                           className="pointer-events-none absolute -inset-0.5 rounded-[13px] ring-1 ring-primary/45"
-                          transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 380,
+                            damping: 32,
+                          }}
                         />
                       ) : null}
                       {active && gradientConfig ? (

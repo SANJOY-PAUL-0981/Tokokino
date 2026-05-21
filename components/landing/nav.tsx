@@ -19,7 +19,9 @@ const links = [
 
 function scrollToHash(href: string) {
   const id = href.slice(1)
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })
+  document
+    .getElementById(id)
+    ?.scrollIntoView({ behavior: "smooth", block: "start" })
 }
 
 export function Nav() {
@@ -37,7 +39,7 @@ export function Nav() {
 
         {/* Desktop links */}
         <div className="hidden items-center gap-1 font-mono text-xs text-foreground/60 xl:flex">
-          {links.map((link) => (
+          {links.map((link) =>
             link.href.startsWith("#") ? (
               <a
                 key={link.href}
@@ -59,16 +61,22 @@ export function Nav() {
                 {link.label}
               </Link>
             )
-          ))}
+          )}
         </div>
 
         {/* Desktop right */}
         <div className="hidden items-center gap-3 xl:flex">
-          <Link href="/login" className="inline-flex items-center gap-1.5 rounded-md border border-border/70 px-3.5 py-1.5 text-[12px] font-medium text-foreground/70 transition hover:border-foreground/40 hover:text-foreground">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border/70 px-3.5 py-1.5 text-[12px] font-medium text-foreground/70 transition hover:border-foreground/40 hover:text-foreground"
+          >
             Sign in
             <ArrowRight className="size-3.5" />
           </Link>
-          <Link href="/app" className="group inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-[12px] font-medium text-primary-foreground transition hover:opacity-90">
+          <Link
+            href="/app"
+            className="group inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-[12px] font-medium text-primary-foreground transition hover:opacity-90"
+          >
             Start editing
             <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
           </Link>
@@ -95,7 +103,12 @@ export function Nav() {
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.28, ease }}
             className="fixed inset-0 z-40 flex flex-col px-7 pt-24 pb-12 xl:hidden"
-            style={{ backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", backgroundColor: "color-mix(in oklch, var(--background) 85%, transparent)" }}
+            style={{
+              backdropFilter: "blur(24px)",
+              WebkitBackdropFilter: "blur(24px)",
+              backgroundColor:
+                "color-mix(in oklch, var(--background) 85%, transparent)",
+            }}
           >
             <nav className="flex flex-col gap-1">
               {links.map((link, i) => (
@@ -107,11 +120,23 @@ export function Nav() {
                   transition={{ duration: 0.25, delay: i * 0.06, ease }}
                 >
                   {link.href.startsWith("#") ? (
-                    <a href={link.href} onClick={(e) => { e.preventDefault(); setOpen(false); setTimeout(() => scrollToHash(link.href), 50) }} className="block py-1 font-mono text-4xl font-bold tracking-tight text-foreground/80 uppercase transition-colors hover:text-primary sm:text-5xl">
+                    <a
+                      href={link.href}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setOpen(false)
+                        setTimeout(() => scrollToHash(link.href), 50)
+                      }}
+                      className="block py-1 font-mono text-4xl font-bold tracking-tight text-foreground/80 uppercase transition-colors hover:text-primary sm:text-5xl"
+                    >
                       {link.label}
                     </a>
                   ) : (
-                    <Link href={link.href} onClick={() => setOpen(false)} className="block py-1 font-mono text-4xl font-bold tracking-tight text-foreground/80 uppercase transition-colors hover:text-primary sm:text-5xl">
+                    <Link
+                      href={link.href}
+                      onClick={() => setOpen(false)}
+                      className="block py-1 font-mono text-4xl font-bold tracking-tight text-foreground/80 uppercase transition-colors hover:text-primary sm:text-5xl"
+                    >
                       {link.label}
                     </Link>
                   )}
@@ -124,7 +149,11 @@ export function Nav() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 16 }}
-              transition={{ duration: 0.3, delay: links.length * 0.06 + 0.05, ease }}
+              transition={{
+                duration: 0.3,
+                delay: links.length * 0.06 + 0.05,
+                ease,
+              }}
               className="mt-auto flex flex-col gap-3"
             >
               <Link

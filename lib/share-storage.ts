@@ -1,9 +1,6 @@
 import "server-only"
 
-import {
-  GetObjectCommand,
-  PutObjectCommand,
-} from "@aws-sdk/client-s3"
+import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 
 import { requireR2Config } from "@/lib/env"
 import { getR2Client } from "@/lib/r2-client"

@@ -3,11 +3,7 @@
 import * as React from "react"
 import { useShallow } from "zustand/react/shallow"
 
-import type {
-  CanvasState,
-  EditorState,
-  ScreenshotSlot,
-} from "../state-types"
+import type { CanvasState, EditorState, ScreenshotSlot } from "../state-types"
 
 import { DEFAULT_CANVAS_BASE } from "./defaults"
 import type { EditorActions, EditorStore } from "../store"

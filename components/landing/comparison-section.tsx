@@ -1,38 +1,88 @@
-import { RiCheckboxCircleLine, RiCloseCircleLine, RiSubtractLine } from "@remixicon/react"
+import {
+  RiCheckboxCircleLine,
+  RiCloseCircleLine,
+  RiSubtractLine,
+} from "@remixicon/react"
 import { motion } from "motion/react"
 import { ease } from "@/components/landing/constants"
 
 const COMPETITOR_COMPARISONS = [
   {
     competitor: "Figma",
-    contrast: "Great when you need a full design file. Slow when you only need one polished screenshot.",
+    contrast:
+      "Great when you need a full design file. Slow when you only need one polished screenshot.",
     tokokino: "Drop, frame, annotate, export, and move on.",
   },
   {
     competitor: "Canva",
-    contrast: "Useful for social templates, but screenshot controls get buried inside generic design tools.",
-    tokokino: "Built around device frames, canvas ratios, shadows, and product-shot export.",
+    contrast:
+      "Useful for social templates, but screenshot controls get buried inside generic design tools.",
+    tokokino:
+      "Built around device frames, canvas ratios, shadows, and product-shot export.",
   },
   {
     competitor: "CleanShot / Shottr",
-    contrast: "Excellent capture tools. Styling usually stops at quick markup and simple backgrounds.",
-    tokokino: "Turns existing captures into launch-ready visuals with layers and share links.",
+    contrast:
+      "Excellent capture tools. Styling usually stops at quick markup and simple backgrounds.",
+    tokokino:
+      "Turns existing captures into launch-ready visuals with layers and share links.",
   },
 ] as const
 
 const FEATURE_MATRIX = [
-  { feature: "Browser-only editing", tokokino: true, figma: false, canva: false },
-  { feature: "No watermark exports", tokokino: true, figma: true, canva: false },
-  { feature: "Device and browser frames", tokokino: true, figma: "manual", canva: "limited" },
-  { feature: "Auto-sampled palettes", tokokino: true, figma: "plugin", canva: false },
-  { feature: "Multi-screenshot layouts", tokokino: true, figma: "manual", canva: "manual" },
-  { feature: "Local-first by default", tokokino: true, figma: false, canva: false },
-  { feature: "No AI training on uploads", tokokino: true, figma: "policy", canva: "policy" },
+  {
+    feature: "Browser-only editing",
+    tokokino: true,
+    figma: false,
+    canva: false,
+  },
+  {
+    feature: "No watermark exports",
+    tokokino: true,
+    figma: true,
+    canva: false,
+  },
+  {
+    feature: "Device and browser frames",
+    tokokino: true,
+    figma: "manual",
+    canva: "limited",
+  },
+  {
+    feature: "Auto-sampled palettes",
+    tokokino: true,
+    figma: "plugin",
+    canva: false,
+  },
+  {
+    feature: "Multi-screenshot layouts",
+    tokokino: true,
+    figma: "manual",
+    canva: "manual",
+  },
+  {
+    feature: "Local-first by default",
+    tokokino: true,
+    figma: false,
+    canva: false,
+  },
+  {
+    feature: "No AI training on uploads",
+    tokokino: true,
+    figma: "policy",
+    canva: "policy",
+  },
 ] as const
 
 type MatrixValue = boolean | "manual" | "limited" | "plugin" | "policy"
 
-function MatrixCell({ value, featured = false }: { value: MatrixValue; featured?: boolean }) {
+function MatrixCell({
+  value,
+  featured = false,
+}: {
+  value: MatrixValue
+  featured?: boolean
+}) {
   if (value === true) {
     return (
       <span className={featured ? "text-primary" : "text-foreground/72"}>
@@ -59,7 +109,10 @@ function MatrixCell({ value, featured = false }: { value: MatrixValue; featured?
 
 export function ComparisonSection() {
   return (
-    <section id="comparison" className="relative px-5 py-16 sm:px-8 sm:py-24 lg:px-12">
+    <section
+      id="comparison"
+      className="relative px-5 py-16 sm:px-8 sm:py-24 lg:px-12"
+    >
       <motion.div
         initial={{ opacity: 0, y: 18 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -74,7 +127,9 @@ export function ComparisonSection() {
           Faster than a design tool, sharper than a capture app.
         </h2>
         <p className="max-w-2xl text-sm leading-7 text-foreground/58">
-          Tokokino sits in the narrow space between screenshot utilities and full design suites: focused enough to be quick, flexible enough to ship polished product visuals.
+          Tokokino sits in the narrow space between screenshot utilities and
+          full design suites: focused enough to be quick, flexible enough to
+          ship polished product visuals.
         </p>
       </motion.div>
 
@@ -119,7 +174,9 @@ export function ComparisonSection() {
       >
         <div className="grid min-w-[38rem] grid-cols-[minmax(10rem,1.4fr)_repeat(3,minmax(4.5rem,0.55fr))] border-b border-border/60 bg-background/70 text-center font-mono text-[10px] tracking-[0.2em] text-foreground/42 uppercase">
           <div className="px-4 py-3 text-left">Feature</div>
-          <div className="bg-primary/[0.07] px-3 py-3 text-primary">Tokokino</div>
+          <div className="bg-primary/[0.07] px-3 py-3 text-primary">
+            Tokokino
+          </div>
           <div className="px-3 py-3">Figma</div>
           <div className="px-3 py-3">Canva</div>
         </div>

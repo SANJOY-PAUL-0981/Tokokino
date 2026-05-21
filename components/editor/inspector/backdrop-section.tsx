@@ -124,7 +124,8 @@ function lightingDirectionPreview(
   direction: string,
   color: string
 ): React.CSSProperties {
-  const [rowRaw, colRaw] = direction === "center" ? [2, 2] : direction.split("-")
+  const [rowRaw, colRaw] =
+    direction === "center" ? [2, 2] : direction.split("-")
   const row = Number(rowRaw)
   const col = Number(colRaw)
   const x = Number.isFinite(col) ? Math.max(0, Math.min(4, col)) * 25 : 50

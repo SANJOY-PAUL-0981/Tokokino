@@ -16,10 +16,7 @@ import { cn } from "@/lib/utils"
 
 import { LINE_STYLES, REDACTION_TEMPLATES } from "./constants"
 import { getBlurEffect } from "./geometry"
-import {
-  LineStylePreview,
-  RedactionTemplatePreview,
-} from "./previews"
+import { LineStylePreview, RedactionTemplatePreview } from "./previews"
 import { ThicknessMenuSection } from "./thickness-menu"
 
 export function AnnotationShapeToolbar({
@@ -54,15 +51,9 @@ export function AnnotationShapeToolbar({
         ariaLabel="Move shape"
         rounded="md"
         cursor="move"
-        onPointerDown={
-          onDragPointerDown
-        }
-        onPointerMove={
-          onDragPointerMove
-        }
-        onPointerUp={
-          onDragPointerUp
-        }
+        onPointerDown={onDragPointerDown}
+        onPointerMove={onDragPointerMove}
+        onPointerUp={onDragPointerUp}
       />
 
       <ToolbarDeleteButton

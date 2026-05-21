@@ -480,8 +480,7 @@ export function AspectPopover({
                     transition={{
                       duration: 0.28,
                       ease: POP_EASE,
-                      delay:
-                        0.08 + idx * 0.035 + Math.min(optIdx, 10) * 0.018,
+                      delay: 0.08 + idx * 0.035 + Math.min(optIdx, 10) * 0.018,
                     }}
                   >
                     <AspectTile

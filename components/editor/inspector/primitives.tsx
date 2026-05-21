@@ -1,7 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { RiArrowDownSLine, RiArrowGoBackLine, RiGradienterLine } from "@remixicon/react"
+import {
+  RiArrowDownSLine,
+  RiArrowGoBackLine,
+  RiGradienterLine,
+} from "@remixicon/react"
 import { AnimatePresence, motion } from "motion/react"
 
 import { ColorPickerPopover } from "@/components/editor/color-picker-popover"

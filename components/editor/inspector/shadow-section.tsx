@@ -345,7 +345,9 @@ export function ShadowSection() {
     (s) => s.setMainScreenshotShadow
   )
 
-  const shadow = selectedSlot ? (selectedSlot.shadow ?? canvasShadow) : canvasShadow
+  const shadow = selectedSlot
+    ? (selectedSlot.shadow ?? canvasShadow)
+    : canvasShadow
 
   const applyShadow = (nextShadow: typeof canvasShadow) => {
     applyStyle(

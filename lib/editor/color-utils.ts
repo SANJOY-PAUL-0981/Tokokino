@@ -233,7 +233,9 @@ function relativeLuminance(r: number, g: number, b: number): number {
   )
 }
 
-function parseCssRgb(value: string): { r: number; g: number; b: number; a: number } | null {
+function parseCssRgb(
+  value: string
+): { r: number; g: number; b: number; a: number } | null {
   const m = value.match(/rgba?\(([^)]+)\)/i)
   if (!m) return null
   const parts = m[1].split(",").map((p) => p.trim())

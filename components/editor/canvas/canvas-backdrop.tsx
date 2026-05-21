@@ -15,7 +15,11 @@ import {
 } from "@/lib/editor/store"
 import { remoteImagePreviewUrl } from "@/lib/editor/image-resize"
 
-import { lightingOverlayCss, NOISE_DATA_URL, portraitOverlayCss } from "./helpers"
+import {
+  lightingOverlayCss,
+  NOISE_DATA_URL,
+  portraitOverlayCss,
+} from "./helpers"
 
 type CanvasBackdropProps = {
   background: Background

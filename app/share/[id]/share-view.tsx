@@ -1,11 +1,7 @@
 "use client"
 
 import * as React from "react"
-import {
-  RiCheckLine,
-  RiDownloadLine,
-  RiImageLine,
-} from "@remixicon/react"
+import { RiCheckLine, RiDownloadLine, RiImageLine } from "@remixicon/react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -68,10 +64,14 @@ export function ShareView({
         <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-dashed border-border/70 pb-4">
           <div className="min-w-0">
             <p className="label-eyebrow">Shared screenshot</p>
-            <h1 className="mt-1 truncate text-lg font-medium">Tokokino share</h1>
+            <h1 className="mt-1 truncate text-lg font-medium">
+              Tokokino share
+            </h1>
             <p className="mt-1 text-xs text-muted-foreground">
               {sharedBy ? `Shared by ${sharedBy}` : "Shared with Tokokino"}
-              {views === null ? null : ` · ${views} view${views === 1 ? "" : "s"}`}
+              {views === null
+                ? null
+                : ` · ${views} view${views === 1 ? "" : "s"}`}
             </p>
           </div>
           <div className="flex items-center gap-2">

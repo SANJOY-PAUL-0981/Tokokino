@@ -539,7 +539,8 @@ export function ScreenshotSlotView({
         const blob = await res.blob()
         const dataUrl = await new Promise<string>((resolve, reject) => {
           const fr = new FileReader()
-          fr.onload = () => resolve(typeof fr.result === "string" ? fr.result : "")
+          fr.onload = () =>
+            resolve(typeof fr.result === "string" ? fr.result : "")
           fr.onerror = () => reject(fr.error ?? new Error("FileReader error"))
           fr.readAsDataURL(blob)
         })

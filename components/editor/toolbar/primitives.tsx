@@ -114,7 +114,7 @@ export const ToolbarButton = React.forwardRef<
         iconBtnClass,
         active && "bg-accent text-foreground",
         destructive && "text-red-500 hover:text-red-500",
-        disabled && "opacity-40 cursor-not-allowed",
+        disabled && "cursor-not-allowed opacity-40",
         className
       )}
       {...rest}
@@ -219,9 +219,7 @@ export function ToolbarDragHandle({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       className={cn(
-        rounded === "full"
-          ? "rounded-full border border-border/60"
-          : undefined,
+        rounded === "full" ? "rounded-full border border-border/60" : undefined,
         cursor === "grab"
           ? "cursor-grab active:cursor-grabbing"
           : "cursor-move active:cursor-grabbing"

@@ -12,7 +12,9 @@ export type AuthorizedSession = {
   }
 }
 
-export async function requireSession(request: Request): Promise<
+export async function requireSession(
+  request: Request
+): Promise<
   | { ok: true; session: AuthorizedSession }
   | { ok: false; response: NextResponse }
 > {

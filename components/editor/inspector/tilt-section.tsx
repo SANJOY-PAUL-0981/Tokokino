@@ -158,11 +158,14 @@ export function TiltSection() {
   // Defer clearing the CSS var to the next frame so React paints the new
   // transform fallback first — otherwise the transform's CSS transition can
   // animate from the pre-drag value during the gap.
-  const clearAfterPaint = (axes: Array<"rx" | "ry" | "rz" | "scale" | "rot">) => {
+  const clearAfterPaint = (
+    axes: Array<"rx" | "ry" | "rz" | "scale" | "rot">
+  ) => {
     if (typeof requestAnimationFrame === "undefined") return
     requestAnimationFrame(() => {
       for (const previewTarget of getTargetEls()) {
-        for (const axis of axes) setPreviewVarOnTarget(previewTarget, axis, null)
+        for (const axis of axes)
+          setPreviewVarOnTarget(previewTarget, axis, null)
       }
     })
   }
@@ -193,7 +196,7 @@ export function TiltSection() {
   const [scaleDraft, setScaleDraft] = React.useState<number | null>(null)
   const displayedScale = scaleDraft ?? scale
 
-  const rotZ = selectedSlot ? (selectedSlot.rotation) : tilt.rz
+  const rotZ = selectedSlot ? selectedSlot.rotation : tilt.rz
   const previewRotZ = (v: number) => {
     if (selectedSlot) {
       for (const previewTarget of getTargetEls()) {

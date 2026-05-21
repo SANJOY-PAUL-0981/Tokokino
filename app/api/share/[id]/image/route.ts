@@ -20,7 +20,10 @@ export async function GET(
     const body = object.Body?.transformToWebStream()
 
     if (!body) {
-      return NextResponse.json({ error: "Share image not found" }, { status: 404 })
+      return NextResponse.json(
+        { error: "Share image not found" },
+        { status: 404 }
+      )
     }
 
     return new NextResponse(body, {
@@ -32,6 +35,9 @@ export async function GET(
     })
   } catch (error) {
     console.error(error)
-    return NextResponse.json({ error: "Share image not found" }, { status: 404 })
+    return NextResponse.json(
+      { error: "Share image not found" },
+      { status: 404 }
+    )
   }
 }

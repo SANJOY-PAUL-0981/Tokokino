@@ -74,7 +74,7 @@ export function EditableValue({
         }}
         inputMode="numeric"
         className={cn(
-          "tabular h-5 w-14 rounded bg-secondary/60 px-1 text-right font-mono text-[11px] text-foreground outline-none ring-1 ring-foreground/30",
+          "tabular h-5 w-14 rounded bg-secondary/60 px-1 text-right font-mono text-[11px] text-foreground ring-1 ring-foreground/30 outline-none",
           className
         )}
       />

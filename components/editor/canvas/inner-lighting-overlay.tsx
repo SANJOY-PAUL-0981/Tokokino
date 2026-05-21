@@ -19,10 +19,7 @@ export function InnerLightingOverlay({
   return (
     <div
       aria-hidden
-      className={cn(
-        "pointer-events-none absolute inset-0 z-10",
-        className
-      )}
+      className={cn("pointer-events-none absolute inset-0 z-10", className)}
       style={style}
     />
   )

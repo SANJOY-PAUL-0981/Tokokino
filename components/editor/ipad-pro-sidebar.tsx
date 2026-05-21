@@ -35,7 +35,9 @@ export function IpadProSidebar() {
         <div
           className="relative flex h-full min-h-0 flex-col overflow-hidden"
           style={
-            { "--editor-panel-bg": "var(--color-popover)" } as React.CSSProperties
+            {
+              "--editor-panel-bg": "var(--color-popover)",
+            } as React.CSSProperties
           }
         >
           <EffectsSidebar

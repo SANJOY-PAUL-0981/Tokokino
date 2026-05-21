@@ -250,7 +250,9 @@ export function shadowCss(shadow: Shadow): string | undefined {
 export const SHADOW_PREVIEW_VAR = "--editor-shadow-preview"
 
 /** Box-shadow that supports live direction preview without clobbering React styles. */
-export function shadowBoxShadowCss(committed: string | undefined): string | undefined {
+export function shadowBoxShadowCss(
+  committed: string | undefined
+): string | undefined {
   if (!committed) return undefined
   return `var(${SHADOW_PREVIEW_VAR}, ${committed})`
 }

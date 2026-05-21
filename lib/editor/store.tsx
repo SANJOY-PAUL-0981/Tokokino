@@ -420,7 +420,6 @@ export type EditorStore = {
   currentDraft: CurrentDraftInfo | null
 } & EditorActions
 
-
 export const useEditorStore = create<EditorStore>((set, get) => {
   const commit = (patch: SetPatch, group: string | null) => {
     const state = get()
@@ -762,13 +761,16 @@ export const useEditorStore = create<EditorStore>((set, get) => {
                   ? activeGeometry.canvasTilt
                   : activeSinglePreset
                     ? activeSinglePreset.tilt
-                  : canvas.tilt,
+                    : canvas.tilt,
               scale:
                 shouldReapply && activeGeometry
                   ? activeGeometry.canvasScale
                   : activeSinglePreset
-                    ? resolvePresentPresetScale(activeSinglePreset, canvas.frame)
-                  : canvas.scale,
+                    ? resolvePresentPresetScale(
+                        activeSinglePreset,
+                        canvas.frame
+                      )
+                    : canvas.scale,
               screenshotOffset,
               screenshotSlots,
               annotations: scaleAnnotationStrokesForAspectChange(
@@ -884,7 +886,9 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         canvasId,
         (canvas) => ({
           padding: n,
-          screenshotSlots: mirrorToSlots(canvas.screenshotSlots, { padding: n }),
+          screenshotSlots: mirrorToSlots(canvas.screenshotSlots, {
+            padding: n,
+          }),
         }),
         "padding"
       ),
@@ -1260,7 +1264,11 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     bringTextToFront: textLayerOps.toFront,
     sendTextToBack: textLayerOps.toBack,
     setSelectedTextId: (id) =>
-      set(id ? { ...CLEAR_SELECTION, selectedTextId: id } : { selectedTextId: null }),
+      set(
+        id
+          ? { ...CLEAR_SELECTION, selectedTextId: id }
+          : { selectedTextId: null }
+      ),
 
     addAsset: (src, canvasId) => {
       const id = makeId()
@@ -1327,7 +1335,11 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     bringAssetToFront: assetLayerOps.toFront,
     sendAssetToBack: assetLayerOps.toBack,
     setSelectedAssetId: (id) =>
-      set(id ? { ...CLEAR_SELECTION, selectedAssetId: id } : { selectedAssetId: null }),
+      set(
+        id
+          ? { ...CLEAR_SELECTION, selectedAssetId: id }
+          : { selectedAssetId: null }
+      ),
     setSelectedAnnotationShapeId: (id) =>
       set(
         id

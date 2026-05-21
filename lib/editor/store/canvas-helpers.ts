@@ -286,7 +286,9 @@ export const cloneBorder = (border: Border): Border => ({ ...border })
 
 export const cloneShadow = (shadow: Shadow): Shadow => ({ ...shadow })
 
-export const cloneLighting = (lighting: BackdropLighting): BackdropLighting => ({
+export const cloneLighting = (
+  lighting: BackdropLighting
+): BackdropLighting => ({
   ...lighting,
 })
 

@@ -20,24 +20,41 @@ const letterVariants = {
     y: 0,
     opacity: 1,
     filter: "blur(0px)",
-    transition: { type: "spring" as const, stiffness: 420, damping: 28, mass: 0.5 },
+    transition: {
+      type: "spring" as const,
+      stiffness: 420,
+      damping: 28,
+      mass: 0.5,
+    },
   },
 }
 
 export const BrandLogo = React.memo(function BrandLogo() {
   return (
-    <Link href="/" className={cn("flex min-w-0 items-center gap-0 select-none")} aria-label={WORDMARK}>
+    <Link
+      href="/"
+      className={cn("flex min-w-0 items-center gap-0 select-none")}
+      aria-label={WORDMARK}
+    >
       <motion.span
         className="relative inline-flex shrink-0 -translate-y-px items-center justify-center"
         initial={{ opacity: 0, scale: 0.6, rotate: -16 }}
         animate={{ opacity: 1, scale: 1, rotate: 0 }}
         transition={{ type: "spring", stiffness: 320, damping: 22, mass: 0.6 }}
       >
-        <Image src="/logo.png" alt={WORDMARK} width={48} height={48} className={cn("size-10 sm:size-12")} />
+        <Image
+          src="/logo.png"
+          alt={WORDMARK}
+          width={48}
+          height={48}
+          className={cn("size-10 sm:size-12")}
+        />
       </motion.span>
 
       <motion.span
-        className={cn("font-mono text-[20px] leading-none font-medium tracking-[-0.02em] text-foreground")}
+        className={cn(
+          "font-mono text-[20px] leading-none font-medium tracking-[-0.02em] text-foreground"
+        )}
         initial="hidden"
         animate="visible"
         variants={wordmarkContainerVariants}

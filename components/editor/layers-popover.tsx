@@ -301,7 +301,8 @@ export function LayersPanelContent() {
           ? { blendMode: layerPatch.blendMode }
           : {}),
       }
-      if (Object.keys(sharedPatch).length > 0) updateScreenshotLayer(sharedPatch)
+      if (Object.keys(sharedPatch).length > 0)
+        updateScreenshotLayer(sharedPatch)
       const slotPatch = {
         ...(layerPatch.zIndex !== undefined
           ? { zIndex: layerPatch.zIndex }

@@ -114,28 +114,33 @@ export function AnnotationShapeElement({
   })
   const rotation = shape.rotation ?? 0
 
-  const { toolbarRect, hideFloatingToolbar, shouldAnimatePositionMove, measureRect, setToolbarRect } =
-    useFloatingToolbarRect({
-      elRef,
-      isSelected,
-      bulkCanvasDragging,
-      kind: "annotation",
-      elementId: shape.id,
-      trackPositionAnimate: true,
-      onResize: (el) => {
-        setElementSize((current) => {
-          const width = Math.max(1, el.offsetWidth)
-          const height = Math.max(1, el.offsetHeight)
-          if (
-            Math.abs(current.width - width) < 0.5 &&
-            Math.abs(current.height - height) < 0.5
-          ) {
-            return current
-          }
-          return { width, height }
-        })
-      },
-    })
+  const {
+    toolbarRect,
+    hideFloatingToolbar,
+    shouldAnimatePositionMove,
+    measureRect,
+    setToolbarRect,
+  } = useFloatingToolbarRect({
+    elRef,
+    isSelected,
+    bulkCanvasDragging,
+    kind: "annotation",
+    elementId: shape.id,
+    trackPositionAnimate: true,
+    onResize: (el) => {
+      setElementSize((current) => {
+        const width = Math.max(1, el.offsetWidth)
+        const height = Math.max(1, el.offsetHeight)
+        if (
+          Math.abs(current.width - width) < 0.5 &&
+          Math.abs(current.height - height) < 0.5
+        ) {
+          return current
+        }
+        return { width, height }
+      })
+    },
+  })
 
   React.useEffect(() => {
     if (bulkCanvasDragging || !isSelected) return
@@ -676,9 +681,7 @@ export function AnnotationShapeElement({
                     top,
                     left,
                     transform: floatingToolbarTransform(flipBelow, scale),
-                    transformOrigin: flipBelow
-                      ? "top center"
-                      : "bottom center",
+                    transformOrigin: flipBelow ? "top center" : "bottom center",
                   }}
                 >
                   <div className="pointer-events-auto">

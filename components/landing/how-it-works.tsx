@@ -123,7 +123,9 @@ export function HowItWorks() {
                   type="button"
                   onClick={() => setActiveStep(step.id)}
                   className={`group relative bg-background/35 px-5 text-left transition hover:bg-background/65 focus-visible:ring-1 focus-visible:ring-primary/70 focus-visible:outline-none sm:px-7 ${
-                    isShip ? "border-b-0 py-3" : "border-b border-border/60 py-4"
+                    isShip
+                      ? "border-b-0 py-3"
+                      : "border-b border-border/60 py-4"
                   }`}
                   aria-expanded={isActive}
                 >

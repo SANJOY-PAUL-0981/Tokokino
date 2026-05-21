@@ -225,10 +225,7 @@ function CanvasViewInner({
     useImageFileIntake(handleImageFile)
 
   const handleCaptureWebsite = React.useCallback(
-    async (
-      rawUrl: string,
-      settings: CaptureSettings
-    ) => {
+    async (rawUrl: string, settings: CaptureSettings) => {
       let target: URL
       try {
         target = new URL(rawUrl)
@@ -257,7 +254,8 @@ function CanvasViewInner({
         const blob = await res.blob()
         const dataUrl = await new Promise<string>((resolve, reject) => {
           const fr = new FileReader()
-          fr.onload = () => resolve(typeof fr.result === "string" ? fr.result : "")
+          fr.onload = () =>
+            resolve(typeof fr.result === "string" ? fr.result : "")
           fr.onerror = () => reject(fr.error ?? new Error("FileReader error"))
           fr.readAsDataURL(blob)
         })

@@ -115,9 +115,11 @@ function dataUrlToBlob(dataUrl: string): Blob {
 
 type BlobMap = Record<string, Blob>
 
-function extractField(value: string | null | undefined, key: string, blobs: BlobMap):
-  | { sentinel: string }
-  | null {
+function extractField(
+  value: string | null | undefined,
+  key: string,
+  blobs: BlobMap
+): { sentinel: string } | null {
   if (isDataUrl(value)) {
     blobs[key] = dataUrlToBlob(value)
     return { sentinel: `${BLOB_SENTINEL_PREFIX}${key}` }
@@ -272,9 +274,11 @@ async function resolveScreenshots(
     screenshot: resolve(canvas.screenshot),
     originalScreenshot: resolve(canvas.originalScreenshot),
     background:
-      canvas.background.type === "image" &&
-      isSentinel(canvas.background.value)
-        ? { ...canvas.background, value: resolve(canvas.background.value) ?? "" }
+      canvas.background.type === "image" && isSentinel(canvas.background.value)
+        ? {
+            ...canvas.background,
+            value: resolve(canvas.background.value) ?? "",
+          }
         : canvas.background,
     screenshotSlots: canvas.screenshotSlots.map((slot) => ({
       ...slot,
@@ -327,7 +331,9 @@ export function readEditorDraft(): Promise<PersistedEditorDraft | null> {
       const draft = await new Promise<PersistedEditorDraft | null>(
         (resolve, reject) => {
           const tx = db.transaction(EDITOR_DRAFT_STORE_NAME, "readonly")
-          const req = tx.objectStore(EDITOR_DRAFT_STORE_NAME).get(EDITOR_DRAFT_KEY)
+          const req = tx
+            .objectStore(EDITOR_DRAFT_STORE_NAME)
+            .get(EDITOR_DRAFT_KEY)
           req.onsuccess = () =>
             resolve((req.result as PersistedEditorDraft | undefined) ?? null)
           req.onerror = () =>
@@ -523,9 +529,7 @@ function normalizeCanvasState(
   }
 }
 
-export function normalizeEditorState(
-  state: Partial<EditorState>
-): EditorState {
+export function normalizeEditorState(state: Partial<EditorState>): EditorState {
   const fallback = cloneEditorState(DEFAULT_STATE)
   const rawCanvases = Array.isArray(state.canvases) ? state.canvases : []
   const canvases =

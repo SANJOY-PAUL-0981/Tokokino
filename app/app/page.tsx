@@ -30,7 +30,11 @@ const DELAY_OPTIONS = [
   { label: "10s", value: 10000 },
 ]
 
-const ANIMATION_OPTIONS: { label: string; value: PreviewAnimation; desc: string }[] = [
+const ANIMATION_OPTIONS: {
+  label: string
+  value: PreviewAnimation
+  desc: string
+}[] = [
   { label: "Slide", value: "slide", desc: "Classic left–right pan" },
   { label: "Fade", value: "fade", desc: "Crossfade between slides" },
   { label: "Zoom", value: "zoom", desc: "Scale in from center" },
@@ -41,12 +45,8 @@ function EditorLayout() {
   const isPreviewMode = useEditorStore((s) => s.isPreviewMode)
   const setIsPreviewMode = useEditorStore((s) => s.setIsPreviewMode)
   const isPreviewAutoScroll = useEditorStore((s) => s.isPreviewAutoScroll)
-  const setIsPreviewAutoScroll = useEditorStore(
-    (s) => s.setIsPreviewAutoScroll
-  )
-  const previewAutoScrollDelay = useEditorStore(
-    (s) => s.previewAutoScrollDelay
-  )
+  const setIsPreviewAutoScroll = useEditorStore((s) => s.setIsPreviewAutoScroll)
+  const previewAutoScrollDelay = useEditorStore((s) => s.previewAutoScrollDelay)
   const setPreviewAutoScrollDelay = useEditorStore(
     (s) => s.setPreviewAutoScrollDelay
   )
@@ -83,7 +83,12 @@ function EditorLayout() {
             <AnimatePresence>
               {settingsOpen && (
                 <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.94, filter: "blur(4px)" }}
+                  initial={{
+                    opacity: 0,
+                    y: 10,
+                    scale: 0.94,
+                    filter: "blur(4px)",
+                  }}
                   animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
                   exit={{ opacity: 0, y: 8, scale: 0.95, filter: "blur(3px)" }}
                   transition={{ duration: 0.2, ease: [0.34, 1.56, 0.64, 1] }}
@@ -101,10 +106,10 @@ function EditorLayout() {
                           type="button"
                           onClick={() => setPreviewAutoScrollDelay(opt.value)}
                           className={cn(
-                            "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors cursor-pointer border",
+                            "cursor-pointer rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors",
                             previewAutoScrollDelay === opt.value
-                              ? "bg-foreground text-background border-transparent"
-                              : "text-foreground/60 border-foreground/12 hover:border-foreground/25 hover:text-foreground"
+                              ? "border-transparent bg-foreground text-background"
+                              : "border-foreground/12 text-foreground/60 hover:border-foreground/25 hover:text-foreground"
                           )}
                         >
                           {opt.label}
@@ -125,10 +130,10 @@ function EditorLayout() {
                           type="button"
                           onClick={() => setPreviewAnimation(opt.value)}
                           className={cn(
-                            "flex-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all cursor-pointer border text-center",
+                            "flex-1 cursor-pointer rounded-lg border px-2 py-1.5 text-center text-[11px] font-medium transition-all",
                             previewAnimation === opt.value
-                              ? "bg-foreground text-background border-transparent scale-[1.04] shadow-sm"
-                              : "text-foreground/60 border-foreground/12 hover:border-foreground/25 hover:text-foreground hover:scale-[1.02]"
+                              ? "scale-[1.04] border-transparent bg-foreground text-background shadow-sm"
+                              : "border-foreground/12 text-foreground/60 hover:scale-[1.02] hover:border-foreground/25 hover:text-foreground"
                           )}
                         >
                           {opt.label}
@@ -147,7 +152,9 @@ function EditorLayout() {
                 <button
                   type="button"
                   onClick={() => setIsPreviewAutoScroll(!isPreviewAutoScroll)}
-                  title={isPreviewAutoScroll ? "Stop slideshow" : "Start slideshow"}
+                  title={
+                    isPreviewAutoScroll ? "Stop slideshow" : "Start slideshow"
+                  }
                   className="flex h-full cursor-pointer items-center px-3 text-foreground transition-colors hover:bg-foreground/6"
                 >
                   {isPreviewAutoScroll ? (
@@ -162,9 +169,9 @@ function EditorLayout() {
                   onClick={() => setSettingsOpen((v) => !v)}
                   title="Slideshow settings"
                   className={cn(
-                    "flex items-center px-3 h-full transition-colors cursor-pointer",
+                    "flex h-full cursor-pointer items-center px-3 transition-colors",
                     settingsOpen
-                      ? "text-foreground bg-foreground/8"
+                      ? "bg-foreground/8 text-foreground"
                       : "text-foreground hover:bg-foreground/6"
                   )}
                 >

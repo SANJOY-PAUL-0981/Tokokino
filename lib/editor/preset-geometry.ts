@@ -1,10 +1,8 @@
-import { resolveLayoutPresetGeometry, type LayoutPreset } from "./present-presets"
-import type {
-  AssetFilter,
-  DeviceFrame,
-  Shadow,
-  Tilt,
-} from "./state-types"
+import {
+  resolveLayoutPresetGeometry,
+  type LayoutPreset,
+} from "./present-presets"
+import type { AssetFilter, DeviceFrame, Shadow, Tilt } from "./state-types"
 import type { CustomPresetSummary } from "./store"
 
 /**

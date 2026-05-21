@@ -13,8 +13,13 @@ function StarCount() {
     fetch("https://api.github.com/repos/ShivaBhattacharjee/tokokino")
       .then((r) => r.json())
       .then((data) => {
-        const stars = (data as { stargazers_count?: number }).stargazers_count ?? 0
-        const controls = animate(count, stars, { duration: 1, ease: "easeOut", delay: 0.2 })
+        const stars =
+          (data as { stargazers_count?: number }).stargazers_count ?? 0
+        const controls = animate(count, stars, {
+          duration: 1,
+          ease: "easeOut",
+          delay: 0.2,
+        })
         return controls.stop
       })
       .catch(() => {
@@ -51,24 +56,60 @@ export function Hero() {
         <div className="flex max-w-5xl flex-col items-center text-center">
           <StarCount />
 
-          <motion.h1 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease, delay: 0.1 }} className="mt-3 text-[2rem] leading-[1.06] font-medium tracking-[-0.03em] text-balance sm:text-5xl lg:text-[4.2rem]">
+          <motion.h1
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease, delay: 0.1 }}
+            className="mt-3 text-[2rem] leading-[1.06] font-medium tracking-[-0.03em] text-balance sm:text-5xl lg:text-[4.2rem]"
+          >
             Make every screenshot
             <br />
             <span className="relative inline-block whitespace-nowrap">
-              <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-transparent">feel </span>
+              <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-transparent">
+                feel{" "}
+              </span>
               <span className="text-primary">intentional.</span>
-              <svg aria-hidden viewBox="0 0 320 12" className="absolute -bottom-3.5 left-[64%] h-3 w-[92%] -translate-x-1/2 text-primary" fill="none">
-                <path d="M2 8 C 80 2, 240 2, 318 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" style={{ strokeDasharray: 400, strokeDashoffset: 400, animation: "landing-draw 1.4s ease 0.9s forwards" }} />
+              <svg
+                aria-hidden
+                viewBox="0 0 320 12"
+                className="absolute -bottom-3.5 left-[64%] h-3 w-[92%] -translate-x-1/2 text-primary"
+                fill="none"
+              >
+                <path
+                  d="M2 8 C 80 2, 240 2, 318 8"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                  style={{
+                    strokeDasharray: 400,
+                    strokeDashoffset: 400,
+                    animation: "landing-draw 1.4s ease 0.9s forwards",
+                  }}
+                />
               </svg>
             </span>
           </motion.h1>
 
-          <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease, delay: 0.3 }} className="mt-6 max-w-xl text-[14px] leading-relaxed text-balance text-foreground/60 sm:text-[15px]">
-            Drop in a capture. Frame it, light it, share it — fully in the browser. No watermark, no upload, no compromise.
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease, delay: 0.3 }}
+            className="mt-6 max-w-xl text-[14px] leading-relaxed text-balance text-foreground/60 sm:text-[15px]"
+          >
+            Drop in a capture. Frame it, light it, share it — fully in the
+            browser. No watermark, no upload, no compromise.
           </motion.p>
 
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease, delay: 0.4 }} className="mt-8 flex flex-row flex-wrap items-center justify-center gap-3">
-            <Link href="/app" className="group inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-95">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease, delay: 0.4 }}
+            className="mt-8 flex flex-row flex-wrap items-center justify-center gap-3"
+          >
+            <Link
+              href="/app"
+              className="group inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-95"
+            >
               Start editing
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
@@ -82,7 +123,6 @@ export function Hero() {
               Star on GitHub
             </a>
           </motion.div>
-
         </div>
 
         <div className="w-full max-w-6xl">

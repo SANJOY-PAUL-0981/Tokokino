@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { requireSession } from "@/lib/api-auth"
-import {
-  createDraft,
-  listDrafts,
-} from "@/lib/draft-db"
+import { createDraft, listDrafts } from "@/lib/draft-db"
 import {
   MAX_DRAFT_BYTES,
   countCanvasesInDraftState,
@@ -26,9 +23,7 @@ export async function GET(request: Request) {
       byteSize: draft.byteSize,
       createdAt: draft.createdAt,
       updatedAt: draft.updatedAt,
-      thumbnailUrl: draft.thumbnailKey
-        ? `/api/drafts/${draft.id}/thumb`
-        : null,
+      thumbnailUrl: draft.thumbnailKey ? `/api/drafts/${draft.id}/thumb` : null,
     })),
   })
 }

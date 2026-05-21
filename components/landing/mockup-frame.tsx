@@ -7,9 +7,7 @@ export function MockupFrame({ compact = false }: { compact?: boolean }) {
     <section
       id="mockup"
       className={
-        compact
-          ? "relative"
-          : "relative px-5 py-16 sm:px-8 sm:py-24 lg:px-12"
+        compact ? "relative" : "relative px-5 py-16 sm:px-8 sm:py-24 lg:px-12"
       }
     >
       <motion.div
@@ -17,7 +15,9 @@ export function MockupFrame({ compact = false }: { compact?: boolean }) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.2 }}
         transition={{ duration: 0.7, ease }}
-        className={compact ? "relative mx-auto w-full" : "relative mx-auto max-w-[68rem]"}
+        className={
+          compact ? "relative mx-auto w-full" : "relative mx-auto max-w-[68rem]"
+        }
       >
         <div className="relative rounded-[20px] border border-border/70 bg-background/40 p-2 backdrop-blur-md">
           <CornerTick className="absolute -top-1.5 -left-1.5 size-3 text-primary/70" />
@@ -32,8 +32,12 @@ export function MockupFrame({ compact = false }: { compact?: boolean }) {
                 <span className="size-2.5 rounded-full bg-accent-foreground/55" />
                 <span className="size-2.5 rounded-full bg-foreground/15" />
               </div>
-              <span className="font-mono text-[10px] tracking-widest text-foreground/40 uppercase">tokokino</span>
-              <span className="font-mono text-[10px] text-foreground/30">⌘ K</span>
+              <span className="font-mono text-[10px] tracking-widest text-foreground/40 uppercase">
+                tokokino
+              </span>
+              <span className="font-mono text-[10px] text-foreground/30">
+                ⌘ K
+              </span>
             </div>
 
             <div className="relative aspect-[16/10] w-full">

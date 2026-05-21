@@ -63,8 +63,7 @@ export function computeRowLayout(
   // Largest shared row height (in canvas-height %) that fits the row width.
   const maxHByWidth =
     aspectSum > 0 ? (widthBudget * canvasAspect) / aspectSum : Infinity
-  const maxHByCap =
-    items.length === 1 ? SOLO_HEIGHT_PCT : MULTI_MAX_HEIGHT_PCT
+  const maxHByCap = items.length === 1 ? SOLO_HEIGHT_PCT : MULTI_MAX_HEIGHT_PCT
   const targetH = Math.min(maxHByWidth, maxHByCap)
 
   const widths = aspects.map((aspect) => (targetH * aspect) / canvasAspect)
