@@ -212,17 +212,17 @@ function ReadonlyEditorPreview({ activeStep }: { activeStep: StepId }) {
   const spotlightRadius = activeStep === "ship" ? "2px" : "8px"
 
   return (
-    <div className="relative aspect-[16/10] w-full max-w-[58rem] overflow-hidden rounded-md border border-border/70 bg-background">
-      <div className="relative flex h-full w-full items-center justify-center bg-background/35 p-2 sm:p-3">
+    <div className="relative aspect-[16/10] w-full max-w-[58rem] overflow-hidden rounded-md border border-border/70 bg-muted/30 shadow-[0_18px_50px_rgb(15_23_42_/_0.08)] dark:bg-background">
+      <div className="relative flex h-full w-full items-center justify-center bg-white p-2 sm:p-3 dark:bg-background/35">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={DEMO_PREVIEW_SRC}
           alt="Tokokino editor demo preview"
-          className="max-h-full max-w-full object-contain opacity-80 saturate-[0.82]"
+          className="max-h-full max-w-full object-contain contrast-[1.03] saturate-[1.02] dark:opacity-80 dark:saturate-[0.82]"
         />
       </div>
 
-      <div className="pointer-events-none absolute inset-0 bg-background/48" />
+      <div className="pointer-events-none absolute inset-0 bg-white/18 dark:bg-background/48" />
 
       <motion.div
         className="pointer-events-none absolute rounded-md border border-primary/80 bg-primary/10"

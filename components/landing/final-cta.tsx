@@ -107,13 +107,13 @@ export function FinalCta() {
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
           <a
-            href="https://github.com/ShivaBhattacharjee/tokokino"
+            href="https://git.new/Tokokino"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-md border border-border/70 bg-background/45 px-5 py-2.5 text-sm font-medium text-foreground/70 backdrop-blur-sm transition hover:border-foreground/30 hover:text-foreground"
           >
             <RiGithubFill className="size-4" />
-            View source
+            GitHub
           </a>
         </div>
       </motion.div>

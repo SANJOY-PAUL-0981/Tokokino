@@ -12,6 +12,7 @@ const links = [
   { label: "Comparison", href: "#comparison" },
   { label: "Use cases", href: "#use-cases" },
   { label: "How it works", href: "#how-it-works" },
+  { label: "Contact", href: "#contact" },
   { label: "Privacy", href: "/privacy" },
   { label: "Terms", href: "/terms" },
 ]

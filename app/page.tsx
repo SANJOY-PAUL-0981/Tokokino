@@ -2,6 +2,7 @@
 
 import { DashedH } from "@/components/landing/dashed-h"
 import { ComparisonSection } from "@/components/landing/comparison-section"
+import { ContactSection } from "@/components/landing/contact-section"
 import { FeatureRow } from "@/components/landing/feature-row"
 import { Faq } from "@/components/landing/faq"
 import { FinalCta } from "@/components/landing/final-cta"
@@ -52,6 +53,10 @@ export default function Page() {
       <DashedH />
       <div className={`relative ${CONTENT_WIDTH}`} style={RAIL_V_STYLE}>
         <Faq />
+      </div>
+      <DashedH />
+      <div className={`relative ${CONTENT_WIDTH}`} style={RAIL_V_STYLE}>
+        <ContactSection />
       </div>
       <DashedH />
       <div className={`relative ${CONTENT_WIDTH}`} style={RAIL_V_STYLE}>
