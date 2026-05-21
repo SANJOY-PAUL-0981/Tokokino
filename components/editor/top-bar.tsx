@@ -156,19 +156,33 @@ function stableStringify(value: unknown): string {
 }
 
 function shareableCanvasSource(canvas: CanvasState, fallbackAspect: AspectState) {
-  const {
-    id: _id,
-    position: _position,
-    originalScreenshot: _originalScreenshot,
-    lastCropRegion: _lastCropRegion,
-    aspect,
-    ...source
-  } = canvas
-
   return {
     version: 1,
-    aspect: aspect ?? fallbackAspect,
-    ...source,
+    aspect: canvas.aspect ?? fallbackAspect,
+    screenshot: canvas.screenshot,
+    background: canvas.background,
+    padding: canvas.padding,
+    borderRadius: canvas.borderRadius,
+    canvasBorderRadius: canvas.canvasBorderRadius,
+    border: canvas.border,
+    backdrop: canvas.backdrop,
+    tilt: canvas.tilt,
+    scale: canvas.scale,
+    screenshotPosition: canvas.screenshotPosition,
+    screenshotOffset: canvas.screenshotOffset,
+    screenshotLayer: canvas.screenshotLayer,
+    shadow: canvas.shadow,
+    overlay: canvas.overlay,
+    frame: canvas.frame,
+    portrait: canvas.portrait,
+    texts: canvas.texts,
+    assets: canvas.assets,
+    enhance: canvas.enhance,
+    annotations: canvas.annotations,
+    annotationShapes: canvas.annotationShapes,
+    screenshotSlots: canvas.screenshotSlots,
+    frameAddress: canvas.frameAddress,
+    objectFit: canvas.objectFit,
   }
 }
 
