@@ -74,16 +74,22 @@ export function Safari({
   const editableAddress = !!onAddressChange
   const chromeFill =
     colorMode === "dark"
-      ? "fill-[#404040]"
+      ? "#404040"
       : colorMode === "light"
-        ? "fill-[#E5E5E5]"
-        : "fill-[#E5E5E5] dark:fill-[#404040]"
+        ? "#E5E5E5"
+        : undefined
   const toolbarFill =
     colorMode === "dark"
-      ? "fill-[#262626]"
+      ? "#262626"
       : colorMode === "light"
-        ? "fill-white"
-        : "fill-white dark:fill-[#262626]"
+        ? "#ffffff"
+        : undefined
+  const chromeFillClass = chromeFill
+    ? undefined
+    : "fill-[#E5E5E5] dark:fill-[#404040]"
+  const toolbarFillClass = toolbarFill
+    ? undefined
+    : "fill-white dark:fill-[#262626]"
 
   return (
     <div
@@ -235,26 +241,30 @@ export function Safari({
         >
           <path
             d="M0 52H1202V741C1202 747.627 1196.63 753 1190 753H12C5.37258 753 0 747.627 0 741V52Z"
-            className={chromeFill}
+            fill={chromeFill}
+            className={chromeFillClass}
           />
           <path
             fillRule="evenodd"
             clipRule="evenodd"
             d="M0 12C0 5.37258 5.37258 0 12 0H1190C1196.63 0 1202 5.37258 1202 12V52H0L0 12Z"
-            className={chromeFill}
+            fill={chromeFill}
+            className={chromeFillClass}
           />
           <path
             fillRule="evenodd"
             clipRule="evenodd"
             d="M1.06738 12C1.06738 5.92487 5.99225 1 12.0674 1H1189.93C1196.01 1 1200.93 5.92487 1200.93 12V51H1.06738V12Z"
-            className={toolbarFill}
+            fill={toolbarFill}
+            className={toolbarFillClass}
           />
           <circle cx="27" cy="25" r="6" fill="#FF5F57" />
           <circle cx="47" cy="25" r="6" fill="#FEBC2E" />
           <circle cx="67" cy="25" r="6" fill="#28C840" />
           <path
             d="M286 17C286 13.6863 288.686 11 292 11H946C949.314 11 952 13.6863 952 17V35C952 38.3137 949.314 41 946 41H292C288.686 41 286 38.3137 286 35V17Z"
-            className={chromeFill}
+            fill={chromeFill}
+            className={chromeFillClass}
           />
           <g className="mix-blend-luminosity" opacity={editableAddress ? 0 : 1}>
             <path

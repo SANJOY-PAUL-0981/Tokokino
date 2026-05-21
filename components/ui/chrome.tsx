@@ -1,4 +1,5 @@
 import {
+  type CSSProperties,
   type HTMLAttributes,
   type ReactNode,
   type Ref,
@@ -101,6 +102,64 @@ export function Chrome({
       : colorMode === "light"
         ? "text-[#5f6368]"
         : "text-[#5f6368] dark:text-[#9aa0a6]"
+  const frameStyle: CSSProperties =
+    colorMode === "dark"
+      ? {
+          backgroundColor: "#202124",
+          borderColor: "#27272a",
+          color: "#e8eaed",
+        }
+      : colorMode === "light"
+        ? {
+            backgroundColor: "#dee1e6",
+            borderColor: "#d9dce1",
+            color: "#202124",
+          }
+        : {}
+  const tabBarStyle: CSSProperties =
+    colorMode === "dark"
+      ? { backgroundColor: "#202124" }
+      : colorMode === "light"
+        ? { backgroundColor: "#dee1e6" }
+        : {}
+  const toolbarStyle: CSSProperties =
+    colorMode === "dark"
+      ? { backgroundColor: "#292a2d", borderColor: "#2b2c30" }
+      : colorMode === "light"
+        ? { backgroundColor: "#f1f3f4", borderColor: "#d2d5da" }
+        : {}
+  const addressStyle: CSSProperties =
+    colorMode === "dark"
+      ? {
+          backgroundColor: "#202124",
+          color: "#bdc1c6",
+          boxShadow: "0 0 0 1px rgba(255,255,255,0.05)",
+        }
+      : colorMode === "light"
+        ? {
+            backgroundColor: "#ffffff",
+            color: "#5f6368",
+            boxShadow: "0 0 0 1px rgba(0,0,0,0.05)",
+          }
+        : {}
+  const activeTabStyle: CSSProperties =
+    colorMode === "dark"
+      ? { backgroundColor: "#292a2d", color: "#e8eaed" }
+      : colorMode === "light"
+        ? { backgroundColor: "#f1f3f4", color: "#202124" }
+        : {}
+  const mutedIconStyle: CSSProperties =
+    colorMode === "dark"
+      ? { color: "#9aa0a6" }
+      : colorMode === "light"
+        ? { color: "#5f6368" }
+        : {}
+  const dividerStyle: CSSProperties =
+    colorMode === "dark"
+      ? { backgroundColor: "rgba(255,255,255,0.1)" }
+      : colorMode === "light"
+        ? { backgroundColor: "rgba(0,0,0,0.1)" }
+        : {}
 
   const screen = hasVideo ? (
     <video
@@ -132,6 +191,16 @@ export function Chrome({
         ? "bg-[#f1f3f4]"
         : "bg-[#f1f3f4] dark:bg-[#292a2d]"
     : "bg-white dark:bg-[#292a2d]"
+  const screenStyle: CSSProperties =
+    imageFit === "contain"
+      ? colorMode === "dark"
+        ? { backgroundColor: "#292a2d" }
+        : colorMode === "light"
+          ? { backgroundColor: "#f1f3f4" }
+          : {}
+      : colorMode
+        ? { backgroundColor: colorMode === "dark" ? "#292a2d" : "#ffffff" }
+        : {}
 
   return (
     <div
@@ -140,6 +209,7 @@ export function Chrome({
         aspectRatio: `${CHROME_WIDTH}/${CHROME_HEIGHT}`,
         borderRadius: frameBorderRadius,
         containerType: "inline-size",
+        ...frameStyle,
         ...style,
       }}
       {...props}
@@ -153,6 +223,7 @@ export function Chrome({
           width: `${WIDTH_PCT}%`,
           height: `${HEIGHT_PCT}%`,
           borderRadius: screenBorderRadius,
+          ...screenStyle,
         }}
       >
         {screen}
@@ -160,6 +231,7 @@ export function Chrome({
 
       <div
         className={`absolute inset-x-0 top-0 z-10 h-[4.381443%] ${tabBarClasses}`}
+        style={tabBarStyle}
       >
         <div className="absolute top-1/2 left-[1.746%] flex -translate-y-1/2 items-center gap-[0.665cqw]">
           <span className="size-[0.998cqw] rounded-full bg-[#ff5f57]" />
@@ -168,15 +240,18 @@ export function Chrome({
         </div>
         <div
           className={`absolute bottom-0 left-[8.153078%] flex h-[82%] w-[19.467554%] items-center gap-[0.55cqw] rounded-t-[0.8cqw] px-[1.15cqw] text-[1cqw] ${activeTabClasses}`}
+          style={activeTabStyle}
         >
           <span className="truncate opacity-90">{tabTitle}</span>
           <span className="ml-auto text-[1.05em] opacity-50">x</span>
         </div>
         <div
           className={`absolute top-1/2 left-[29.034942%] h-[45%] w-px -translate-y-1/2 ${colorMode === "dark" ? "bg-white/10" : colorMode === "light" ? "bg-black/10" : "bg-black/10 dark:bg-white/10"}`}
+          style={dividerStyle}
         />
         <div
           className={`absolute top-1/2 left-[29.866889%] -translate-y-1/2 text-[1.35cqw] ${mutedIconClasses}`}
+          style={mutedIconStyle}
         >
           +
         </div>
@@ -184,9 +259,11 @@ export function Chrome({
 
       <div
         className={`absolute inset-x-0 top-[4.381443%] z-20 h-[5.412371%] border-y ${toolbarClasses}`}
+        style={toolbarStyle}
       >
         <div
           className={`absolute top-1/2 left-[1.497504%] flex -translate-y-1/2 items-center gap-[1cqw] ${mutedIconClasses}`}
+          style={mutedIconStyle}
         >
           <ChromeArrow direction="left" />
           <ChromeArrow direction="right" />
@@ -200,6 +277,7 @@ export function Chrome({
             top: "50%",
             width: `${ADDRESS_WIDTH_PCT}%`,
             height: `${(32 / 42) * 100}%`,
+            ...addressStyle,
           }}
         >
           <ChromeLock />
@@ -210,6 +288,7 @@ export function Chrome({
 
         <div
           className={`absolute top-1/2 right-[1.663894%] flex -translate-y-1/2 items-center gap-[1cqw] ${mutedIconClasses}`}
+          style={mutedIconStyle}
         >
           <ChromeStar />
           <ChromeMore />

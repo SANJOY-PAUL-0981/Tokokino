@@ -1,4 +1,5 @@
 import {
+  type CSSProperties,
   type HTMLAttributes,
   type ReactNode,
   type Ref,
@@ -61,6 +62,26 @@ export function Arc({
       : colorMode === "dark"
         ? "bg-[#060909]"
         : "bg-white dark:bg-[#060909]"
+  const frameStyle: CSSProperties =
+    colorMode === "dark"
+      ? {
+          backgroundColor: "#11161b",
+          boxShadow: "0 20px 48px rgba(0,0,0,0.42)",
+          outline: "1px solid rgba(255,255,255,0.1)",
+        }
+      : colorMode === "light"
+        ? {
+            backgroundColor: "#ffffff",
+            boxShadow: "0 18px 44px rgba(0,0,0,0.24)",
+            outline: "1px solid rgba(0,0,0,0.05)",
+          }
+        : {}
+  const screenStyle: CSSProperties =
+    colorMode === "dark"
+      ? { backgroundColor: "#060909" }
+      : colorMode === "light"
+        ? { backgroundColor: "#ffffff" }
+        : {}
 
   const screen = hasVideo ? (
     <video
@@ -92,6 +113,7 @@ export function Arc({
         aspectRatio: `${ARC_WIDTH}/${ARC_HEIGHT}`,
         borderRadius: frameBorderRadius,
         containerType: "inline-size",
+        ...frameStyle,
         ...style,
       }}
       {...props}
@@ -105,6 +127,7 @@ export function Arc({
           width: `${WIDTH_PCT}%`,
           height: `${HEIGHT_PCT}%`,
           borderRadius: screenBorderRadius,
+          ...screenStyle,
         }}
       >
         {screen}
