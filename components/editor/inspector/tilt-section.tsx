@@ -4,16 +4,17 @@ import * as React from "react"
 
 import { EditableValue } from "@/components/editor/editable-value"
 import { Slider } from "@/components/ui/slider"
+import { useScreenshotStyleTarget } from "@/lib/editor/screenshot-style-target"
 import type { Tilt } from "@/lib/editor/state-types"
 import {
   useActiveCanvasField,
   useActiveCanvasId,
   useEditorStore,
-  useSelectedScreenshotSlot,
 } from "@/lib/editor/store"
 import { editorValueSchemas } from "@/lib/editor/value-schemas"
 
 type LivePreviewKind = "canvas" | "slot"
+type LivePreviewTarget = { el: HTMLElement; kind: LivePreviewKind }
 
 function setPreviewVar(
   el: HTMLElement | null,
@@ -33,6 +34,18 @@ function clearPreviewVars(el: HTMLElement | null, kind: LivePreviewKind) {
   setPreviewVar(el, kind, "rz", null)
   setPreviewVar(el, kind, "scale", null)
   setPreviewVar(el, kind, "rot", null)
+}
+
+function setPreviewVarOnTarget(
+  target: LivePreviewTarget,
+  axis: "rx" | "ry" | "rz" | "scale" | "rot",
+  value: string | null
+) {
+  setPreviewVar(target.el, target.kind, axis, value)
+}
+
+function clearPreviewVarsOnTargets(targets: LivePreviewTarget[]) {
+  for (const target of targets) clearPreviewVars(target.el, target.kind)
 }
 
 function DegreeRow({
@@ -84,53 +97,62 @@ function DegreeRow({
 export function TiltSection() {
   const canvasTilt = useActiveCanvasField((c) => c.tilt)
   const canvasScale = useActiveCanvasField((c) => c.scale)
-  const selectedSlot = useSelectedScreenshotSlot()
+  const { applyStyle, selectedSlot, target } = useScreenshotStyleTarget()
   const activeCanvasId = useActiveCanvasId()
   const tilt = selectedSlot?.tilt ?? canvasTilt
   const scale = selectedSlot?.scale ?? canvasScale
   const setTilt = useEditorStore((s) => s.setTilt)
   const setScale = useEditorStore((s) => s.setScale)
   const updateScreenshotSlot = useEditorStore((s) => s.updateScreenshotSlot)
+  const setScreenshotTilt = useEditorStore((s) => s.setScreenshotTilt)
+  const setScreenshotScale = useEditorStore((s) => s.setScreenshotScale)
+  const setScreenshotRotation = useEditorStore((s) => s.setScreenshotRotation)
 
-  const kind: LivePreviewKind = selectedSlot ? "slot" : "canvas"
   // Resolve the live-preview DOM target on demand so we don't cache a stale
   // node across selection changes or canvas remounts.
-  const getTargetEl = React.useCallback((): HTMLElement | null => {
-    if (typeof document === "undefined") return null
+  const getTargetEls = React.useCallback((): LivePreviewTarget[] => {
+    if (typeof document === "undefined") return []
     if (selectedSlot) {
-      return document.querySelector(
+      const el = document.querySelector<HTMLElement>(
         `[data-screenshot-slot-id="${selectedSlot.id}"]`
       )
+      return el ? [{ el, kind: "slot" }] : []
     }
-    if (!activeCanvasId) return null
-    return document.querySelector(`[data-canvas-id="${activeCanvasId}"]`)
-  }, [selectedSlot, activeCanvasId])
+    if (!activeCanvasId) return []
+    const canvasEl = document.querySelector<HTMLElement>(
+      `[data-canvas-id="${activeCanvasId}"]`
+    )
+    if (!canvasEl) return []
+    if (target !== "all") return [{ el: canvasEl, kind: "canvas" }]
+
+    const slotTargets = Array.from(
+      canvasEl.querySelectorAll<HTMLElement>("[data-screenshot-slot-id]")
+    ).map((el) => ({ el, kind: "slot" as const }))
+    return [{ el: canvasEl, kind: "canvas" }, ...slotTargets]
+  }, [activeCanvasId, selectedSlot, target])
 
   // If the selection changes mid-drag, clear preview vars from the old target
   // to avoid stale styles bleeding across selections.
-  const lastTargetRef = React.useRef<HTMLElement | null>(null)
-  const lastKindRef = React.useRef<LivePreviewKind>(kind)
+  const lastTargetsRef = React.useRef<LivePreviewTarget[]>([])
   React.useEffect(() => {
-    const prev = lastTargetRef.current
-    const prevKind = lastKindRef.current
-    if (prev && prevKind) clearPreviewVars(prev, prevKind)
-    lastTargetRef.current = getTargetEl()
-    lastKindRef.current = kind
+    clearPreviewVarsOnTargets(lastTargetsRef.current)
+    lastTargetsRef.current = getTargetEls()
     return () => {
-      const el = lastTargetRef.current
-      const k = lastKindRef.current
-      if (el && k) clearPreviewVars(el, k)
+      clearPreviewVarsOnTargets(lastTargetsRef.current)
     }
-  }, [getTargetEl, kind])
+  }, [getTargetEls])
 
   const previewTilt = (next: Tilt) => {
-    const el = getTargetEl()
-    setPreviewVar(el, kind, "rx", `${next.rx}deg`)
-    setPreviewVar(el, kind, "ry", `${next.ry}deg`)
-    setPreviewVar(el, kind, "rz", `${next.rz}deg`)
+    for (const previewTarget of getTargetEls()) {
+      setPreviewVarOnTarget(previewTarget, "rx", `${next.rx}deg`)
+      setPreviewVarOnTarget(previewTarget, "ry", `${next.ry}deg`)
+      setPreviewVarOnTarget(previewTarget, "rz", `${next.rz}deg`)
+    }
   }
   const previewScale = (next: number) => {
-    setPreviewVar(getTargetEl(), kind, "scale", String(next / 100))
+    for (const previewTarget of getTargetEls()) {
+      setPreviewVarOnTarget(previewTarget, "scale", String(next / 100))
+    }
   }
 
   // Defer clearing the CSS var to the next frame so React paints the new
@@ -139,9 +161,9 @@ export function TiltSection() {
   const clearAfterPaint = (axes: Array<"rx" | "ry" | "rz" | "scale" | "rot">) => {
     if (typeof requestAnimationFrame === "undefined") return
     requestAnimationFrame(() => {
-      const el = getTargetEl()
-      if (!el) return
-      for (const axis of axes) setPreviewVar(el, kind, axis, null)
+      for (const previewTarget of getTargetEls()) {
+        for (const axis of axes) setPreviewVarOnTarget(previewTarget, axis, null)
+      }
     })
   }
 
@@ -151,20 +173,20 @@ export function TiltSection() {
       ry: editorValueSchemas.degree.catch(0).parse(nextTilt.ry),
       rz: editorValueSchemas.degree.catch(0).parse(nextTilt.rz),
     }
-    if (selectedSlot) {
-      updateScreenshotSlot(selectedSlot.id, { tilt: safeTilt })
-    } else {
-      setTilt(safeTilt)
-    }
+    applyStyle(
+      { tilt: safeTilt },
+      () => setTilt(safeTilt),
+      () => setScreenshotTilt(safeTilt)
+    )
     clearAfterPaint(["rx", "ry", "rz"])
   }
   const commitScale = (nextScale: number) => {
     const safeScale = editorValueSchemas.scale.catch(100).parse(nextScale)
-    if (selectedSlot) {
-      updateScreenshotSlot(selectedSlot.id, { scale: safeScale })
-    } else {
-      setScale(safeScale)
-    }
+    applyStyle(
+      { scale: safeScale },
+      () => setScale(safeScale),
+      () => setScreenshotScale(safeScale)
+    )
     clearAfterPaint(["scale"])
   }
 
@@ -173,8 +195,20 @@ export function TiltSection() {
 
   const rotZ = selectedSlot ? (selectedSlot.rotation) : tilt.rz
   const previewRotZ = (v: number) => {
-    if (selectedSlot) setPreviewVar(getTargetEl(), kind, "rot", `${v}deg`)
-    else previewTilt({ ...tilt, rz: v })
+    if (selectedSlot) {
+      for (const previewTarget of getTargetEls()) {
+        setPreviewVarOnTarget(previewTarget, "rot", `${v}deg`)
+      }
+      return
+    }
+
+    for (const previewTarget of getTargetEls()) {
+      setPreviewVarOnTarget(
+        previewTarget,
+        previewTarget.kind === "slot" ? "rot" : "rz",
+        `${v}deg`
+      )
+    }
   }
   const commitRotZ = (v: number) => {
     if (selectedSlot) {
@@ -182,7 +216,13 @@ export function TiltSection() {
       updateScreenshotSlot(selectedSlot.id, { rotation: safe })
       clearAfterPaint(["rot"])
     } else {
-      commitTilt({ ...tilt, rz: v })
+      const safe = editorValueSchemas.degree.catch(0).parse(v)
+      if (target === "all") {
+        setScreenshotRotation(safe)
+        clearAfterPaint(["rz", "rot"])
+        return
+      }
+      commitTilt({ ...tilt, rz: safe })
     }
   }
 

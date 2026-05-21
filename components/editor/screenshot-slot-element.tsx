@@ -527,6 +527,7 @@ export function ScreenshotSlotView({
             device: settings.device,
             width: settings.width,
             aspectRatio: settings.aspectRatio,
+            delay: settings.delay,
           }),
         })
         if (!res.ok) {

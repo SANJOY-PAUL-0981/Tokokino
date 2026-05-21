@@ -11,6 +11,7 @@ const requestSchema = z.object({
   device: z.enum(["desktop", "mobile"]).default("desktop"),
   width: z.number().int().min(320).max(3840),
   aspectRatio: z.enum(ASPECT_RATIOS),
+  delay: z.enum(["none", "2s", "5s"]).default("none"),
 })
 
 const MOBILE_UA =
@@ -19,7 +20,7 @@ const DESKTOP_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 const SCREENSHOT_CACHE_TTL_SECONDS = 300
 const MAX_SCREENSHOT_CACHE_ENTRIES = 30
-const SCREENSHOT_REQUEST_TIMEOUT_MS = 35000
+const SCREENSHOT_REQUEST_TIMEOUT_MS = 45000
 const SCREENSHOT_NAVIGATION_TIMEOUT_MS = 30000
 
 type ScreenshotCacheEntry = {
@@ -42,6 +43,12 @@ function heightFromAspect(
 ) {
   const [w, h] = aspectRatio.split(":").map((n) => Number(n))
   return Math.round((width * h) / w)
+}
+
+function delayMsFromSetting(delay: z.infer<typeof requestSchema>["delay"]) {
+  if (delay === "2s") return 2000
+  if (delay === "5s") return 5000
+  return 0
 }
 
 export async function POST(request: Request) {
@@ -74,8 +81,9 @@ export async function POST(request: Request) {
     )
   }
 
-  const { url, device, width, aspectRatio } = payload
+  const { url, device, width, aspectRatio, delay } = payload
   const isMobile = device === "mobile"
+  const waitForTimeout = delayMsFromSetting(delay)
   const cacheKey = screenshotCacheKey(payload)
   const cached = getCachedScreenshot(cacheKey)
   if (cached) {
@@ -97,6 +105,7 @@ export async function POST(request: Request) {
       waitUntil: "load",
       timeout: SCREENSHOT_NAVIGATION_TIMEOUT_MS,
     },
+    ...(waitForTimeout > 0 ? { waitForTimeout } : {}),
   }
 
   const endpoint = new URL(
@@ -145,6 +154,7 @@ function screenshotCacheKey(payload: z.infer<typeof requestSchema>) {
     device: payload.device,
     width: payload.width,
     aspectRatio: payload.aspectRatio,
+    delay: payload.delay,
   })
 }
 

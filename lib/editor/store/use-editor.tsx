@@ -303,6 +303,12 @@ export function useEditor(): EditorContext {
     setScale: (n, canvasId) => store.setScale(n, canvasId ?? targetId),
     setTiltAndScale: (t, scale, canvasId) =>
       store.setTiltAndScale(t, scale, canvasId ?? targetId),
+    setScreenshotTilt: (t, canvasId) =>
+      store.setScreenshotTilt(t, canvasId ?? targetId),
+    setScreenshotScale: (n, canvasId) =>
+      store.setScreenshotScale(n, canvasId ?? targetId),
+    setScreenshotRotation: (n, canvasId) =>
+      store.setScreenshotRotation(n, canvasId ?? targetId),
     setCanvasZoom: store.setCanvasZoom,
     setScreenshotPosition: (p, canvasId) =>
       store.setScreenshotPosition(p, canvasId ?? targetId),

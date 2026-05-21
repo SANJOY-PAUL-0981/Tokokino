@@ -7,7 +7,7 @@ import { RiCheckLine, RiLinkM } from "@remixicon/react"
 import { BrandLogo } from "@/components/editor/brand-logo"
 import { cn } from "@/lib/utils"
 
-const RECOMMENDED_MIN_PX = 1280
+const RECOMMENDED_MIN_PX = 1024
 
 export function MobileOnlyWarning() {
   const [viewport, setViewport] = React.useState<number | null>(null)
@@ -42,12 +42,16 @@ export function MobileOnlyWarning() {
     }
   }, [])
 
+  if (viewport !== null && viewport >= RECOMMENDED_MIN_PX) {
+    return null
+  }
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label="Open on a larger screen"
-      className="fixed inset-0 z-[100] flex bg-background font-sans text-foreground xl:hidden"
+      className="fixed inset-0 z-[100] flex bg-background font-sans text-foreground lg:hidden"
     >
       <Atmosphere />
 
@@ -74,7 +78,7 @@ export function MobileOnlyWarning() {
             }}
             className="mt-8 text-[30px] leading-[1.04] font-semibold text-balance text-foreground"
           >
-            Open Tokokino on a wider screen
+            Open Tokokino on an iPad Pro or wider screen
           </motion.h1>
 
           <motion.p
@@ -83,8 +87,9 @@ export function MobileOnlyWarning() {
             transition={{ duration: 0.55, ease: "easeOut", delay: 0.6 }}
             className="mt-4 max-w-[34ch] text-[13px] leading-6 text-muted-foreground"
           >
-            The editor needs room for its canvas, sidebars, and floating tools.
-            Continue on a laptop or desktop for the full workspace.
+            The editor needs room for its canvas, side panels, and floating
+            tools. Continue on an iPad Pro, laptop, or desktop for the full
+            workspace.
           </motion.p>
 
           <motion.div

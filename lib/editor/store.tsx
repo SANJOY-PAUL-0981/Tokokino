@@ -265,6 +265,9 @@ export type EditorActions = {
   setTilt: (t: Tilt, canvasId?: string) => void
   setScale: (n: number, canvasId?: string) => void
   setTiltAndScale: (t: Tilt, scale: number, canvasId?: string) => void
+  setScreenshotTilt: (t: Tilt, canvasId?: string) => void
+  setScreenshotScale: (n: number, canvasId?: string) => void
+  setScreenshotRotation: (n: number, canvasId?: string) => void
   setCanvasZoom: (n: number) => void
   setScreenshotPosition: (p: ScreenshotPosition, canvasId?: string) => void
   setScreenshotOffset: (o: { x: number; y: number }, canvasId?: string) => void
@@ -965,6 +968,37 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     setScale: (n, canvasId) => commitCanvas(canvasId, { scale: n }, "scale"),
     setTiltAndScale: (t, scale, canvasId) =>
       commitCanvas(canvasId, { tilt: t, scale }, "tilt-scale"),
+    setScreenshotTilt: (t, canvasId) =>
+      commitCanvas(
+        canvasId,
+        (canvas) => ({
+          tilt: t,
+          screenshotSlots: mirrorToSlots(canvas.screenshotSlots, () => ({
+            tilt: { ...t },
+          })),
+        }),
+        "tilt"
+      ),
+    setScreenshotScale: (n, canvasId) =>
+      commitCanvas(
+        canvasId,
+        (canvas) => ({
+          scale: n,
+          screenshotSlots: mirrorToSlots(canvas.screenshotSlots, { scale: n }),
+        }),
+        "scale"
+      ),
+    setScreenshotRotation: (n, canvasId) =>
+      commitCanvas(
+        canvasId,
+        (canvas) => ({
+          tilt: { ...canvas.tilt, rz: n },
+          screenshotSlots: mirrorToSlots(canvas.screenshotSlots, {
+            rotation: n,
+          }),
+        }),
+        "tilt"
+      ),
     setCanvasZoom: (n) => commit({ canvasZoom: n }, "canvasZoom"),
     setScreenshotPosition: (p, canvasId) =>
       commitCanvas(

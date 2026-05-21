@@ -4,7 +4,6 @@ import * as React from "react"
 
 import { EditableValue } from "@/components/editor/editable-value"
 import { Slider } from "@/components/ui/slider"
-import { Switch } from "@/components/ui/switch"
 import {
   sampleImageColorsRaw,
   useActiveCanvasField,
@@ -118,6 +117,15 @@ export function BorderSection() {
 
   const borderStyles = [
     {
+      id: "none" as const,
+      label: "None",
+      icon: (
+        <div className={cn("size-full rounded-sm p-2", thumbBg)}>
+          <div className="size-full rounded-[3px] border-[3px] border-solid border-black/45 dark:border-white/45" />
+        </div>
+      ),
+    },
+    {
       id: "solid" as const,
       label: "Solid",
       icon: (
@@ -196,18 +204,6 @@ export function BorderSection() {
 
       <div className="h-px bg-border/40" />
 
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] text-muted-foreground">Border</span>
-        <Switch
-          size="sm"
-          checked={enabled}
-          onCheckedChange={(on) =>
-            applyBorder({ ...border, color: on ? DEFAULT_BORDER_COLOR : null })
-          }
-          className="cursor-pointer"
-        />
-      </div>
-
       <div>
         <div className="mb-2 flex items-baseline justify-between">
           <span className="text-[11px] text-muted-foreground">Width</span>
@@ -257,13 +253,19 @@ export function BorderSection() {
             <button
               key={t.id}
               onClick={() => {
+                if (t.id === "none") {
+                  applyBorder({ ...border, color: null })
+                  return
+                }
                 const patch: Partial<typeof border> = { style: t.id }
-                if (!border.color) patch.color = "#ffffff"
+                if (!border.color) patch.color = DEFAULT_BORDER_COLOR
                 applyBorder({ ...border, ...patch })
               }}
               className={cn(
                 "flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border p-1.5 transition-all",
-                (border.style || "solid") === t.id
+                (t.id === "none"
+                  ? !enabled
+                  : enabled && (border.style || "solid") === t.id)
                   ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
                   : "border-border/60 bg-secondary/20 hover:border-foreground/30"
               )}
@@ -272,7 +274,9 @@ export function BorderSection() {
               <span
                 className={cn(
                   "text-[9px] font-medium",
-                  (border.style || "solid") === t.id
+                  (t.id === "none"
+                    ? !enabled
+                    : enabled && (border.style || "solid") === t.id)
                     ? "text-primary"
                     : "text-muted-foreground"
                 )}

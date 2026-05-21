@@ -810,7 +810,7 @@ export function TopBar() {
           />
         </div>
 
-        <div className="tool-cluster hidden lg:flex">
+        <div className="tool-cluster hidden xl:flex">
           <AlertDialog>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1009,7 +1009,7 @@ export function TopBar() {
 
       <div className="flex shrink-0 items-center justify-end gap-1.5">
         {/* Right cluster — desktop only */}
-        <div className="hidden items-center gap-1.5 xl:flex">
+        <div className="hidden items-center gap-1.5 md:flex">
           <ThemeToggle />
 
           <Tooltip>
@@ -1020,7 +1020,7 @@ export function TopBar() {
                 onClick={() => void handleCopyPng()}
               >
                 <RiFileCopyLine />
-                <span className="relative inline-grid [&>span]:col-start-1 [&>span]:row-start-1">
+                <span className="relative hidden xl:inline-grid [&>span]:col-start-1 [&>span]:row-start-1">
                   <span className="invisible whitespace-nowrap" aria-hidden>
                     Copying…
                   </span>
@@ -1548,7 +1548,7 @@ function ShareControls({
               }}
             >
               <RiShareForwardLine />
-              <span className="hidden lg:inline">Share</span>
+              <span className="hidden xl:inline">Share</span>
             </Button>
           </PopoverTrigger>
         </TooltipTrigger>
@@ -1652,7 +1652,7 @@ function TopBarButton({
   const button = (
     <Button variant={variant} size="lg" onClick={onClick} disabled={disabled}>
       <Icon />
-      <span className="hidden lg:inline">{label}</span>
+      <span className="hidden xl:inline">{label}</span>
     </Button>
   )
 
@@ -1887,7 +1887,7 @@ function SaveControls({
           <PopoverTrigger asChild>
             <Button variant="outline" size="lg">
               <RiSaveLine />
-              <span className="hidden lg:inline">Save</span>
+              <span className="hidden xl:inline">Save</span>
             </Button>
           </PopoverTrigger>
         </TooltipTrigger>
@@ -1980,7 +1980,7 @@ function OpenControls({
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="lg">
               <RiFolderOpenLine />
-              <span className="hidden lg:inline">Open</span>
+              <span className="hidden xl:inline">Open</span>
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>

@@ -61,7 +61,6 @@ const MOBILE_WIDTHS = [390, 414, 430]
 type CaptureSession = {
   url: string
   settings: CaptureSettings
-  countdown: number | null
 }
 
 const captureSessions = new Map<string, CaptureSession>()
@@ -301,9 +300,6 @@ export function UploadCard({
   const [isCapturing, setIsCapturing] = React.useState(() =>
     captureSessions.has(captureStateKey ?? "")
   )
-  const [countdown, setCountdown] = React.useState<number | null>(
-    () => captureSessions.get(captureStateKey ?? "")?.countdown ?? null
-  )
   const userTouchedDeviceRef = React.useRef(false)
   React.useEffect(() => {
     if (persistedCaptureRef.current) return
@@ -316,7 +312,6 @@ export function UploadCard({
     setUrl(PREFIX)
     setSettings(initialCaptureSettings(defaultDevice))
     setIsCapturing(false)
-    setCountdown(null)
   }, [defaultDevice])
 
   React.useEffect(
@@ -327,7 +322,6 @@ export function UploadCard({
           setUrl(session.url)
           setSettings(session.settings)
           setIsCapturing(true)
-          setCountdown(session.countdown)
           return
         }
         if (!persistedCaptureRef.current) return
@@ -362,8 +356,6 @@ export function UploadCard({
   async function handleCapture(e: React.MouseEvent | React.KeyboardEvent) {
     e.stopPropagation()
     if (!parsedUrl.success || isCapturing || !onCapture) return
-    const delaySec =
-      settings.delay === "2s" ? 2 : settings.delay === "5s" ? 5 : 0
     const captureUrl = parsedUrl.data
     setUrl(captureUrl)
     persistedCaptureRef.current = Boolean(captureStateKey)
@@ -371,39 +363,19 @@ export function UploadCard({
     publishCaptureSession(captureStateKey, {
       url: captureUrl,
       settings,
-      countdown: null,
     })
     try {
-      for (let s = delaySec; s > 0; s--) {
-        setCountdown(s)
-        publishCaptureSession(captureStateKey, {
-          url: captureUrl,
-          settings,
-          countdown: s,
-        })
-        await new Promise((r) => setTimeout(r, 1000))
-      }
-      setCountdown(null)
-      publishCaptureSession(captureStateKey, {
-        url: captureUrl,
-        settings,
-        countdown: null,
-      })
       await onCapture(captureUrl, settings)
     } finally {
       publishCaptureSession(captureStateKey, null)
       setIsCapturing(false)
-      setCountdown(null)
     }
   }
 
   const captureDisabled = !onCapture || !parsedUrl.success || isCapturing
-  const captureLabel =
-    countdown !== null
-      ? `Capturing in ${countdown}s…`
-      : isCapturing
-        ? "Capturing screenshot…"
-        : "Capture Screenshot"
+  const captureLabel = isCapturing
+    ? "Capturing screenshot…"
+    : "Capture Screenshot"
 
   if (compact) {
     return (
