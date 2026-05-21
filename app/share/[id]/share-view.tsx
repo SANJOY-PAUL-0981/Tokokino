@@ -94,7 +94,7 @@ export function ShareView({
         </header>
 
         <section className="grid min-h-0 flex-1 place-items-center py-6">
-          <div className="bg-checker shadow-artboard w-full overflow-hidden rounded-lg border border-border/70">
+          <div className="bg-checker w-full overflow-hidden rounded-lg border border-border/70">
             {imageFailed ? (
               <div className="grid min-h-[52vh] place-items-center p-8 text-center">
                 <div className="max-w-sm space-y-2">

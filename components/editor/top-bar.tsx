@@ -373,8 +373,12 @@ export function TopBar() {
       })
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Could not prepare share link"
-      console.error(err)
+        err instanceof Error
+          ? err.message
+          : typeof err === "string"
+            ? err
+            : "Could not prepare share link"
+      console.error("[share]", err instanceof Error ? err : String(err))
       await waitForShareSkeleton(skeletonStartedAt)
       setShareDialog({
         open: true,

@@ -3,6 +3,7 @@
 import * as React from "react"
 import {
   RiArrowDownSLine,
+  RiGalleryLine,
   RiLogoutBoxRLine,
   RiUserLine,
 } from "@remixicon/react"
@@ -283,13 +284,21 @@ function AccountTile() {
           sideOffset={8}
           className="w-[236px] rounded-lg border border-border/70 bg-card/95 p-2 shadow-xl"
         >
+          <Link
+            href="/shares"
+            onClick={() => setExpanded(false)}
+            className="flex h-8 w-full items-center gap-2.5 rounded-md px-2 text-xs font-medium text-foreground transition-colors hover:bg-secondary/60"
+          >
+            <RiGalleryLine className="size-4 shrink-0 text-muted-foreground" />
+            My Shares
+          </Link>
           <button
             type="button"
             disabled={isSigningOut}
-            className="flex h-8 w-full items-center justify-center gap-2 rounded-md text-xs font-medium text-muted-foreground disabled:pointer-events-none disabled:opacity-60"
+            className="flex h-8 w-full items-center gap-2.5 rounded-md px-2 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:pointer-events-none disabled:opacity-60"
             onClick={() => void handleSignOut()}
           >
-            <RiLogoutBoxRLine className="size-4" />
+            <RiLogoutBoxRLine className="size-4 shrink-0" />
             {isSigningOut ? "Logging out..." : "Logout"}
           </button>
         </PopoverContent>

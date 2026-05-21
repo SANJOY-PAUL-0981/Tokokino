@@ -2,15 +2,52 @@ import { createHash } from "node:crypto"
 import { NextResponse } from "next/server"
 
 import { getAuth } from "@/lib/auth"
-import { createShareRecord } from "@/lib/share-db"
+import {
+  createShareRecord,
+  deleteAllUserShares,
+  getUserShares,
+} from "@/lib/share-db"
 import {
   getShareImageUrl,
   getShareObjectKey,
   isValidShareId,
 } from "@/lib/share"
-import { MAX_SHARE_IMAGE_BYTES, uploadShareImage } from "@/lib/share-storage"
+import {
+  deleteShareImages,
+  MAX_SHARE_IMAGE_BYTES,
+  uploadShareImage,
+} from "@/lib/share-storage"
 
 export const runtime = "nodejs"
+
+export async function GET(request: Request) {
+  const auth = getAuth()
+  const session = await auth.api.getSession({ headers: request.headers })
+  if (!session) {
+    return NextResponse.json({ error: "Sign in required" }, { status: 401 })
+  }
+  const shares = await getUserShares(session.user.id)
+  return NextResponse.json({ shares })
+}
+
+export async function DELETE(request: Request) {
+  const auth = getAuth()
+  const session = await auth.api.getSession({ headers: request.headers })
+  if (!session) {
+    return NextResponse.json({ error: "Sign in required" }, { status: 401 })
+  }
+  try {
+    const ids = await deleteAllUserShares(session.user.id)
+    await deleteShareImages(ids).catch(() => {})
+    return NextResponse.json({ ok: true, deleted: ids.length })
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json(
+      { error: "Could not delete shares" },
+      { status: 500 }
+    )
+  }
+}
 
 export async function POST(request: Request) {
   const auth = getAuth()

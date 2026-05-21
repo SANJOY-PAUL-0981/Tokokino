@@ -1,6 +1,10 @@
 import "server-only"
 
-import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3"
 
 import { requireR2Config } from "@/lib/env"
 import { getR2Client } from "@/lib/r2-client"
@@ -46,6 +50,20 @@ export async function getShareImage(id: string) {
       Key: getShareObjectKey(id),
     })
   )
+}
+
+export async function deleteShareImage(id: string) {
+  const { bucket } = requireR2Config()
+  await getR2Client().send(
+    new DeleteObjectCommand({
+      Bucket: bucket,
+      Key: getShareObjectKey(id),
+    })
+  )
+}
+
+export async function deleteShareImages(ids: string[]) {
+  await Promise.allSettled(ids.map((id) => deleteShareImage(id)))
 }
 
 export { MAX_SHARE_IMAGE_BYTES }

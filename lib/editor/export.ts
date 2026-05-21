@@ -392,12 +392,35 @@ export async function captureCanvasAsPngBlob(
   try {
     await waitForExportAssets(preloadUrls)
 
-    const blob = await toBlob(exportTarget.node, {
+    // html-to-image is flaky on the first call (fonts/images not yet embedded
+    // in the cloned document). Two attempts is the standard workaround.
+    const captureOptions = {
       pixelRatio,
       cacheBust: true,
       filter: filterExportHidden,
-    })
-    if (!blob) throw new Error("Could not capture canvas")
+    } as const
+
+    let blob: Blob | null = null
+    let lastError: unknown
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        blob = await toBlob(exportTarget.node, captureOptions)
+        if (blob) break
+      } catch (raw) {
+        lastError = raw
+      }
+    }
+    if (!blob) {
+      const msg =
+        lastError instanceof Error
+          ? lastError.message
+          : lastError instanceof DOMException
+            ? lastError.message
+            : typeof lastError === "string"
+              ? lastError
+              : "Canvas capture failed — try again"
+      throw new Error(msg)
+    }
     return blob
   } finally {
     for (const rewrite of rewrites.reverse()) {

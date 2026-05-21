@@ -2,7 +2,7 @@ import "server-only"
 
 import { createHash } from "node:crypto"
 
-import { and, eq, sql } from "drizzle-orm"
+import { and, desc, eq, sql } from "drizzle-orm"
 
 import { shares, shareViews } from "@/lib/db/schema"
 import { fromD1Date, getDb, toD1Date } from "@/lib/d1"
@@ -59,6 +59,39 @@ function rowToShare(row: ShareRow): ShareRecord {
     viewCount: row.viewCount,
     uniqueViewCount: row.uniqueViewCount,
   }
+}
+
+export async function getUserShares(
+  userId: string,
+  limit = 50,
+  offset = 0
+): Promise<ShareRecord[]> {
+  const rows = await getDb()
+    .select()
+    .from(shares)
+    .where(eq(shares.userId, userId))
+    .orderBy(desc(shares.createdAt))
+    .limit(limit)
+    .offset(offset)
+    .all()
+  return rows.map(rowToShare)
+}
+
+export async function deleteShareRecord(id: string, userId: string) {
+  await getDb()
+    .delete(shares)
+    .where(and(eq(shares.id, id), eq(shares.userId, userId)))
+}
+
+export async function deleteAllUserShares(userId: string): Promise<string[]> {
+  const rows = await getDb()
+    .select({ id: shares.id })
+    .from(shares)
+    .where(eq(shares.userId, userId))
+    .all()
+  if (rows.length === 0) return []
+  await getDb().delete(shares).where(eq(shares.userId, userId))
+  return rows.map((r) => r.id)
 }
 
 export async function createShareRecord({
