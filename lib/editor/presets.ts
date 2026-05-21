@@ -20,7 +20,7 @@ export const ANNOTATION_STROKES = [2, 4, 7, 11] as const
 
 export const OVERLAY_COUNT = 100
 
-const OVERLAY_BASE_URL = `${env.NEXT_PUBLIC_R2_PUBLIC_BASE}/overlays`
+const OVERLAY_BASE_URL = `https://assets.tokokino.com/overlays`
 
 export function overlayUrl(id: number): string {
   return `${OVERLAY_BASE_URL}/${String(id).padStart(3, "0")}.png`

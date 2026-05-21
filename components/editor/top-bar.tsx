@@ -63,6 +63,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {
   Popover,
+  PopoverAnchor,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
@@ -251,6 +252,7 @@ export function TopBar() {
       const { blob, contentType } = await captureCanvasForShare(activeCanvasId)
       const response = await fetch("/api/share", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": contentType,
         },
@@ -1519,17 +1521,17 @@ function ShareControls({
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
-      <Tooltip open={open ? false : undefined}>
-        <TooltipTrigger asChild>
-          <PopoverTrigger asChild>
+      <PopoverAnchor asChild>
+        <Tooltip open={open ? false : undefined}>
+          <TooltipTrigger asChild>
             <Button variant="outline" size="lg" onClick={onShare}>
               <RiShareForwardLine />
               <span className="hidden lg:inline">Share</span>
             </Button>
-          </PopoverTrigger>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">Share screenshot</TooltipContent>
-      </Tooltip>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Share screenshot</TooltipContent>
+        </Tooltip>
+      </PopoverAnchor>
       <PopoverContent
         align="center"
         sideOffset={12}
@@ -2226,7 +2228,7 @@ function OpenProjectDialog({
           } | null
           throw new Error(data?.error ?? "Could not load drafts")
         }
-        return res.json() as Promise<{ drafts: DraftListItem[] }>
+        return res.json()
       })
       .then((data) => {
         if (cancelled) return

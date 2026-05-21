@@ -29,7 +29,6 @@ const booleanEnvFlag = z
  * Schema for client-side environment variables (NEXT_PUBLIC_*).
  */
 const clientSchema = z.object({
-  NEXT_PUBLIC_R2_PUBLIC_BASE: z.string().optional(),
   NEXT_PUBLIC_ENABLE_DEBUG_PRESETS: booleanEnvFlag,
 })
 
@@ -50,7 +49,6 @@ const serverEnv = serverSchema.parse({
 })
 
 const clientEnv = clientSchema.parse({
-  NEXT_PUBLIC_R2_PUBLIC_BASE: process.env.NEXT_PUBLIC_R2_PUBLIC_BASE,
   NEXT_PUBLIC_ENABLE_DEBUG_PRESETS:
     process.env.NEXT_PUBLIC_ENABLE_DEBUG_PRESETS,
 })
