@@ -6,7 +6,7 @@ Reference this alongside CLAUDE.md. CLAUDE.md covers architecture; this file cov
 
 ## App in one paragraph
 
-Tokokino is a client-heavy Next.js app. Almost all logic runs in the browser via a Zustand store. The server exists only for: auth (`/api/auth`), share upload to Cloudflare R2 (`/api/share`), an image CORS proxy (`/api/export/image`), and Unsplash integration. The canvas, styling, export, and annotation tools are all pure client-side React with no server round-trips.
+Tokokino is a client-heavy Next.js 15.5 app deployed to Cloudflare Workers through OpenNext Cloudflare. Almost all editor logic runs in the browser via a Zustand store. The server exists only for auth (`/api/auth`), share/draft/preset metadata in Cloudflare D1, image and draft storage in Cloudflare R2, an image CORS proxy (`/api/export/image`), Unsplash integration, and Cloudflare Browser Rendering screenshots. The canvas, styling, export, and annotation tools are pure client-side React with no server round-trips.
 
 ---
 
@@ -19,20 +19,31 @@ Tokokino is a client-heavy Next.js app. Almost all logic runs in the browser via
 | Change export behavior | `lib/editor/export.ts` |
 | Add a new background type | `lib/editor/state-types.ts` (`BgType`) + `lib/editor/css-utils.ts` (`backgroundCss`) + `components/inspector/background-section.tsx` |
 | Add a new shadow type | `state-types.ts` (`ShadowType`) + `css-utils.ts` (`shadowCss`) + `inspector/shadow-section.tsx` |
-| Add a new device frame | `lib/mockups/index.ts` + run `pnpm build:device-mockup-thumbs` |
+| Add a new device frame | `lib/mockups/index.ts` + add/update assets in the R2-backed device mockup paths |
 | Add a layout preset (multi-screenshot) | `lib/editor/present-presets.ts` → `LAYOUT_PRESETS` array |
 | Add a single-screenshot tilt preset | `lib/editor/present-presets.ts` → `PRESENT_PRESETS` array |
 | Add a new overlay texture | Drop PNG in the overlays directory, run `pnpm build:thumbs` |
 | Add a Google Font | `lib/editor/fonts.ts` → add to the fonts array |
 | Add an API route | `/app/api/<name>/route.ts` |
 | Change auth providers | `lib/auth.ts` |
-| Change share storage behavior | `lib/share-storage.ts` |
-| Change MongoDB schema | `lib/share-db.ts` |
-| Change environment variables | `lib/env.ts` |
+| Change share storage behavior | `lib/share-storage.ts` for R2 objects + `lib/share-db.ts` for D1 metadata |
+| Change D1 schema | `lib/db/schema.ts` + migration in `migrations/` + relevant `*-db.ts` module |
+| Change environment variables | `lib/env.ts`; change Cloudflare bindings in `wrangler.jsonc` and then run `pnpm cf-typegen` |
 | Change top-bar UI | `components/editor/top-bar.tsx` |
 | Change right inspector panel | `components/editor/inspector/` |
 | Change canvas rendering | `components/editor/canvas/` |
 | Change annotation tools | `components/editor/annotation-toolbar.tsx` + `annotation-shape/` |
+
+---
+
+## Runtime and deploy notes
+
+- Framework/runtime versions are pinned in `package.json`: Next.js `15.5.18`, React `19.2.x`, TypeScript `5.9.x`, `@opennextjs/cloudflare` `1.19.x`, and Wrangler `4.93.x`.
+- `pnpm dev` runs `next dev --turbopack`; `next.config.mjs` initializes OpenNext Cloudflare dev bindings.
+- `pnpm build` runs `opennextjs-cloudflare build`; OpenNext then calls `pnpm run build:next` from `open-next.config.ts`.
+- `pnpm preview` and `pnpm deploy` both build through OpenNext first. Do not swap these to plain `next build` unless you are only debugging framework output.
+- Cloudflare Worker config lives in `wrangler.jsonc`: `.open-next/worker.js`, `.open-next/assets`, `nodejs_compat`, observability, and the `TOKOKINO_DB` D1 binding.
+- Prefer `pnpm typecheck` for correctness checks unless the user explicitly allows build/test/browser work.
 
 ---
 
@@ -208,32 +219,39 @@ Validated in `lib/env.ts`. Server-only vars throw at import time if missing. Cli
 
 Required for share feature:
 ```
-CLOUDFLARE_R2_ENDPOINT
-CLOUDFLARE_R2_ACCESS_KEY_ID
-CLOUDFLARE_R2_SECRET_ACCESS_KEY
-CLOUDFLARE_R2_BUCKET
-NEXT_PUBLIC_R2_PUBLIC_BASE
-MONGODB_URI
+R2_BUCKET
+R2_S3_ENDPOINT
+R2_ACCESS_KEY_ID
+R2_SECRET_ACCESS_KEY
 ```
 
 Required for auth:
 ```
 BETTER_AUTH_SECRET
+BETTER_AUTH_URL
 GOOGLE_CLIENT_ID      (optional, for Google OAuth)
 GOOGLE_CLIENT_SECRET  (optional)
 ```
 
+Required for Cloudflare Browser Rendering screenshots:
+```
+CLOUDFLARE_ACCOUNT_ID
+CLOUDFLARE_BROWSER_API_TOKEN
+```
+
 ---
 
-## Database (MongoDB)
+## Database (Cloudflare D1)
 
-Access via `lib/share-db.ts`. The MongoDB client is a singleton in `lib/mongo.ts`.
+Access D1 through `lib/d1.ts`, which reads the `TOKOKINO_DB` binding from OpenNext Cloudflare context and returns a Drizzle client. Schema lives in `lib/db/schema.ts`; migrations live in `migrations/`.
 
-Collections:
-- `shares` — `ShareRecord` documents (share metadata, view counts)
-- `shareViews` — `ShareViewRecord` documents (per-IP view tracking)
+Tables:
+- `shares` — share metadata, content hashes, R2 object keys, and view counters
+- `share_views` — per-IP-hash view tracking for public shares
+- `drafts` — saved draft metadata; full draft JSON and thumbnails live in R2
+- `custom_presets` — user-created layout/style preset metadata
 
-better-auth manages its own collections (`user`, `session`, `account`, `verification`).
+better-auth stores its auth tables in D1 through `lib/auth.ts`.
 
 ---
 

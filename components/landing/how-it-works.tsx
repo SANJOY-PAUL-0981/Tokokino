@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "motion/react"
 import { ease } from "@/components/landing/constants"
 
@@ -61,7 +61,12 @@ const SPOTLIGHT_REGIONS = {
   open: { left: "0%", top: "0%", width: "100%", height: "100%" },
   capture: { left: "20.4%", top: "20.4%", width: "57%", height: "57%" },
   compose: { left: "3%", top: "40%", width: "15%", height: "52%" },
-  ship: { left: "85.3%", top: "4.2%", width: "12.2%", height: "3.6%" },
+  ship: { left: "85.5%", top: "4.65%", width: "11.8%", height: "3.1%" },
+} as const satisfies Record<StepId, SpotlightRegion>
+
+const MOBILE_SPOTLIGHT_REGIONS = {
+  ...SPOTLIGHT_REGIONS,
+  ship: { left: "85.0%", top: "4.5%", width: "11.8%", height: "4%" },
 } as const satisfies Record<StepId, SpotlightRegion>
 
 const DEMO_PREVIEW_SRC = `https://assets.tokokino.com/screenshot.png`
@@ -200,8 +205,11 @@ export function HowItWorks() {
 }
 
 function ReadonlyEditorPreview({ activeStep }: { activeStep: StepId }) {
-  const region = SPOTLIGHT_REGIONS[activeStep]
-  const spotlightRadius = activeStep === "ship" ? "4px" : "8px"
+  const isMobilePreview = useMediaQuery("(max-width: 639px)")
+  const region = isMobilePreview
+    ? MOBILE_SPOTLIGHT_REGIONS[activeStep]
+    : SPOTLIGHT_REGIONS[activeStep]
+  const spotlightRadius = activeStep === "ship" ? "2px" : "8px"
 
   return (
     <div className="relative aspect-[16/10] w-full max-w-[58rem] overflow-hidden rounded-md border border-border/70 bg-background">
@@ -223,4 +231,19 @@ function ReadonlyEditorPreview({ activeStep }: { activeStep: StepId }) {
       />
     </div>
   )
+}
+
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(false)
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(query)
+    const updateMatches = () => setMatches(mediaQuery.matches)
+
+    updateMatches()
+    mediaQuery.addEventListener("change", updateMatches)
+    return () => mediaQuery.removeEventListener("change", updateMatches)
+  }, [query])
+
+  return matches
 }

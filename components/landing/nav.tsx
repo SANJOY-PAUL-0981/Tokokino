@@ -30,12 +30,12 @@ export function Nav() {
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease }}
-        className="relative z-50 flex h-16 items-center justify-between px-5 sm:px-8 lg:px-12"
+        className="relative z-50 flex h-16 items-center justify-between border-b border-border/35 bg-background/72 px-5 backdrop-blur-xl sm:px-8 lg:px-12"
       >
         <BrandLogo />
 
         {/* Desktop links */}
-        <div className="hidden items-center gap-1 font-mono text-xs text-foreground/60 md:flex">
+        <div className="hidden items-center gap-1 font-mono text-xs text-foreground/60 xl:flex">
           {links.map((link) => (
             link.href.startsWith("#") ? (
               <a
@@ -62,7 +62,7 @@ export function Nav() {
         </div>
 
         {/* Desktop right */}
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 xl:flex">
           <Link href="/login" className="inline-flex items-center gap-1.5 rounded-md border border-border/70 px-3.5 py-1.5 text-[12px] font-medium text-foreground/70 transition hover:border-foreground/40 hover:text-foreground">
             Sign in
             <ArrowRight className="size-3.5" />
@@ -77,7 +77,7 @@ export function Nav() {
         <button
           onClick={() => setOpen(!open)}
           aria-label="Toggle menu"
-          className="relative flex size-9 flex-col items-center justify-center gap-[5px] md:hidden"
+          className="relative flex size-9 flex-col items-center justify-center gap-[5px] xl:hidden"
         >
           <span className="block h-[1.5px] w-5 rounded-full bg-foreground" />
           <span className="block h-[1.5px] w-5 rounded-full bg-foreground" />
@@ -93,7 +93,7 @@ export function Nav() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.28, ease }}
-            className="fixed inset-0 z-40 flex flex-col px-7 pt-24 pb-12 md:hidden"
+            className="fixed inset-0 z-40 flex flex-col px-7 pt-24 pb-12 xl:hidden"
             style={{ backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", backgroundColor: "color-mix(in oklch, var(--background) 85%, transparent)" }}
           >
             <nav className="flex flex-col gap-1">

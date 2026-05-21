@@ -15,6 +15,7 @@ import { UseCasesSection } from "@/components/landing/use-cases-section"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
 
 const CONTENT_WIDTH = "mx-auto max-w-[76rem] w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)] md:w-[calc(100%-3rem)] lg:w-[calc(100%-4rem)] xl:w-full"
+const NAV_WIDTH = "mx-auto max-w-[83rem]"
 
 export default function Page() {
   return (
@@ -25,7 +26,7 @@ export default function Page() {
       <div className="pointer-events-none fixed inset-0 z-0">
         <FlickeringGrid color="rgb(255,255,255)" maxOpacity={0.035} flickerChance={0.08} squareSize={3} gridGap={8} className="h-full w-full" />
       </div>
-      <div className={`relative ${CONTENT_WIDTH}`} style={RAIL_V_STYLE}>
+      <div className={`sticky top-0 z-50 ${NAV_WIDTH}`} style={RAIL_V_STYLE}>
         <Nav />
       </div>
       <DashedH />
