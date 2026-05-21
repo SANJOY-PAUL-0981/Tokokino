@@ -128,6 +128,22 @@ type UnsplashResult = {
   photographerUrl: string
 }
 
+function unsplashCreditUrl(url: string) {
+  try {
+    const creditUrl = new URL(url)
+    creditUrl.searchParams.set("utm_source", "Tokokino")
+    creditUrl.searchParams.set("utm_medium", "referral")
+    return creditUrl.toString()
+  } catch {
+    return url
+  }
+}
+
+function unsplashAuthorLabel(name: string) {
+  const firstName = name.trim().split(/\s+/)[0]
+  return firstName && firstName !== name.trim() ? `${firstName}...` : name
+}
+
 function parseLinearGradient(gradientValue: string): {
   angle: number
   colors: string[]
@@ -1149,30 +1165,52 @@ export function BackgroundSection() {
                         scrollableTarget="unsplash-results-scroll"
                         className="grid w-full grid-cols-3 gap-2.5"
                       >
-                        {unsplashResults.map((photo) => (
-                          <button
-                            key={photo.id}
-                            onClick={() => selectUnsplashImage(photo)}
-                            title={`Photo by ${photo.photographer}`}
-                            className={cn(
-                              "relative aspect-video cursor-pointer overflow-hidden rounded-lg border transition-colors",
-                              background.type === "image" &&
-                                (background.sourceUrl ?? background.value) ===
-                                  photo.full
-                                ? "border-primary/80 ring-2 ring-primary/60 ring-inset"
-                                : "border-border/60 hover:border-foreground/30"
-                            )}
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={photo.thumb}
-                              alt={photo.alt}
-                              loading="lazy"
-                              decoding="async"
-                              className="h-full w-full object-cover"
-                            />
-                          </button>
-                        ))}
+                        {unsplashResults.map((photo) => {
+                          const selected =
+                            background.type === "image" &&
+                            (background.sourceUrl ?? background.value) ===
+                              photo.full
+
+                          return (
+                            <div
+                              key={photo.id}
+                              className={cn(
+                                "group/unsplash relative aspect-video overflow-hidden rounded-lg border transition-colors",
+                                selected
+                                  ? "border-primary/80 ring-2 ring-primary/60 ring-inset"
+                                  : "border-border/60 hover:border-foreground/30"
+                              )}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => selectUnsplashImage(photo)}
+                                title={`Photo by ${photo.photographer}`}
+                                className="absolute inset-0 cursor-pointer"
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={photo.thumb}
+                                  alt={photo.alt}
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="h-full w-full object-cover"
+                                />
+                              </button>
+                              <a
+                                href={unsplashCreditUrl(photo.photographerUrl)}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                title={photo.photographer}
+                                className="absolute bottom-[1] left-[6] z-10 max-w-[calc(100%-12px)] rounded bg-black/65 px-1.5 py-0.5 text-[8px] leading-none font-medium text-white shadow-sm backdrop-blur-sm transition-all hover:bg-black/80 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none"
+                              >
+                                <span className="block truncate">
+                                  {unsplashAuthorLabel(photo.photographer)}
+                                </span>
+                              </a>
+                            </div>
+                          )
+                        })}
                       </InfiniteScroll>
                     ) : (
                       <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">

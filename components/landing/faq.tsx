@@ -26,6 +26,10 @@ const faqs = [
     a: "No. All editing happens locally in your browser — your images never leave your device unless you explicitly click Share. When you share, the final rendered image (not your original screenshot) is uploaded to cloud storage and a unique link is generated.",
   },
   {
+    q: "Are my screenshots used for AI training?",
+    a: "No. Tokokino does not use your screenshots, shared images, or editor activity to train AI models. Shared images are stored only so your public link can work, and your original screenshots stay in your browser unless you choose to share a rendered export.",
+  },
+  {
     q: "What happens to my shared images?",
     a: "Shared images are stored in the cloud and accessible to anyone with the link. You can view all your shares in the Gallery page. You retain ownership of your content; Tokokino only holds a limited license to host and serve it as described in the Terms.",
   },

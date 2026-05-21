@@ -27,9 +27,10 @@ const FEATURE_MATRIX = [
   { feature: "Auto-sampled palettes", tokokino: true, figma: "plugin", canva: false },
   { feature: "Multi-screenshot layouts", tokokino: true, figma: "manual", canva: "manual" },
   { feature: "Local-first by default", tokokino: true, figma: false, canva: false },
+  { feature: "No AI training on uploads", tokokino: true, figma: "policy", canva: "policy" },
 ] as const
 
-type MatrixValue = boolean | "manual" | "limited" | "plugin"
+type MatrixValue = boolean | "manual" | "limited" | "plugin" | "policy"
 
 function MatrixCell({ value, featured = false }: { value: MatrixValue; featured?: boolean }) {
   if (value === true) {
