@@ -52,8 +52,8 @@ export default async function LoginPage({
   return (
     <main className="relative min-h-svh w-full overflow-hidden bg-background text-foreground">
       <div className="relative grid min-h-svh w-full lg:grid-cols-[1.05fr_1fr]">
-        <aside className="relative hidden overflow-hidden bg-black lg:block">
-          <div className="absolute inset-0">
+        <aside className="relative hidden overflow-hidden bg-[oklch(0.985_0_0)] lg:block dark:bg-black">
+          <div className="absolute inset-0 opacity-90 mix-blend-multiply contrast-[1.08] saturate-[1.55] dark:opacity-100 dark:mix-blend-normal dark:contrast-100 dark:saturate-100">
             <LineWaves
               speed={0.3}
               innerLineCount={32}
@@ -72,16 +72,16 @@ export default async function LoginPage({
           </div>
 
           <div
-            className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/20 to-transparent"
+            className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-background via-background/20 to-transparent dark:from-black/80 dark:via-black/20"
             aria-hidden
           />
 
-          <div className="relative z-10 flex h-full flex-col justify-between p-6 text-white lg:p-8">
+          <div className="relative z-10 flex h-full flex-col justify-between p-6 text-foreground lg:p-8 dark:text-white">
             <BrandLogo />
 
             <div className="space-y-7">
               <div className="h-px w-10 bg-[oklch(0.7_0.2_18)]/80" />
-              <p className="max-w-[26ch] text-[clamp(1.35rem,1.8vw,1.7rem)] leading-[1.25] font-medium tracking-[-0.02em] text-white">
+              <p className="max-w-[26ch] text-[clamp(1.35rem,1.8vw,1.7rem)] leading-[1.25] font-medium tracking-[-0.02em] text-foreground dark:text-white">
                 Frame the{" "}
                 <span className="text-[oklch(0.7_0.2_18)]">ordinary</span> with
                 intention.
