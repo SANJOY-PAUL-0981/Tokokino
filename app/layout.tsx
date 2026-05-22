@@ -26,16 +26,18 @@ import type { Metadata } from "next"
 
 const siteUrl = new URL("https://tokokino.com")
 const opengraphImageUrl = new URL("/opengraph.png?v=2", siteUrl)
+const siteTitle = "Tokokino - Screenshot Mockup Generator"
+const siteDescription =
+  "Create polished product screenshots with browser frames, device mockups, backgrounds, shadows, annotations, and fast exports."
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
   applicationName: "Tokokino",
   title: {
-    default: "Tokokino - Beautiful Screenshot Mockups",
+    default: siteTitle,
     template: "%s | Tokokino",
   },
-  description:
-    "Create polished screenshot mockups with browser frames, device frames, gradients, backgrounds, shadows, annotations, and export-ready visuals.",
+  description: siteDescription,
   keywords: [
     "screenshot mockup generator",
     "beautiful screenshots",
@@ -56,13 +58,16 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   icons: {
-    icon: [{ url: "/logo.png", sizes: "512x512", type: "image/png" }],
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48", type: "image/x-icon" },
+      { url: "/logo.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: [{ url: "/favicon.ico", type: "image/x-icon" }],
     apple: [{ url: "/logo.png", sizes: "512x512", type: "image/png" }],
   },
   openGraph: {
-    title: "Tokokino - Beautiful Screenshot Mockups",
-    description:
-      "Turn raw screenshots into polished website, app, and product visuals with frames, backgrounds, shadows, annotations, and fast exports.",
+    title: siteTitle,
+    description: siteDescription,
     url: "/",
     type: "website",
     locale: "en_US",
@@ -79,9 +84,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Tokokino - Beautiful Screenshot Mockups",
-    description:
-      "Create polished screenshot mockups for websites, apps, products, decks, and social posts.",
+    title: siteTitle,
+    description: siteDescription,
     images: [
       {
         url: opengraphImageUrl,
