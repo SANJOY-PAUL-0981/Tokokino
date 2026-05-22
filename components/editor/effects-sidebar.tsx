@@ -285,7 +285,7 @@ function AccountTile() {
           className="w-[236px] rounded-lg border border-border/70 bg-card/95 p-2 shadow-xl"
         >
           <Link
-            href="/shares"
+            href="/app/shares"
             onClick={() => setExpanded(false)}
             className="flex h-8 w-full items-center gap-2.5 rounded-md px-2 text-xs font-medium text-foreground transition-colors hover:bg-secondary/60"
           >
