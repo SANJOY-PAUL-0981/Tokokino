@@ -533,7 +533,7 @@ export function FloatingToolbar() {
   const showBulkBar = bulkEditMode && !isAnnotateMode
 
   return (
-    <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 flex w-full max-w-[calc(100vw-1.5rem)] -translate-x-1/2 flex-col items-center gap-2 px-3 sm:w-auto sm:px-0 md:max-xl:left-4 md:max-xl:translate-x-0 md:max-xl:items-start">
+    <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 flex w-full max-w-[calc(100vw-1.5rem)] -translate-x-1/2 flex-col items-center gap-2 px-3 sm:w-auto sm:px-0 md:max-xl:left-[calc(50%-130px)]">
       <AnimatePresence initial={false}>
         {showBulkBar ? (
           <motion.div
