@@ -42,6 +42,7 @@ export function EffectsSidebar({
   const globalAspect = useEditorStore((s) => s.present.aspect)
   const canvasAspect = useActiveCanvasField((c) => c.aspect)
   const activeCanvasId = useEditorStore((s) => s.present.activeCanvasId)
+  const currentDraftName = useEditorStore((s) => s.currentDraft?.name)
   const bulkEditMode = useEditorStore((s) => s.bulkEditMode)
   const frame = useActiveCanvasField((c) => c.frame)
   const objectFit = useActiveCanvasField((c) => c.objectFit)
@@ -58,6 +59,7 @@ export function EffectsSidebar({
   })
 
   const aspect = bulkEditMode ? (canvasAspect ?? globalAspect) : globalAspect
+  const projectName = currentDraftName?.trim()
 
   const [customSize, setCustomSize] = React.useState<{
     w: number
@@ -127,7 +129,16 @@ export function EffectsSidebar({
       )}
     >
       <div className="shrink-0 px-4 pt-5 pb-4">
-        <span className="label-eyebrow mb-4 block">Canvas</span>
+        <div className="label-eyebrow mb-4 flex min-w-0 items-center gap-1.5">
+          <span>App</span>
+          <span className="text-muted-foreground/45">/</span>
+          <span
+            className="truncate text-foreground/70"
+            title={projectName || "New project"}
+          >
+            {projectName || "New project"}
+          </span>
+        </div>
         <div className="space-y-4">
           <div>
             <SectionLabel>Aspect Ratio</SectionLabel>
