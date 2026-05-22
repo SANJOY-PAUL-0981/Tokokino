@@ -34,6 +34,7 @@ import { BrandLogo } from "@/components/editor/brand-logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
 import {
   MAX_CANVASES,
   saveCurrentEditorDraft,
@@ -196,14 +197,18 @@ function shareableCanvasSource(
   }
 }
 
-async function createShareSignature(canvasId: string) {
+async function createShareSignature(
+  canvasId: string,
+  includeWatermark: boolean
+) {
   const state = useEditorStore.getState()
   const canvas = state.present.canvases.find((item) => item.id === canvasId)
   if (!canvas) return null
 
-  const source = stableStringify(
-    shareableCanvasSource(canvas, state.present.aspect)
-  )
+  const source = stableStringify({
+    canvas: shareableCanvasSource(canvas, state.present.aspect),
+    includeWatermark,
+  })
   const digest = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(source)
@@ -246,6 +251,8 @@ export function TopBar() {
   const activeCanvasId = useEditorStore((s) => s.present.activeCanvasId)
   const [isCopyingPng, setIsCopyingPng] = React.useState(false)
   const [isCopiedPng, setIsCopiedPng] = React.useState(false)
+  const [includeExportWatermark, setIncludeExportWatermark] =
+    React.useState(true)
 
   const setScreenshot = useEditorStore((s) => s.setScreenshot)
   const selectedScreenshotSlotId = useEditorStore(
@@ -328,7 +335,10 @@ export function TopBar() {
     if (shareDialog.status === "preparing") return
 
     const skeletonStartedAt = performance.now()
-    const signature = await createShareSignature(activeCanvasId)
+    const signature = await createShareSignature(
+      activeCanvasId,
+      includeExportWatermark
+    )
 
     if (
       signature &&
@@ -352,7 +362,10 @@ export function TopBar() {
 
     try {
       await waitForNextPaint()
-      const { blob, contentType } = await captureCanvasForShare(activeCanvasId)
+      const { blob, contentType } = await captureCanvasForShare(
+        activeCanvasId,
+        { watermark: includeExportWatermark }
+      )
       const response = await fetch("/api/share", {
         method: "POST",
         credentials: "include",
@@ -398,6 +411,7 @@ export function TopBar() {
     }
   }, [
     activeCanvasId,
+    includeExportWatermark,
     shareDialog.signature,
     shareDialog.status,
     shareDialog.url,
@@ -795,7 +809,9 @@ export function TopBar() {
     if (isCopyingPng) return
     setIsCopyingPng(true)
     try {
-      await copyCanvasAsPng(activeCanvasId, "1080p")
+      await copyCanvasAsPng(activeCanvasId, "1080p", {
+        watermark: includeExportWatermark,
+      })
       setIsCopiedPng(true)
       setTimeout(() => setIsCopiedPng(false), 1800)
     } catch (err) {
@@ -804,7 +820,7 @@ export function TopBar() {
     } finally {
       setIsCopyingPng(false)
     }
-  }, [activeCanvasId, isCopyingPng])
+  }, [activeCanvasId, includeExportWatermark, isCopyingPng])
 
   const handleBulkEditClick = () => {
     if (!bulkEditMode) {
@@ -1191,7 +1207,10 @@ export function TopBar() {
         />
 
         {/* Export (always visible) */}
-        <ExportControls />
+        <ExportControls
+          includeWatermark={includeExportWatermark}
+          onIncludeWatermarkChange={setIncludeExportWatermark}
+        />
       </div>
     </header>
   )
@@ -1202,7 +1221,13 @@ const EXPORT_RESOLUTIONS: ExportResolution[] = ["hd", "4k", "8k"]
 /** Widest export label — reserves button width so the toolbar does not shift */
 const EXPORT_BUTTON_MAX_LABEL = `Export ${EXPORT_RESOLUTION_LABELS["hd"]} • ${EXPORT_FORMAT_LABELS.webp}`
 
-function ExportControls() {
+function ExportControls({
+  includeWatermark,
+  onIncludeWatermarkChange,
+}: {
+  includeWatermark: boolean
+  onIncludeWatermarkChange: (include: boolean) => void
+}) {
   const activeCanvasId = useEditorStore((s) => s.present.activeCanvasId)
   const bulkEditMode = useEditorStore((s) => s.bulkEditMode)
   const canvases = useEditorStore(useShallow((s) => s.present.canvases))
@@ -1221,7 +1246,9 @@ function ExportControls() {
     }
     setIsExporting(true)
     try {
-      const filename = await exportCanvas(activeCanvasId, format, resolution)
+      const filename = await exportCanvas(activeCanvasId, format, resolution, {
+        watermark: includeWatermark,
+      })
       toast.success(`Saved as ${filename}`)
     } catch (err) {
       console.error(err)
@@ -1229,7 +1256,14 @@ function ExportControls() {
     } finally {
       setIsExporting(false)
     }
-  }, [activeCanvasId, bulkEditMode, format, resolution, isExporting])
+  }, [
+    activeCanvasId,
+    bulkEditMode,
+    format,
+    includeWatermark,
+    resolution,
+    isExporting,
+  ])
 
   const dims = open ? getOutputDims(activeCanvasId, resolution) : null
   const dimsLabel = dims ? `${dims.width} × ${dims.height}` : "—"
@@ -1320,6 +1354,12 @@ function ExportControls() {
                 label="Format"
                 value={EXPORT_FORMAT_EXTENSION[format]}
               />
+              <div className="h-px bg-border/50" />
+              <SwitchRow
+                label="Watermark"
+                checked={includeWatermark}
+                onCheckedChange={onIncludeWatermarkChange}
+              />
             </div>
           </PopoverContent>
         </Popover>
@@ -1333,6 +1373,7 @@ function ExportControls() {
         setFormat={setFormat}
         resolution={resolution}
         setResolution={setResolution}
+        includeWatermark={includeWatermark}
       />
     </>
   )
@@ -1346,6 +1387,7 @@ function BulkExportDialog({
   setFormat,
   resolution,
   setResolution,
+  includeWatermark,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -1354,6 +1396,7 @@ function BulkExportDialog({
   setFormat: (f: ExportFormat) => void
   resolution: ExportResolution
   setResolution: (r: ExportResolution) => void
+  includeWatermark: boolean
 }) {
   const globalAspect = useEditorStore((s) => s.present.aspect)
   const [selected, setSelected] = React.useState<Set<string>>(
@@ -1398,7 +1441,9 @@ function BulkExportDialog({
     let succeeded = 0
     for (let i = 0; i < toExport.length; i++) {
       try {
-        await exportCanvas(toExport[i].id, format, resolution)
+        await exportCanvas(toExport[i].id, format, resolution, {
+          watermark: includeWatermark,
+        })
         succeeded++
       } catch (err) {
         console.error(err)
@@ -1646,6 +1691,28 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
       <span className="rounded-full bg-secondary/60 px-2.5 py-1 font-mono text-[11px] text-foreground">
         {value}
       </span>
+    </div>
+  )
+}
+
+function SwitchRow({
+  label,
+  checked,
+  onCheckedChange,
+}: {
+  label: string
+  checked: boolean
+  onCheckedChange: (checked: boolean) => void
+}) {
+  return (
+    <div className="flex items-center justify-between py-1.5">
+      <span className="text-[12px] text-muted-foreground">{label}</span>
+      <Switch
+        size="sm"
+        checked={checked}
+        onCheckedChange={onCheckedChange}
+        aria-label={label}
+      />
     </div>
   )
 }

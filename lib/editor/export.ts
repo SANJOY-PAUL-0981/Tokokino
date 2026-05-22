@@ -3,6 +3,9 @@ import { toPng, toJpeg, toBlob } from "html-to-image"
 export type ExportFormat = "png" | "jpeg" | "webp"
 export type ExportResolution = "hd" | "4k" | "8k"
 export type CopyResolution = "1080p"
+export type ExportCaptureOptions = {
+  watermark?: boolean
+}
 
 export const EXPORT_RESOLUTION_WIDTHS: Record<ExportResolution, number> = {
   hd: 1920,
@@ -33,6 +36,10 @@ export const COPY_RESOLUTION_WIDTHS: Record<CopyResolution, number> = {
 }
 
 export const SHARE_RESOLUTION_WIDTH = 1920
+
+const WATERMARK_LOGO_SRC = "/logo.png"
+const WATERMARK_PREFIX = "Designed by"
+const WATERMARK_APP_NAME = "Tokokino"
 
 function findCanvasElement(canvasId: string): HTMLElement | null {
   return document.querySelector<HTMLElement>(`[data-canvas-id="${canvasId}"]`)
@@ -233,7 +240,63 @@ function makeExportStyle(scopeId: string) {
   return exportStyle
 }
 
-function prepareExportNode(source: HTMLElement, width: number, height: number) {
+function appendWatermark(node: HTMLElement, width: number, height: number) {
+  const watermark = document.createElement("div")
+  const prefix = document.createElement("span")
+  const logo = document.createElement("img")
+  const label = document.createElement("span")
+  const minEdge = Math.max(1, Math.min(width, height))
+  const scale = Math.max(0.72, Math.min(1.35, minEdge / 720))
+
+  watermark.setAttribute("data-export-watermark", "true")
+  watermark.style.position = "absolute"
+  watermark.style.left = "50%"
+  watermark.style.bottom = `${Math.round(8 * scale)}px`
+  watermark.style.zIndex = "2147483647"
+  watermark.style.display = "inline-flex"
+  watermark.style.alignItems = "center"
+  watermark.style.gap = `${Math.round(6 * scale)}px`
+  watermark.style.padding = `${Math.round(3 * scale)}px ${Math.round(9 * scale)}px`
+  watermark.style.borderRadius = `${Math.round(8 * scale)}px`
+  watermark.style.background = "rgba(255, 255, 255, 0.14)"
+  watermark.style.color = "rgba(255, 255, 255, 0.9)"
+  watermark.style.fontFamily =
+    'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+  watermark.style.fontSize = `${Math.round(13 * scale)}px`
+  watermark.style.fontWeight = "650"
+  watermark.style.lineHeight = "1"
+  watermark.style.letterSpacing = "0"
+  watermark.style.transform = "translateX(-50%)"
+  watermark.style.pointerEvents = "none"
+  watermark.style.textShadow = "0 1px 1px rgba(0, 0, 0, 0.16)"
+
+  prefix.textContent = WATERMARK_PREFIX
+  prefix.style.fontWeight = "500"
+  prefix.style.opacity = "0.78"
+  prefix.style.whiteSpace = "nowrap"
+
+  logo.src = WATERMARK_LOGO_SRC
+  logo.alt = ""
+  logo.style.width = `${Math.round(20 * scale)}px`
+  logo.style.height = `${Math.round(20 * scale)}px`
+  logo.style.display = "block"
+  logo.style.filter = "drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18))"
+
+  label.textContent = WATERMARK_APP_NAME
+  label.style.whiteSpace = "nowrap"
+
+  watermark.appendChild(prefix)
+  watermark.appendChild(logo)
+  watermark.appendChild(label)
+  node.appendChild(watermark)
+}
+
+function prepareExportNode(
+  source: HTMLElement,
+  width: number,
+  height: number,
+  options: ExportCaptureOptions = {}
+) {
   const wrapper = document.createElement("div")
   const node = source.cloneNode(true) as HTMLElement
   const scopeId = `export-${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -257,6 +320,9 @@ function prepareExportNode(source: HTMLElement, width: number, height: number) {
   node.style.transform = "none"
 
   document.head.appendChild(exportStyle)
+  if (options.watermark) {
+    appendWatermark(node, width, height)
+  }
   wrapper.appendChild(node)
   document.body.appendChild(wrapper)
 
@@ -279,7 +345,8 @@ function filterExportHidden(node: Node) {
 export async function exportCanvas(
   canvasId: string,
   format: ExportFormat,
-  resolution: ExportResolution
+  resolution: ExportResolution,
+  options: ExportCaptureOptions = { watermark: true }
 ): Promise<string> {
   const node = findCanvasElement(canvasId)
   if (!node) throw new Error("Canvas not found")
@@ -291,8 +358,16 @@ export async function exportCanvas(
   const targetWidth = EXPORT_RESOLUTION_WIDTHS[resolution]
   const pixelRatio = targetWidth / renderedWidth
 
-  const exportTarget = prepareExportNode(node, renderedWidth, renderedHeight)
+  const exportTarget = prepareExportNode(
+    node,
+    renderedWidth,
+    renderedHeight,
+    options
+  )
   const { rewrites, preloadUrls } = rewriteExportAssets(exportTarget.node)
+  const assetUrls = options.watermark
+    ? [...preloadUrls, WATERMARK_LOGO_SRC]
+    : preloadUrls
 
   const baseOptions = {
     pixelRatio,
@@ -308,7 +383,7 @@ export async function exportCanvas(
   const filename = `screenshot_${resolution}_${ts}${EXPORT_FORMAT_EXTENSION[format]}`
 
   try {
-    await waitForExportAssets(preloadUrls)
+    await waitForExportAssets(assetUrls)
 
     if (format === "png") {
       const url = await toPng(exportTarget.node, baseOptions)
@@ -355,7 +430,8 @@ export async function exportCanvas(
 
 export async function copyCanvasAsPng(
   canvasId: string,
-  resolution: CopyResolution = "1080p"
+  resolution: CopyResolution = "1080p",
+  options: ExportCaptureOptions = { watermark: true }
 ): Promise<void> {
   if (!navigator?.clipboard?.write) {
     throw new Error("Clipboard write is not supported")
@@ -363,7 +439,8 @@ export async function copyCanvasAsPng(
 
   const blob = await captureCanvasAsPngBlob(
     canvasId,
-    COPY_RESOLUTION_WIDTHS[resolution]
+    COPY_RESOLUTION_WIDTHS[resolution],
+    options
   )
 
   await navigator.clipboard.write([
@@ -375,7 +452,8 @@ export async function copyCanvasAsPng(
 
 export async function captureCanvasAsPngBlob(
   canvasId: string,
-  targetWidth = SHARE_RESOLUTION_WIDTH
+  targetWidth = SHARE_RESOLUTION_WIDTH,
+  options: ExportCaptureOptions = {}
 ): Promise<Blob> {
   const node = findCanvasElement(canvasId)
   if (!node) throw new Error("Canvas not found")
@@ -386,11 +464,19 @@ export async function captureCanvasAsPngBlob(
 
   const pixelRatio = targetWidth / renderedWidth
 
-  const exportTarget = prepareExportNode(node, renderedWidth, renderedHeight)
+  const exportTarget = prepareExportNode(
+    node,
+    renderedWidth,
+    renderedHeight,
+    options
+  )
   const { rewrites, preloadUrls } = rewriteExportAssets(exportTarget.node)
+  const assetUrls = options.watermark
+    ? [...preloadUrls, WATERMARK_LOGO_SRC]
+    : preloadUrls
 
   try {
-    await waitForExportAssets(preloadUrls)
+    await waitForExportAssets(assetUrls)
 
     // html-to-image is flaky on the first call (fonts/images not yet embedded
     // in the cloned document). Two attempts is the standard workaround.
@@ -458,9 +544,14 @@ async function compressBlobAsJpeg(
 }
 
 export async function captureCanvasForShare(
-  canvasId: string
+  canvasId: string,
+  options: ExportCaptureOptions = { watermark: true }
 ): Promise<{ blob: Blob; contentType: string }> {
-  const pngBlob = await captureCanvasAsPngBlob(canvasId, SHARE_RESOLUTION_WIDTH)
+  const pngBlob = await captureCanvasAsPngBlob(
+    canvasId,
+    SHARE_RESOLUTION_WIDTH,
+    options
+  )
 
   if (pngBlob.size <= CLIENT_MAX_SHARE_BYTES) {
     return { blob: pngBlob, contentType: "image/png" }
