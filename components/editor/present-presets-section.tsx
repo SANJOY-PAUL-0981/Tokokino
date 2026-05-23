@@ -60,6 +60,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
 type PresetMotionKind = "canvas" | "slot"
@@ -524,7 +525,7 @@ function TabTriggerRow({
         side="bottom"
         align="start"
         sideOffset={6}
-        className="w-[220px] overflow-visible border-0 bg-transparent p-0 shadow-none ring-0"
+        className="w-[var(--radix-popover-trigger-width)] overflow-visible border-0 bg-transparent p-0 shadow-none ring-0"
       >
         <AnimatePresence>
           {open && (
@@ -533,7 +534,7 @@ function TabTriggerRow({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -4 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
-              className="w-[220px] rounded-lg bg-popover p-1.5 shadow-md ring-1 ring-foreground/10"
+              className="w-full rounded-lg bg-popover p-1.5 shadow-md ring-1 ring-foreground/10"
             >
               <TooltipProvider>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -960,7 +961,7 @@ export function PresentPresetsSection() {
   }, [])
 
   return (
-    <div className="space-y-3">
+    <div className="flex min-h-0 flex-1 flex-col">
       <AlertDialog
         open={downgradeDialogOpen}
         onOpenChange={setDowngradeDialogOpen}
@@ -992,7 +993,7 @@ export function PresentPresetsSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <div className="sticky top-0 z-10 bg-[color:var(--editor-panel-bg,var(--color-sidebar))] pb-1">
+      <div className="shrink-0 px-4 pb-3">
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-[13px] font-medium text-foreground">Presets</p>
           {ENABLE_DEBUG_PRESETS && (
@@ -1015,63 +1016,67 @@ export function PresentPresetsSection() {
         />
       </div>
 
-      {displayTab === "single" && (
-        <div className="space-y-2">
-          {PRESENT_PRESETS.map((preset) => {
-            const active = displayActiveSinglePresetId === preset.id
+      <ScrollArea className="min-h-0 flex-1 pr-3 pl-4">
+        <div className="pr-1 pb-4">
+          {displayTab === "single" && (
+            <div className="space-y-2">
+              {PRESENT_PRESETS.map((preset) => {
+                const active = displayActiveSinglePresetId === preset.id
 
-            return (
-              <SinglePresetCard
-                key={preset.id}
-                preset={preset}
-                canvas={deferredCanvas}
-                aspect={deferredAspect}
-                active={active}
-                onApply={applyPreset}
-              />
-            )
-          })}
+                return (
+                  <SinglePresetCard
+                    key={preset.id}
+                    preset={preset}
+                    canvas={deferredCanvas}
+                    aspect={deferredAspect}
+                    active={active}
+                    onApply={applyPreset}
+                  />
+                )
+              })}
+            </div>
+          )}
+
+          {(displayTab === "multi" || displayTab === "triple") && (
+            <div className="space-y-2">
+              {LAYOUT_PRESETS.filter((p) =>
+                displayTab === "triple"
+                  ? p.slots.length === 2
+                  : p.slots.length === 1
+              ).map((preset) => {
+                const active = displayActiveLayoutPresetId === preset.id
+                return (
+                  <LayoutPresetCard
+                    key={preset.id}
+                    preset={preset}
+                    canvas={deferredCanvas}
+                    aspect={deferredAspect}
+                    active={active}
+                    onApply={applyLayoutPreset}
+                  />
+                )
+              })}
+            </div>
+          )}
+
+          {displayTab === "custom" && (
+            <CustomPresetList
+              presets={customPresets}
+              loading={
+                isAuthPending ||
+                customPresetsLoading ||
+                (Boolean(userId) && !customPresetsLoaded)
+              }
+              loggedIn={Boolean(userId)}
+              activeCustomPresetId={displayActiveCustomPresetId}
+              canvas={deferredCanvas}
+              aspect={deferredAspect}
+              onApply={applyCustomPreset}
+              onDelete={handleDeleteCustomPreset}
+            />
+          )}
         </div>
-      )}
-
-      {(displayTab === "multi" || displayTab === "triple") && (
-        <div className="space-y-2">
-          {LAYOUT_PRESETS.filter((p) =>
-            displayTab === "triple"
-              ? p.slots.length === 2
-              : p.slots.length === 1
-          ).map((preset) => {
-            const active = displayActiveLayoutPresetId === preset.id
-            return (
-              <LayoutPresetCard
-                key={preset.id}
-                preset={preset}
-                canvas={deferredCanvas}
-                aspect={deferredAspect}
-                active={active}
-                onApply={applyLayoutPreset}
-              />
-            )
-          })}
-        </div>
-      )}
-
-      {displayTab === "custom" && (
-        <CustomPresetList
-          presets={customPresets}
-          loading={
-            isAuthPending ||
-            customPresetsLoading ||
-            (Boolean(userId) && !customPresetsLoaded)
-          }
-          loggedIn={Boolean(userId)}
-          activeCustomPresetId={displayActiveCustomPresetId}
-          canvas={deferredCanvas}
-          aspect={deferredAspect}
-          onApply={applyCustomPreset}
-          onDelete={handleDeleteCustomPreset}
-        />
-      )}
+      </ScrollArea>
     </div>
   )
 }

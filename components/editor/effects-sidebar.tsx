@@ -21,7 +21,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { signOut, useSession } from "@/lib/auth-client"
 import { getFrameAspectCompatibilityWarning } from "@/lib/editor/frame-aspect-compatibility"
 import { cn } from "@/lib/utils"
@@ -167,12 +166,8 @@ export function EffectsSidebar({
           </div>
         </div>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col px-4 pb-4">
-        <ScrollArea className="min-h-0 flex-1 pr-2">
-          <div className="pb-4">
-            <PresentPresetsSection />
-          </div>
-        </ScrollArea>
+      <div className="flex min-h-0 flex-1 flex-col pb-4">
+        <PresentPresetsSection />
       </div>
       <AccountTile />
     </aside>
