@@ -125,7 +125,7 @@ export function MainScreenshotRender({
     imgStyle.borderRadius as number
   )
   const contentStyle: React.CSSProperties = {
-    padding: `${Math.max(0, Math.min(240, padding)) / 12}%`,
+    padding: `var(--editor-padding-preview, ${Math.max(0, Math.min(240, padding)) / 12}%)`,
   }
   const showEditMenu = !previewMode && screenshot && activeTool === "pointer"
   return (

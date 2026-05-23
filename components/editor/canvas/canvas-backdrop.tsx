@@ -98,13 +98,15 @@ function CanvasBackdropImpl({
         />
       ))}
 
-      {noiseEnabled ? (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 mix-blend-overlay"
-          style={{ backgroundImage: NOISE_DATA_URL, opacity: noiseOpacity }}
-        />
-      ) : null}
+      <div
+        aria-hidden
+        data-noise-enabled={noiseEnabled ? "" : undefined}
+        className="pointer-events-none absolute inset-0 mix-blend-overlay"
+        style={{
+          backgroundImage: NOISE_DATA_URL,
+          opacity: `var(--bd-noise-opacity, ${noiseOpacity})`,
+        }}
+      />
 
       {outerLightingStyle ? (
         <div

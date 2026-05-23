@@ -1,0 +1,155 @@
+"use client"
+
+import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
+
+/* -------------------------------------------------------------------------- */
+/*  Effects Sidebar Skeleton — matches EffectsSidebar layout (left panel)      */
+/* -------------------------------------------------------------------------- */
+
+export function EffectsSidebarSkeleton({ className }: { className?: string }) {
+  return (
+    <aside
+      className={cn(
+        "flex h-full min-h-0 w-[268px] shrink-0 flex-col overflow-hidden border-r border-dashed border-border/70 bg-sidebar",
+        className
+      )}
+    >
+      {/* Header with project name */}
+      <div className="shrink-0 px-4 pt-5 pb-4">
+        <div className="mb-4 flex items-center gap-1.5">
+          <Skeleton className="h-3 w-8" />
+          <span className="text-muted-foreground/45">/</span>
+          <Skeleton className="h-3 w-20" />
+        </div>
+        <div className="space-y-4">
+          {/* Aspect Ratio */}
+          <div>
+            <Skeleton className="mb-2 h-4 w-24" />
+            <Skeleton className="h-9 w-full rounded-lg" />
+          </div>
+          {/* Frame */}
+          <div>
+            <Skeleton className="mb-2 h-4 w-14" />
+            <Skeleton className="h-9 w-full rounded-lg" />
+          </div>
+        </div>
+      </div>
+
+      {/* Presets area */}
+      <div className="flex min-h-0 flex-1 flex-col px-4 pb-4">
+        <div className="space-y-3 pt-2">
+          <Skeleton className="h-4 w-16" />
+          <div className="grid grid-cols-3 gap-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-[4/3] w-full rounded-lg" />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Account tile skeleton */}
+      <div className="shrink-0 border-t border-dashed border-border/70 px-4 py-2.5">
+        <div className="flex h-12 w-full items-center gap-2.5 px-1.5">
+          <Skeleton className="size-8 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-2.5 w-32" />
+          </div>
+          <Skeleton className="size-4 shrink-0" />
+        </div>
+      </div>
+    </aside>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Canvas Skeleton — matches Canvas layout (center area)                      */
+/* -------------------------------------------------------------------------- */
+
+export function CanvasSkeleton() {
+  return (
+    <section
+      className="relative z-0 flex flex-1 touch-none items-center justify-center overflow-hidden overscroll-none border-b border-dashed border-border/70 bg-background transition-all duration-300 dark:bg-black"
+      style={{
+        containerType: "size",
+        touchAction: "none",
+        overscrollBehavior: "none",
+      }}
+      role="presentation"
+    >
+      {/* Sized to match the real canvas auto-fit (~85% of container) */}
+      <div
+        className="relative"
+        style={{
+          width: "95cqw",
+          minHeight: "77cqh",
+          aspectRatio: "16 / 10",
+        }}
+      >
+        <Skeleton className="size-full rounded-xl opacity-30" />
+      </div>
+    </section>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Inspector Skeleton — matches Inspector layout (right panel)                */
+/* -------------------------------------------------------------------------- */
+
+export function InspectorSkeleton({ className }: { className?: string }) {
+  return (
+    <aside
+      className={cn(
+        "flex h-full min-h-0 w-[260px] shrink-0 flex-col overflow-hidden border-l border-dashed border-border/70 bg-sidebar xl:w-[308px]",
+        className
+      )}
+    >
+      {/* Header */}
+      <div className="flex h-12 shrink-0 items-center justify-between border-b border-border/60 px-3 xl:px-4">
+        <Skeleton className="h-4 w-12" />
+      </div>
+
+      {/* Sections */}
+      <div className="min-h-0 flex-1 px-3 py-3 xl:px-4">
+        {/* Background section */}
+        <InspectorSectionSkeleton />
+        <div className="my-3 h-px bg-border/50" />
+
+        {/* Backdrop section */}
+        <InspectorSectionSkeleton />
+        <div className="my-3 h-px bg-border/50" />
+
+        {/* Border section */}
+        <InspectorSectionSkeleton />
+        <div className="my-3 h-px bg-border/50" />
+
+        {/* Padding section */}
+        <InspectorSectionSkeleton />
+        <div className="my-3 h-px bg-border/50" />
+
+        {/* Tilt & Scale section */}
+        <InspectorSectionSkeleton />
+        <div className="my-3 h-px bg-border/50" />
+
+        {/* Shadow section */}
+        <InspectorSectionSkeleton />
+      </div>
+    </aside>
+  )
+}
+
+function InspectorSectionSkeleton() {
+  return (
+    <div>
+      <div className="flex items-center gap-2 py-1.5">
+        <Skeleton className="size-4 rounded" />
+        <Skeleton className="h-3.5 w-20" />
+      </div>
+      <div className="space-y-2.5 pt-2">
+        <Skeleton className="h-8 w-full rounded-md" />
+        <Skeleton className="h-6 w-3/4 rounded-md" />
+      </div>
+    </div>
+  )
+}

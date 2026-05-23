@@ -2,7 +2,13 @@
 
 import * as React from "react"
 import { Canvas } from "@/components/editor/canvas"
+import { DeferredMount } from "@/components/editor/deferred-mount"
 import { EffectsSidebar } from "@/components/editor/effects-sidebar"
+import {
+  CanvasSkeleton,
+  EffectsSidebarSkeleton,
+  InspectorSkeleton,
+} from "@/components/editor/editor-skeletons"
 import { FloatingToolbar } from "@/components/editor/floating-toolbar"
 import { Inspector } from "@/components/editor/inspector"
 import { IpadProSidebar } from "@/components/editor/ipad-pro-sidebar"
@@ -205,13 +211,29 @@ function EditorLayout() {
         )}
       </AnimatePresence>
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
-        {!isPreviewMode && <EffectsSidebar className="hidden xl:flex" />}
+        {!isPreviewMode && (
+          <DeferredMount
+            priority={0}
+            fallback={<EffectsSidebarSkeleton className="hidden xl:flex" />}
+          >
+            <EffectsSidebar className="hidden xl:flex" />
+          </DeferredMount>
+        )}
         <div className="relative isolate flex min-h-0 flex-1 overflow-hidden">
-          <Canvas />
+          <DeferredMount priority={1} fallback={<CanvasSkeleton />}>
+            <Canvas />
+          </DeferredMount>
           {!isPreviewMode && <IpadProSidebar />}
         </div>
         {!isPreviewMode && <FloatingToolbar />}
-        {!isPreviewMode && <Inspector className="hidden md:flex" />}
+        {!isPreviewMode && (
+          <DeferredMount
+            priority={2}
+            fallback={<InspectorSkeleton className="hidden md:flex" />}
+          >
+            <Inspector className="hidden md:flex" />
+          </DeferredMount>
+        )}
         {!isPreviewMode && <MobileControls />}
       </div>
     </div>

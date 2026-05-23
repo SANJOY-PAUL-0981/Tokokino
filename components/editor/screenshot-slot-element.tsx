@@ -206,7 +206,7 @@ export function ScreenshotSlotRender({
   }
 
   const contentStyle: React.CSSProperties = {
-    padding: `${Math.max(0, Math.min(240, effectivePadding)) / 12}%`,
+    padding: `var(--editor-padding-preview, ${Math.max(0, Math.min(240, effectivePadding)) / 12}%)`,
   }
 
   const imageBoxOutline = effectiveBorder

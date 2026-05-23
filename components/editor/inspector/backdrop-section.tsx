@@ -74,6 +74,9 @@ const LIGHTING_DIRECTIONS = [
   { id: "4-4", label: "Bottom right" },
 ]
 
+const BACKDROP_FX_PREVIEW_VAR = "--bd-fx-preview"
+const BACKDROP_NOISE_PREVIEW_VAR = "--bd-noise-opacity"
+
 function portraitPreviewCss(mode: PortraitMode): React.CSSProperties {
   switch (mode) {
     case "off":
@@ -556,11 +559,18 @@ export function BackdropSection() {
 
   const commitEffects = (patch: Partial<typeof effects>) => {
     setBackdropEffects({ ...effects, ...patch })
-    clearPreviewVarAfterPaint("--bd-fx-preview")
+    clearPreviewVarAfterPaint(BACKDROP_FX_PREVIEW_VAR)
+    clearPreviewVarAfterPaint(BACKDROP_NOISE_PREVIEW_VAR)
   }
   const previewEffects = (patch: Partial<typeof effects>) => {
     const candidate = { ...effects, ...patch }
-    setPreviewVar("--bd-fx-preview", effectsFilterCss(candidate) ?? null)
+    setPreviewVar(BACKDROP_FX_PREVIEW_VAR, effectsFilterCss(candidate) ?? null)
+    if (patch.noise !== undefined) {
+      setPreviewVar(
+        BACKDROP_NOISE_PREVIEW_VAR,
+        `${Math.max(0, Math.min(100, candidate.noise)) / 100}`
+      )
+    }
   }
   const setPattern = (patch: Partial<typeof pattern>) =>
     setBackdropPattern({ ...pattern, ...patch })
@@ -920,6 +930,7 @@ export function BackdropSection() {
             label="Noise"
             value={effects.noise}
             onChange={(v) => commitEffects({ noise: v })}
+            onPreview={(v) => previewEffects({ noise: v })}
           />
           <EffectSlider
             label="Opacity"

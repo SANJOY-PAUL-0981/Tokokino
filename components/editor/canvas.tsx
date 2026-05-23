@@ -632,7 +632,7 @@ function CanvasViewInner({
               data-editor-shadow-preview-scope="canvas"
               className="pointer-events-none relative flex h-full w-full items-center justify-center"
               style={{
-                padding: `${(padding / 1200) * 100}%`,
+                padding: `var(--editor-padding-preview, ${(padding / 1200) * 100}%)`,
                 zIndex: 60 + screenshotLayer.zIndex,
               }}
             >
