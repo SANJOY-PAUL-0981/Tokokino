@@ -7,6 +7,7 @@ import {
   SAFARI_BROWSER_FRAME_ID,
 } from "@/lib/browser-frame"
 import { hexToRgb } from "@/lib/editor/color-utils"
+import { shadowDropFilterPreviewCss } from "@/lib/editor/css-utils"
 import { DEVICE_MOCKUP_SPECS } from "@/lib/mockups"
 import type {
   BackdropLighting,
@@ -420,7 +421,9 @@ export function framePositionedStyle({
   layer?: ScreenshotLayer
 }): React.CSSProperties {
   const filter =
-    [shadowFilter, enhanceFilter].filter(Boolean).join(" ") || undefined
+    [shadowDropFilterPreviewCss(shadowFilter), enhanceFilter]
+      .filter(Boolean)
+      .join(" ") || undefined
 
   return {
     ...frameFitStyle(aspectRatio, rotation, {

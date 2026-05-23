@@ -248,6 +248,7 @@ export function shadowCss(shadow: Shadow): string | undefined {
 }
 
 export const SHADOW_PREVIEW_VAR = "--editor-shadow-preview"
+export const SHADOW_FILTER_PREVIEW_VAR = "--editor-shadow-filter-preview"
 
 /** Box-shadow that supports live direction preview without clobbering React styles. */
 export function shadowBoxShadowCss(
@@ -255,6 +256,14 @@ export function shadowBoxShadowCss(
 ): string | undefined {
   if (!committed) return undefined
   return `var(${SHADOW_PREVIEW_VAR}, ${committed})`
+}
+
+/** Drop-shadow filter that supports live preview without a store re-render. */
+export function shadowDropFilterPreviewCss(
+  committed: string | undefined
+): string | undefined {
+  if (!committed) return undefined
+  return `var(${SHADOW_FILTER_PREVIEW_VAR}, ${committed})`
 }
 
 /**

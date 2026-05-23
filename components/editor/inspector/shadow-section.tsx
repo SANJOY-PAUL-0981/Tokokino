@@ -10,10 +10,19 @@ import {
 import "@xyflow/react/dist/style.css"
 
 import { ColorPickerPopover } from "@/components/editor/color-picker-popover"
-import { EditableValue } from "@/components/editor/editable-value"
-import { Slider } from "@/components/ui/slider"
+import { EffectSlider } from "@/components/editor/inspector/effect-slider"
 import { useScreenshotStyleTarget } from "@/lib/editor/screenshot-style-target"
-import { useActiveCanvasField, useEditorStore } from "@/lib/editor/store"
+import {
+  useActiveCanvasField,
+  useActiveCanvasId,
+  useEditorStore,
+} from "@/lib/editor/store"
+import {
+  SHADOW_FILTER_PREVIEW_VAR,
+  SHADOW_PREVIEW_VAR,
+  shadowCss,
+  shadowDropFilterCss,
+} from "@/lib/editor/css-utils"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 
@@ -57,12 +66,14 @@ function DirectionField({
   disabled,
   lightSource,
   onChange,
+  onPreview,
   resolvedTheme,
 }: {
   color: string
   disabled: boolean
   lightSource: string
   onChange: (id: string) => void
+  onPreview: (id: string) => void
   resolvedTheme: string | undefined
 }) {
   const sourcePoint = lightSourceToPoint(lightSource)
@@ -114,15 +125,26 @@ function DirectionField({
     []
   )
 
+  const pointId = React.useCallback(
+    (nextPoint: LightPoint) => pointToLightSource(nextPoint.row, nextPoint.col),
+    []
+  )
+  const previewPoint = React.useCallback(
+    (nextPoint: LightPoint) => {
+      const nextLightSource = pointId(nextPoint)
+      onPreview(nextLightSource)
+    },
+    [onPreview, pointId]
+  )
   const commitPoint = React.useCallback(
     (nextPoint: LightPoint) => {
-      const nextLightSource = pointToLightSource(nextPoint.row, nextPoint.col)
+      const nextLightSource = pointId(nextPoint)
       if (nextLightSource === committedLightSourceRef.current) return
 
       committedLightSourceRef.current = nextLightSource
       onChange(nextLightSource)
     },
-    [onChange]
+    [onChange, pointId]
   )
 
   const handlePointerDown = React.useCallback(
@@ -134,9 +156,9 @@ function DirectionField({
       draggingRef.current = true
       const nextPoint = pointFromPointer(event)
       moveVisualPoint(nextPoint)
-      commitPoint(nextPoint)
+      previewPoint(nextPoint)
     },
-    [disabled, lightSource, moveVisualPoint, pointFromPointer, commitPoint]
+    [disabled, lightSource, moveVisualPoint, pointFromPointer, previewPoint]
   )
 
   const handlePointerMove = React.useCallback(
@@ -144,9 +166,9 @@ function DirectionField({
       if (disabled || !draggingRef.current || event.buttons !== 1) return
       const nextPoint = pointFromPointer(event)
       moveVisualPoint(nextPoint)
-      commitPoint(nextPoint)
+      previewPoint(nextPoint)
     },
-    [disabled, moveVisualPoint, pointFromPointer, commitPoint]
+    [disabled, moveVisualPoint, pointFromPointer, previewPoint]
   )
 
   const handlePointerUp = React.useCallback(
@@ -339,7 +361,8 @@ function ColorRail({
 
 export function ShadowSection() {
   const canvasShadow = useActiveCanvasField((c) => c.shadow)
-  const { applyStyle, selectedSlot } = useScreenshotStyleTarget()
+  const activeCanvasId = useActiveCanvasId()
+  const { applyStyle, selectedSlot, target } = useScreenshotStyleTarget()
   const setShadow = useEditorStore((s) => s.setShadow)
   const setMainScreenshotShadow = useEditorStore(
     (s) => s.setMainScreenshotShadow
@@ -349,13 +372,63 @@ export function ShadowSection() {
     ? (selectedSlot.shadow ?? canvasShadow)
     : canvasShadow
 
-  const applyShadow = (nextShadow: typeof canvasShadow) => {
-    applyStyle(
-      { shadow: nextShadow },
-      () => setMainScreenshotShadow(nextShadow),
-      () => setShadow(nextShadow)
+  const getPreviewScopeEl = React.useCallback((): HTMLElement | null => {
+    if (typeof document === "undefined" || !activeCanvasId) return null
+    const canvasEl = document.querySelector<HTMLElement>(
+      `[data-canvas-id="${activeCanvasId}"]`
     )
-  }
+    if (!canvasEl) return null
+    if (target === "all") return canvasEl
+
+    const scopeId = target === "slot" ? selectedSlot?.id : "canvas"
+    if (!scopeId) return canvasEl
+    return (
+      canvasEl.querySelector<HTMLElement>(
+        `[data-editor-shadow-preview-scope="${scopeId}"]`
+      ) ?? canvasEl
+    )
+  }, [activeCanvasId, selectedSlot?.id, target])
+
+  const setPreviewVar = React.useCallback(
+    (name: string, value: string | null) => {
+      const el = getPreviewScopeEl()
+      if (!el) return
+      if (value === null) el.style.removeProperty(name)
+      else el.style.setProperty(name, value)
+    },
+    [getPreviewScopeEl]
+  )
+
+  const clearPreviewVarsAfterPaint = React.useCallback(() => {
+    if (typeof requestAnimationFrame === "undefined") return
+    requestAnimationFrame(() => {
+      setPreviewVar(SHADOW_PREVIEW_VAR, null)
+      setPreviewVar(SHADOW_FILTER_PREVIEW_VAR, null)
+    })
+  }, [setPreviewVar])
+
+  const previewShadow = React.useCallback(
+    (nextShadow: typeof canvasShadow) => {
+      setPreviewVar(SHADOW_PREVIEW_VAR, shadowCss(nextShadow) ?? null)
+      setPreviewVar(
+        SHADOW_FILTER_PREVIEW_VAR,
+        shadowDropFilterCss(nextShadow) ?? null
+      )
+    },
+    [setPreviewVar]
+  )
+
+  const applyShadow = React.useCallback(
+    (nextShadow: typeof canvasShadow) => {
+      applyStyle(
+        { shadow: nextShadow },
+        () => setMainScreenshotShadow(nextShadow),
+        () => setShadow(nextShadow)
+      )
+      clearPreviewVarsAfterPaint()
+    },
+    [applyStyle, clearPreviewVarsAfterPaint, setMainScreenshotShadow, setShadow]
+  )
   const { resolvedTheme } = useTheme()
   const { type, intensity, lightSource, color = "#050505" } = shadow
 
@@ -377,7 +450,11 @@ export function ShadowSection() {
     }
     applyShadow({ ...shadow, type: nextType })
   }
+  const previewIntensity = (n: number) =>
+    previewShadow({ ...shadow, intensity: n })
   const setIntensity = (n: number) => applyShadow({ ...shadow, intensity: n })
+  const previewLightSource = (id: string) =>
+    previewShadow({ ...shadow, lightSource: id })
   const setLightSource = (id: string) =>
     applyShadow({ ...shadow, lightSource: id })
   const setColor = (c: string) => applyShadow({ ...shadow, color: c })
@@ -526,24 +603,14 @@ export function ShadowSection() {
           />
         </div>
 
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[11px] font-medium text-black/50 dark:text-white/55">
-            Intensity
-          </span>
-          <EditableValue
-            value={intensity}
-            onChange={setIntensity}
-            min={0}
-            max={100}
-            suffix="%"
-          />
-        </div>
-        <Slider
-          value={[intensity]}
-          onValueChange={([v]) => setIntensity(v)}
+        <EffectSlider
+          label="Intensity"
+          value={intensity}
+          onPreview={previewIntensity}
+          onChange={setIntensity}
           max={100}
           disabled={!enabled}
-          className="mt-3 cursor-pointer [&_[data-slot=slider-range]]:bg-[#f65d72] [&_[data-slot=slider-thumb]]:rounded-full [&_[data-slot=slider-thumb]]:border-[#f65d72] [&_[data-slot=slider-track]]:bg-black/10 dark:[&_[data-slot=slider-track]]:bg-white/10"
+          sliderClassName="cursor-pointer [&_[data-slot=slider-range]]:bg-[#f65d72] [&_[data-slot=slider-thumb]]:rounded-full [&_[data-slot=slider-thumb]]:border-[#f65d72] [&_[data-slot=slider-track]]:bg-black/10 dark:[&_[data-slot=slider-track]]:bg-white/10"
         />
       </div>
 
@@ -552,6 +619,7 @@ export function ShadowSection() {
           color={color}
           disabled={directionalDisabled}
           lightSource={lightSource}
+          onPreview={previewLightSource}
           onChange={setLightSource}
           resolvedTheme={resolvedTheme}
         />
