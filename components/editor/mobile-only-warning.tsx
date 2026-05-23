@@ -125,20 +125,7 @@ export function MobileOnlyWarning() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 1.05 }}
           className="flex flex-col items-center gap-2 font-mono text-[10px] text-muted-foreground"
-        >
-          <div className="flex items-center gap-2">
-            <span className="tabular text-foreground/65">
-              {viewport !== null ? `${viewport}px` : "—"}
-            </span>
-            <span className="h-px w-6 bg-border" />
-            <span className="tabular text-foreground/65">
-              {RECOMMENDED_MIN_PX}px+ recommended
-            </span>
-          </div>
-          <span className="tracking-[0.16em] uppercase">
-            Made for big canvases
-          </span>
-        </motion.div>
+        ></motion.div>
       </div>
     </div>
   )
