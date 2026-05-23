@@ -189,7 +189,8 @@ function CanvasViewInner({
     w: number
     h: number
   } | null>(null)
-  const [isCropModalOpen, setIsCropModalOpen] = React.useState(false)
+  const [mainCropRequest, setMainCropRequest] =
+    React.useState<CropTarget | null>(null)
   const [slotCropRequest, setSlotCropRequest] =
     React.useState<SlotCropRequest | null>(null)
   const [centerGuides, updateCenterGuides] = useCenterGuides()
@@ -510,21 +511,29 @@ function CanvasViewInner({
     measurePlacement()
   }
 
-  const mainCropTarget = computeCropTarget({
-    frame,
-    objectFit: objectFit ?? "cover",
-    stageElement: stageRef.current,
-    imageElement: imageRef.current,
-    fallbackAspect: canvasAspectRatio,
-  })
-  const reusableLastCropRegion = cropRegionMatchesAspect(
-    lastCropRegion,
-    imageRef.current?.naturalWidth ?? 0,
-    imageRef.current?.naturalHeight ?? 0,
-    mainCropTarget.aspect
-  )
-    ? lastCropRegion
-    : null
+  const openMainCropModal = React.useCallback(() => {
+    const imageElement = imageRef.current
+    const target = computeCropTarget({
+      frame,
+      objectFit: objectFit ?? "cover",
+      stageElement: stageRef.current,
+      imageElement,
+      fallbackAspect: canvasAspectRatio,
+    })
+    const reusableLastCropRegion = cropRegionMatchesAspect(
+      lastCropRegion,
+      imageElement?.naturalWidth ?? 0,
+      imageElement?.naturalHeight ?? 0,
+      target.aspect
+    )
+
+    setMainCropRequest({
+      ...target,
+      initialRegion: reusableLastCropRegion
+        ? lastCropRegion
+        : target.initialRegion,
+    })
+  }, [canvasAspectRatio, frame, lastCropRegion, objectFit])
 
   return (
     <>
@@ -610,7 +619,7 @@ function CanvasViewInner({
               isScreenshotDragging={isScreenshotDragging}
               onSelect={handleScreenshotClickSelect}
               onBrowse={() => fileInputRef.current?.click()}
-              onCropClick={() => setIsCropModalOpen(true)}
+              onCropClick={openMainCropModal}
               onReplaceFile={readFile}
               onDelete={() => {
                 setIsScreenshotSelected(false)
@@ -696,7 +705,7 @@ function CanvasViewInner({
                     onPointerMove={moveMockup}
                     onPointerUp={stopMockupDrag}
                     onImageLoad={handleImageLoad}
-                    onCropClick={() => setIsCropModalOpen(true)}
+                    onCropClick={openMainCropModal}
                     onReplaceFile={readFile}
                     onDelete={() => {
                       setIsScreenshotSelected(false)
@@ -736,7 +745,7 @@ function CanvasViewInner({
                     onPointerMove={moveMockup}
                     onPointerUp={stopMockupDrag}
                     onImageLoad={handleImageLoad}
-                    onCropClick={() => setIsCropModalOpen(true)}
+                    onCropClick={openMainCropModal}
                     onReplaceFile={readFile}
                     onDelete={() => {
                       setIsScreenshotSelected(false)
@@ -780,7 +789,7 @@ function CanvasViewInner({
                     onPointerMove={moveScreenshot}
                     onPointerUp={stopScreenshotDrag}
                     onImageLoad={handleImageLoad}
-                    onCropClick={() => setIsCropModalOpen(true)}
+                    onCropClick={openMainCropModal}
                     onReplaceFile={readFile}
                     onDelete={() => {
                       setIsScreenshotSelected(false)
@@ -993,11 +1002,13 @@ function CanvasViewInner({
 
       {!isCanvasPreview && (
         <CropModal
-          open={isCropModalOpen}
-          onOpenChange={setIsCropModalOpen}
+          open={mainCropRequest !== null}
+          onOpenChange={(open) => {
+            if (!open) setMainCropRequest(null)
+          }}
           screenshotUrl={originalScreenshot ?? screenshot}
-          initialRegion={reusableLastCropRegion ?? mainCropTarget.initialRegion}
-          targetAspect={mainCropTarget.aspect}
+          initialRegion={mainCropRequest?.initialRegion}
+          targetAspect={mainCropRequest?.aspect}
           onCrop={applyCroppedScreenshot}
         />
       )}
