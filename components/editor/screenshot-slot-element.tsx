@@ -35,6 +35,7 @@ import {
   ToolbarSurface,
 } from "@/components/editor/toolbar/primitives"
 import { slotBoxAspectRatio } from "@/lib/editor/screenshot-layout"
+import { computeCropTarget, type CropTarget } from "@/lib/editor/crop-utils"
 import {
   shadowBoxShadowCss,
   shadowCss,
@@ -388,7 +389,7 @@ export function ScreenshotSlotView({
   canvasRef: React.RefObject<HTMLDivElement | null>
   canvasAspectRatio: number
   rowLayout?: { widthPct: number; xPct: number } | null
-  onCropRequest: (slotId: string) => void
+  onCropRequest: (request: CropTarget & { slotId: string }) => void
   onCenterGuideChange?: (guides: { x: boolean; y: boolean }) => void
   previewMode?: boolean
 }) {
@@ -554,6 +555,29 @@ export function ScreenshotSlotView({
     [setScreenshotSlotImage, slot.id]
   )
 
+  const requestCrop = React.useCallback(() => {
+    const target = computeCropTarget({
+      frame: canvasFrame,
+      objectFit: slot.objectFit ?? "cover",
+      stageElement: stageRef.current,
+      imageElement: imageRef.current,
+      fallbackAspect: canvasAspectRatio,
+    })
+    onCropRequest({
+      slotId: slot.id,
+      ...target,
+      initialRegion: slot.lastCropRegion ?? target.initialRegion,
+    })
+  }, [
+    canvasAspectRatio,
+    canvasFrame,
+    imageRef,
+    onCropRequest,
+    slot.id,
+    slot.objectFit,
+    stageRef,
+  ])
+
   const startDrag = (e: React.PointerEvent<Element>) => {
     if (!canvasRef.current) return
     e.stopPropagation()
@@ -667,7 +691,7 @@ export function ScreenshotSlotView({
         canDeleteSlot={canDeleteSlot}
         onSelect={select}
         onBrowse={onBrowse}
-        onCropClick={() => onCropRequest(slot.id)}
+        onCropClick={requestCrop}
         onReplaceFile={(file) => void handleFiles([file])}
         onDeleteFromMenu={handleDeleteFromMenu}
         onAddressChange={(value) => setFrameAddress(value)}

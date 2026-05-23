@@ -403,6 +403,8 @@ export function useEditor(): EditorContext {
       store.updateScreenshotSlot(id, patch, canvasId ?? targetId),
     setScreenshotSlotImage: (id, src, canvasId) =>
       store.setScreenshotSlotImage(id, src, canvasId ?? targetId),
+    applyCroppedScreenshotSlot: (id, src, region, canvasId) =>
+      store.applyCroppedScreenshotSlot(id, src, region, canvasId ?? targetId),
     deleteScreenshotSlot: (id, canvasId) =>
       store.deleteScreenshotSlot(id, canvasId ?? targetId),
     duplicateScreenshotSlot: (id, canvasId) =>

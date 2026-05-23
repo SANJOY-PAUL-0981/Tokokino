@@ -9,6 +9,7 @@ import {
   type CSSProperties,
   createContext,
   type MouseEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
   type RefObject,
   type SyntheticEvent,
@@ -33,22 +34,49 @@ const centerAspectCrop = (
   mediaWidth: number,
   mediaHeight: number,
   aspect: number | undefined
-): PercentCrop =>
-  centerCrop(
-    aspect
-      ? makeAspectCrop(
-          {
-            unit: "%",
-            width: 90,
-          },
-          aspect,
-          mediaWidth,
-          mediaHeight
-        )
-      : { x: 0, y: 0, width: 90, height: 90, unit: "%" },
+): PercentCrop => {
+  if (!aspect) {
+    return centerCrop(
+      { x: 0, y: 0, width: 90, height: 90, unit: "%" },
+      mediaWidth,
+      mediaHeight
+    )
+  }
+
+  const maxFraction = 0.82
+  const maxW = mediaWidth * maxFraction
+  const maxH = mediaHeight * maxFraction
+  const widthFromHeight = maxH * aspect
+  const pixelWidth = Math.min(maxW, widthFromHeight)
+  const widthPct = (pixelWidth / mediaWidth) * 100
+
+  return centerCrop(
+    makeAspectCrop(
+      {
+        unit: "%",
+        width: widthPct,
+      },
+      aspect,
+      mediaWidth,
+      mediaHeight
+    ),
     mediaWidth,
     mediaHeight
   )
+}
+
+function cropMatchesAspect(
+  crop: PercentCrop,
+  mediaWidth: number,
+  mediaHeight: number,
+  aspect: number | undefined
+) {
+  if (!aspect) return true
+  const cropWidth = (crop.width / 100) * mediaWidth
+  const cropHeight = (crop.height / 100) * mediaHeight
+  if (!cropWidth || !cropHeight) return false
+  return Math.abs(cropWidth / cropHeight - aspect) < 0.01
+}
 
 const getCroppedPngImage = async (
   imageSrc: HTMLImageElement,
@@ -163,14 +191,13 @@ export const ImageCrop = ({
     (e: SyntheticEvent<HTMLImageElement>) => {
       const { width, height } = e.currentTarget
       const autoCrop = centerAspectCrop(width, height, reactCropProps.aspect)
-      // Use the caller-provided initial crop only when no aspect lock is set;
-      // when an aspect ratio is active the auto-centered crop must win.
       const startCrop =
-        initialCropProp && reactCropProps.aspect === undefined
+        initialCropProp &&
+        cropMatchesAspect(initialCropProp, width, height, reactCropProps.aspect)
           ? initialCropProp
           : autoCrop
       setCrop(startCrop)
-      setInitialCrop(autoCrop)
+      setInitialCrop(startCrop)
     },
     [reactCropProps.aspect, initialCropProp]
   )
@@ -263,6 +290,101 @@ export const ImageCropContent = ({
     reactCropProps,
   } = useImageCrop()
 
+  const startEdgeResize = useCallback(
+    (edge: "n" | "e" | "s" | "w", e: ReactPointerEvent<HTMLDivElement>) => {
+      if (!crop || !imgRef.current) return
+
+      e.preventDefault()
+      e.stopPropagation()
+
+      const image = imgRef.current
+      const mediaW = image.width
+      const mediaH = image.height
+      if (!mediaW || !mediaH) return
+
+      const startCrop = {
+        x: (crop.x / 100) * mediaW,
+        y: (crop.y / 100) * mediaH,
+        width: (crop.width / 100) * mediaW,
+        height: (crop.height / 100) * mediaH,
+      }
+      const startClientX = e.clientX
+      const startClientY = e.clientY
+      const right = startCrop.x + startCrop.width
+      const bottom = startCrop.y + startCrop.height
+
+      const resize = (clientX: number, clientY: number, complete: boolean) => {
+        const dx = clientX - startClientX
+        const dy = clientY - startClientY
+        const resizingWidth = edge === "e" || edge === "w"
+        const desiredWidth =
+          edge === "e"
+            ? startCrop.width + dx
+            : edge === "w"
+              ? startCrop.width - dx
+              : startCrop.width
+        const desiredHeight =
+          edge === "s"
+            ? startCrop.height + dy
+            : edge === "n"
+              ? startCrop.height - dy
+              : startCrop.height
+        const maxWidth =
+          edge === "e" ? mediaW - startCrop.x : edge === "w" ? right : mediaW
+        const maxHeight =
+          edge === "s" ? mediaH - startCrop.y : edge === "n" ? bottom : mediaH
+        const minWidth = Math.min(
+          reactCropProps.minWidth ?? Math.min(mediaW, mediaH) * 0.08,
+          Math.max(1, maxWidth)
+        )
+        const minHeight = Math.min(
+          reactCropProps.minHeight ?? Math.min(mediaW, mediaH) * 0.08,
+          Math.max(1, maxHeight)
+        )
+        const nextWidth = resizingWidth
+          ? Math.max(minWidth, Math.min(maxWidth, desiredWidth))
+          : startCrop.width
+        const nextHeight = resizingWidth
+          ? startCrop.height
+          : Math.max(minHeight, Math.min(maxHeight, desiredHeight))
+        const nextX = edge === "w" ? right - nextWidth : startCrop.x
+        const nextY = edge === "n" ? bottom - nextHeight : startCrop.y
+
+        const pixelCrop: PixelCrop = {
+          unit: "px",
+          x: nextX,
+          y: nextY,
+          width: nextWidth,
+          height: nextHeight,
+        }
+        const percentCrop: PercentCrop = {
+          unit: "%",
+          x: (nextX / mediaW) * 100,
+          y: (nextY / mediaH) * 100,
+          width: (nextWidth / mediaW) * 100,
+          height: (nextHeight / mediaH) * 100,
+        }
+
+        handleChange(pixelCrop, percentCrop)
+        if (complete) handleComplete(pixelCrop, percentCrop)
+      }
+
+      const onMove = (event: PointerEvent) =>
+        resize(event.clientX, event.clientY, false)
+      const onUp = (event: PointerEvent) => {
+        resize(event.clientX, event.clientY, true)
+        window.removeEventListener("pointermove", onMove)
+        window.removeEventListener("pointerup", onUp)
+        window.removeEventListener("pointercancel", onUp)
+      }
+
+      window.addEventListener("pointermove", onMove)
+      window.addEventListener("pointerup", onUp)
+      window.addEventListener("pointercancel", onUp)
+    },
+    [crop, handleChange, handleComplete, imgRef, reactCropProps]
+  )
+
   const shadcnStyle = {
     "--rc-border-color": "var(--color-border)",
     "--rc-focus-color": "var(--color-primary)",
@@ -274,6 +396,50 @@ export const ImageCropContent = ({
       crop={crop}
       onChange={handleChange}
       onComplete={handleComplete}
+      renderSelectionAddon={
+        reactCropProps.aspect
+          ? () => (
+              <>
+                <div
+                  aria-hidden
+                  className="absolute top-0 left-1/2 z-10 flex h-3 w-9 -translate-x-1/2 -translate-y-1/2 cursor-ns-resize items-center justify-center gap-0.5 rounded-[2px] border border-border bg-background/80 shadow-sm"
+                  onPointerDown={(e) => startEdgeResize("n", e)}
+                >
+                  <span className="size-1 rounded-full bg-foreground/55" />
+                  <span className="size-1 rounded-full bg-foreground/55" />
+                  <span className="size-1 rounded-full bg-foreground/55" />
+                </div>
+                <div
+                  aria-hidden
+                  className="absolute top-1/2 right-0 z-10 flex h-9 w-3 translate-x-1/2 -translate-y-1/2 cursor-ew-resize flex-col items-center justify-center gap-0.5 rounded-[2px] border border-border bg-background/80 shadow-sm"
+                  onPointerDown={(e) => startEdgeResize("e", e)}
+                >
+                  <span className="size-1 rounded-full bg-foreground/55" />
+                  <span className="size-1 rounded-full bg-foreground/55" />
+                  <span className="size-1 rounded-full bg-foreground/55" />
+                </div>
+                <div
+                  aria-hidden
+                  className="absolute bottom-0 left-1/2 z-10 flex h-3 w-9 -translate-x-1/2 translate-y-1/2 cursor-ns-resize items-center justify-center gap-0.5 rounded-[2px] border border-border bg-background/80 shadow-sm"
+                  onPointerDown={(e) => startEdgeResize("s", e)}
+                >
+                  <span className="size-1 rounded-full bg-foreground/55" />
+                  <span className="size-1 rounded-full bg-foreground/55" />
+                  <span className="size-1 rounded-full bg-foreground/55" />
+                </div>
+                <div
+                  aria-hidden
+                  className="absolute top-1/2 left-0 z-10 flex h-9 w-3 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize flex-col items-center justify-center gap-0.5 rounded-[2px] border border-border bg-background/80 shadow-sm"
+                  onPointerDown={(e) => startEdgeResize("w", e)}
+                >
+                  <span className="size-1 rounded-full bg-foreground/55" />
+                  <span className="size-1 rounded-full bg-foreground/55" />
+                  <span className="size-1 rounded-full bg-foreground/55" />
+                </div>
+              </>
+            )
+          : undefined
+      }
       style={{ ...shadcnStyle, ...style }}
       {...reactCropProps}
     >

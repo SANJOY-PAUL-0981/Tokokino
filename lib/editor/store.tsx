@@ -379,6 +379,12 @@ export type EditorActions = {
     src: string | null,
     canvasId?: string
   ) => void
+  applyCroppedScreenshotSlot: (
+    id: string,
+    src: string,
+    region: CropRegion,
+    canvasId?: string
+  ) => void
   deleteScreenshotSlot: (id: string, canvasId?: string) => void
   duplicateScreenshotSlot: (id: string, canvasId?: string) => string | null
   bringScreenshotSlotToFront: (id: string, canvasId?: string) => void
@@ -1567,7 +1573,9 @@ export const useEditorStore = create<EditorStore>((set, get) => {
           canvasId,
           (canvas) => ({
             screenshotSlots: canvas.screenshotSlots.map((slot) =>
-              slot.id === id ? { ...slot, src } : slot
+              slot.id === id
+                ? { ...slot, src, originalSrc: null, lastCropRegion: null }
+                : slot
             ),
           }),
           null
@@ -1585,7 +1593,13 @@ export const useEditorStore = create<EditorStore>((set, get) => {
           )
           const updatedSlots = canvas.screenshotSlots.map((slot) =>
             slot.id === id
-              ? { ...slot, src, objectFit: slot.objectFit ?? "cover" }
+              ? {
+                  ...slot,
+                  src,
+                  originalSrc: src,
+                  lastCropRegion: null,
+                  objectFit: slot.objectFit ?? "cover",
+                }
               : slot
           )
           if (
@@ -1634,6 +1648,23 @@ export const useEditorStore = create<EditorStore>((set, get) => {
         null
       )
     },
+    applyCroppedScreenshotSlot: (id, src, region, canvasId) =>
+      commitCanvas(
+        canvasId,
+        (canvas) => ({
+          screenshotSlots: canvas.screenshotSlots.map((slot) =>
+            slot.id === id
+              ? {
+                  ...slot,
+                  src,
+                  originalSrc: slot.originalSrc ?? slot.src,
+                  lastCropRegion: region,
+                }
+              : slot
+          ),
+        }),
+        `screenshot-slot-crop-${id}`
+      ),
     deleteScreenshotSlot: (id, canvasId) =>
       commitCanvas(
         canvasId,

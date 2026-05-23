@@ -353,6 +353,8 @@ export type GradientCategory = {
 export type ScreenshotSlot = {
   id: string
   src: string | null
+  originalSrc?: string | null
+  lastCropRegion?: CropRegion | null
   xPct: number
   yPct: number
   widthPct: number

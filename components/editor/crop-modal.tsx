@@ -36,13 +36,12 @@ async function urlToFile(url: string, filename: string): Promise<File> {
 
 type Preset = {
   label: string
-  aspect: number | undefined
+  aspect: number
   w: number
   h: number
 }
 
 const PRESETS: Preset[] = [
-  { label: "Free", aspect: undefined, w: 18, h: 12 },
   { label: "1:1", aspect: 1, w: 14, h: 14 },
   { label: "4:3", aspect: 4 / 3, w: 18, h: 13.5 },
   { label: "3:2", aspect: 3 / 2, w: 18, h: 12 },
@@ -57,24 +56,35 @@ export function CropModal({
   onOpenChange,
   screenshotUrl,
   initialRegion,
+  targetAspect,
   onCrop,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   screenshotUrl: string | null
   initialRegion?: CropRegion | null
+  targetAspect?: number | null
   onCrop: (croppedBase64: string, region: CropRegion) => void
 }) {
-  const [aspect, setAspect] = React.useState<number | undefined>(undefined)
+  const safeTargetAspect =
+    targetAspect && Number.isFinite(targetAspect) && targetAspect > 0
+      ? targetAspect
+      : null
+  const defaultAspect = safeTargetAspect ?? 16 / 10
+  const [aspect, setAspect] = React.useState<number>(defaultAspect)
   const [file, setFile] = React.useState<File | null>(null)
 
   const handleOpenChange = React.useCallback(
     (nextOpen: boolean) => {
-      if (!nextOpen) setAspect(undefined)
+      if (!nextOpen) setAspect(defaultAspect)
       onOpenChange(nextOpen)
     },
-    [onOpenChange]
+    [defaultAspect, onOpenChange]
   )
+
+  React.useEffect(() => {
+    if (open) setAspect(defaultAspect)
+  }, [defaultAspect, open])
 
   React.useEffect(() => {
     if (!open || !screenshotUrl) {
@@ -102,6 +112,32 @@ export function CropModal({
     if (!initialRegion) return undefined
     return { unit: "%", ...initialRegion }
   }, [initialRegion])
+
+  const targetPreset = React.useMemo<Preset>(() => {
+    const ratio = defaultAspect
+    const longSide = 18
+    const shortSide = longSide / ratio
+    return ratio >= 1
+      ? {
+          label: "Canvas",
+          aspect: ratio,
+          w: longSide,
+          h: Math.max(8, Math.min(18, shortSide)),
+        }
+      : {
+          label: "Canvas",
+          aspect: ratio,
+          w: Math.max(8, Math.min(18, longSide * ratio)),
+          h: longSide,
+        }
+  }, [defaultAspect])
+
+  const presets = React.useMemo(() => {
+    const rest = PRESETS.filter(
+      (preset) => Math.abs(preset.aspect - targetPreset.aspect) > 0.01
+    )
+    return [targetPreset, ...rest]
+  }, [targetPreset])
 
   if (!file) return null
 
@@ -143,10 +179,14 @@ export function CropModal({
         </div>
 
         <ImageCrop
-          key={aspect ?? "free"}
+          key={aspect}
           file={file}
           aspect={aspect}
-          initialCrop={aspect === undefined ? initialPercentCrop : undefined}
+          initialCrop={
+            Math.abs(aspect - targetPreset.aspect) < 0.01
+              ? initialPercentCrop
+              : undefined
+          }
           onCrop={(croppedImage, region) => {
             onCrop(croppedImage, {
               x: region.x,
@@ -173,8 +213,8 @@ export function CropModal({
           <div className="flex items-center justify-between gap-4 border-t border-border/50 bg-background/40 px-4 py-3">
             {/* Aspect chips */}
             <div className="flex min-w-0 flex-1 [scrollbar-width:none] items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden">
-              {PRESETS.map((p) => {
-                const isActive = aspect === p.aspect
+              {presets.map((p) => {
+                const isActive = Math.abs(aspect - p.aspect) < 0.01
                 return (
                   <button
                     key={p.label}

@@ -252,6 +252,8 @@ export const createScreenshotSlot = (
 ): ScreenshotSlot => ({
   id: makeId(),
   src: null,
+  originalSrc: null,
+  lastCropRegion: null,
   xPct: 50,
   yPct: 50,
   widthPct: SLOT_DEFAULT_FALLBACK_WIDTH,
@@ -313,6 +315,10 @@ export function migrateLegacySlot(raw: unknown): ScreenshotSlot {
   const base: Partial<ScreenshotSlot> = {}
   if (typeof slot.id === "string") base.id = slot.id
   if (slot.src === null || typeof slot.src === "string") base.src = slot.src
+  if (slot.originalSrc === null || typeof slot.originalSrc === "string") {
+    base.originalSrc = slot.originalSrc
+  }
+  if (slot.lastCropRegion) base.lastCropRegion = slot.lastCropRegion
   if (typeof slot.xPct === "number") base.xPct = slot.xPct
   if (typeof slot.yPct === "number") base.yPct = slot.yPct
   if (typeof slot.widthPct === "number") base.widthPct = slot.widthPct

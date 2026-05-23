@@ -31,7 +31,11 @@ import {
   useEditor,
   useEditorStore,
 } from "@/lib/editor/store"
-import { computeCoverCropRegion } from "@/lib/editor/crop-utils"
+import {
+  computeCropTarget,
+  cropRegionMatchesAspect,
+  type CropTarget,
+} from "@/lib/editor/crop-utils"
 import type { CaptureSettings } from "./canvas/upload-card"
 import {
   defaultCaptureDeviceForFrame,
@@ -88,6 +92,10 @@ type CanvasViewProps = {
   canvasOverride?: Partial<CanvasState> | null
 }
 
+type SlotCropRequest = CropTarget & {
+  slotId: string
+}
+
 function CanvasViewInner({
   isActive,
   widthPx,
@@ -137,6 +145,7 @@ function CanvasViewInner({
     screenshotSlots,
     setSelectedScreenshotSlotId,
     setScreenshotSlotImage,
+    applyCroppedScreenshotSlot,
     addScreenshotSlot,
     bringScreenshotToFront,
     sendScreenshotToBack,
@@ -181,9 +190,8 @@ function CanvasViewInner({
     h: number
   } | null>(null)
   const [isCropModalOpen, setIsCropModalOpen] = React.useState(false)
-  const [croppingSlotId, setCroppingSlotId] = React.useState<string | null>(
-    null
-  )
+  const [slotCropRequest, setSlotCropRequest] =
+    React.useState<SlotCropRequest | null>(null)
   const [centerGuides, updateCenterGuides] = useCenterGuides()
   const [textCenterGuides, updateTextCenterGuides] = useCenterGuides()
   const stageRef = React.useRef<HTMLDivElement>(null)
@@ -501,6 +509,22 @@ function CanvasViewInner({
     }
     measurePlacement()
   }
+
+  const mainCropTarget = computeCropTarget({
+    frame,
+    objectFit: objectFit ?? "cover",
+    stageElement: stageRef.current,
+    imageElement: imageRef.current,
+    fallbackAspect: canvasAspectRatio,
+  })
+  const reusableLastCropRegion = cropRegionMatchesAspect(
+    lastCropRegion,
+    imageRef.current?.naturalWidth ?? 0,
+    imageRef.current?.naturalHeight ?? 0,
+    mainCropTarget.aspect
+  )
+    ? lastCropRegion
+    : null
 
   return (
     <>
@@ -903,7 +927,7 @@ function CanvasViewInner({
                 canvasRef={canvasRef}
                 canvasAspectRatio={aw / ah}
                 rowLayout={slotRowLayoutById?.get(slot.id) ?? null}
-                onCropRequest={(id) => setCroppingSlotId(id)}
+                onCropRequest={setSlotCropRequest}
                 onCenterGuideChange={updateCenterGuides}
                 previewMode={isCanvasPreview}
               />
@@ -972,37 +996,38 @@ function CanvasViewInner({
           open={isCropModalOpen}
           onOpenChange={setIsCropModalOpen}
           screenshotUrl={originalScreenshot ?? screenshot}
-          initialRegion={
-            lastCropRegion ??
-            ((objectFit ?? "cover") === "cover" && imageRef.current
-              ? computeCoverCropRegion(
-                  imageRef.current.naturalWidth,
-                  imageRef.current.naturalHeight,
-                  imageRef.current.width,
-                  imageRef.current.height
-                )
-              : null)
-          }
+          initialRegion={reusableLastCropRegion ?? mainCropTarget.initialRegion}
+          targetAspect={mainCropTarget.aspect}
           onCrop={applyCroppedScreenshot}
         />
       )}
 
       {!isCanvasPreview && (
         <CropModal
-          open={croppingSlotId !== null}
+          open={slotCropRequest !== null}
           onOpenChange={(open) => {
-            if (!open) setCroppingSlotId(null)
+            if (!open) setSlotCropRequest(null)
           }}
           screenshotUrl={
-            croppingSlotId
-              ? (screenshotSlots.find((s) => s.id === croppingSlotId)?.src ??
-                null)
+            slotCropRequest
+              ? (() => {
+                  const slot = screenshotSlots.find(
+                    (s) => s.id === slotCropRequest.slotId
+                  )
+                  return slot?.originalSrc ?? slot?.src ?? null
+                })()
               : null
           }
-          onCrop={(cropped) => {
-            if (croppingSlotId) {
-              setScreenshotSlotImage(croppingSlotId, cropped)
-              setCroppingSlotId(null)
+          initialRegion={slotCropRequest?.initialRegion}
+          targetAspect={slotCropRequest?.aspect}
+          onCrop={(cropped, region) => {
+            if (slotCropRequest) {
+              applyCroppedScreenshotSlot(
+                slotCropRequest.slotId,
+                cropped,
+                region
+              )
+              setSlotCropRequest(null)
             }
           }}
         />
