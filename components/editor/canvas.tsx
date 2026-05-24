@@ -31,11 +31,7 @@ import {
   useEditor,
   useEditorStore,
 } from "@/lib/editor/store"
-import {
-  computeCropTarget,
-  cropRegionMatchesAspect,
-  type CropTarget,
-} from "@/lib/editor/crop-utils"
+import { computeCropTarget, type CropTarget } from "@/lib/editor/crop-utils"
 import type { CaptureSettings } from "./canvas/upload-card"
 import {
   defaultCaptureDeviceForFrame,
@@ -520,18 +516,9 @@ function CanvasViewInner({
       imageElement,
       fallbackAspect: canvasAspectRatio,
     })
-    const reusableLastCropRegion = cropRegionMatchesAspect(
-      lastCropRegion,
-      imageElement?.naturalWidth ?? 0,
-      imageElement?.naturalHeight ?? 0,
-      target.aspect
-    )
-
     setMainCropRequest({
       ...target,
-      initialRegion: reusableLastCropRegion
-        ? lastCropRegion
-        : target.initialRegion,
+      initialRegion: lastCropRegion ?? target.initialRegion,
     })
   }, [canvasAspectRatio, frame, lastCropRegion, objectFit])
 
