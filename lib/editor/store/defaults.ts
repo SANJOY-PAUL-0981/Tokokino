@@ -34,7 +34,7 @@ export const DEFAULT_CANVAS_BASE: Omit<CanvasState, "id" | "position"> = {
   },
   padding: 40,
   borderRadius: 7,
-  canvasBorderRadius: 16,
+  canvasBorderRadius: 0,
   border: { color: null, width: 1, style: "solid", padding: 0 },
   backdrop: {
     effects: {

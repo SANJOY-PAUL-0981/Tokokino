@@ -87,6 +87,7 @@ export function ScreenshotEditMenu({
         <PopoverAnchor asChild>
           <button
             ref={triggerRef}
+            data-export-hidden="true"
             type="button"
             aria-label="Edit screenshot"
             title="Edit screenshot"
@@ -112,6 +113,7 @@ export function ScreenshotEditMenu({
           </button>
         </PopoverAnchor>
         <PopoverContent
+          data-export-hidden="true"
           align="center"
           side="bottom"
           sideOffset={10}
