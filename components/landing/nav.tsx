@@ -110,12 +110,12 @@ export function Nav() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.28, ease }}
-            className="fixed inset-0 z-40 flex flex-col px-7 pt-24 pb-12 xl:hidden"
+            className="fixed inset-x-0 top-16 bottom-0 z-40 flex flex-col overflow-y-auto px-7 pt-8 pb-12 xl:hidden"
             style={{
-              backdropFilter: "blur(24px)",
-              WebkitBackdropFilter: "blur(24px)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
               backgroundColor:
-                "color-mix(in oklch, var(--background) 85%, transparent)",
+                "color-mix(in oklch, var(--background) 58%, transparent)",
             }}
           >
             <nav className="flex flex-col gap-1">

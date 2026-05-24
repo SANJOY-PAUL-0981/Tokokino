@@ -43,6 +43,9 @@ export default function Page() {
           className="h-full w-full"
         />
       </div>
+      <div className={`sticky top-0 z-50 ${NAV_WIDTH}`}>
+        <Nav />
+      </div>
       <motion.div
         initial={
           shouldReduceMotion
@@ -52,9 +55,6 @@ export default function Page() {
         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
         transition={{ duration: 1.45, ease, delay: 0.18 }}
       >
-        <div className={`sticky top-0 z-50 ${NAV_WIDTH}`}>
-          <Nav />
-        </div>
         <DashedH />
         <div className={`relative ${CONTENT_WIDTH}`} style={RAIL_V_STYLE}>
           <Hero />
