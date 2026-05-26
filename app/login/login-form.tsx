@@ -26,12 +26,18 @@ export function LoginForm({
     } catch (error) {
       console.warn("Could not save local editor state before sign-in", error)
     }
-    const { error } = await authClient.signIn.social({
-      provider: "google",
-      callbackURL,
-    })
-    if (error) {
-      toast.error(error.message ?? "Google sign-in failed")
+    try {
+      const { error } = await authClient.signIn.social({
+        provider: "google",
+        callbackURL,
+      })
+      if (error) {
+        toast.error(error.message ?? "Google sign-in failed")
+        setLoading(false)
+      }
+      // No error means redirect is in progress — keep loading state
+    } catch {
+      toast.error("Google sign-in failed")
       setLoading(false)
     }
   }
