@@ -853,7 +853,7 @@ export function TopBar() {
 
       {/* Center controls — compact on tablets, full labels on desktop */}
       <div className="hidden min-w-0 flex-1 items-center justify-center gap-1.5 md:flex">
-        <div className="tool-cluster">
+        <div className="tool-cluster hidden xl:flex">
           <TopBarButton
             label="New"
             icon={RiFileAddLine}
@@ -867,7 +867,7 @@ export function TopBar() {
           />
         </div>
 
-        <div className="tool-cluster">
+        <div className="tool-cluster hidden xl:flex">
           <IconAction
             label="Undo"
             icon={RiArrowGoBackLine}
@@ -895,12 +895,14 @@ export function TopBar() {
                 : "Enable bulk edit & add canvas"
             }
             onClick={handleBulkEditClick}
+            className="hidden xl:inline-flex"
           />
           <TopBarButton
             label="Preview"
             icon={RiEyeLine}
             tooltip="Preview screenshot"
             onClick={() => setIsPreviewMode(true)}
+            className="hidden xl:inline-flex"
           />
           <SaveControls
             open={saveOpen}
@@ -1024,12 +1026,14 @@ export function TopBar() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel className="cursor-pointer">
+              <AlertDialogCancel
+                variant="destructive"
+                className="cursor-pointer"
+              >
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
-                variant="destructive"
-                className="cursor-pointer"
+                className="cursor-pointer border-green-600/20 bg-green-600/10 text-green-600 hover:bg-green-600/20 dark:bg-green-600/20 dark:hover:bg-green-600/30"
                 onClick={() => {
                   reset()
                   setShowNewAlert(false)
@@ -1151,7 +1155,7 @@ export function TopBar() {
 
       <div className="flex shrink-0 items-center justify-end gap-1.5">
         {/* Right cluster — desktop only */}
-        <div className="hidden items-center gap-1.5 md:flex">
+        <div className="hidden items-center gap-1.5 xl:flex">
           <ThemeToggle />
 
           <Tooltip>
@@ -1849,6 +1853,7 @@ function TopBarButton({
   variant = "outline",
   tooltip,
   disabled,
+  className,
 }: {
   label: string
   icon: React.ComponentType<{ className?: string }>
@@ -1856,9 +1861,16 @@ function TopBarButton({
   variant?: React.ComponentProps<typeof Button>["variant"]
   tooltip?: string
   disabled?: boolean
+  className?: string
 }) {
   const button = (
-    <Button variant={variant} size="lg" onClick={onClick} disabled={disabled}>
+    <Button
+      variant={variant}
+      size="lg"
+      onClick={onClick}
+      disabled={disabled}
+      className={className}
+    >
       <Icon />
       <span className="hidden xl:inline">{label}</span>
     </Button>
@@ -1939,7 +1951,7 @@ function MobileOverflowMenu({
             variant="outline"
             size="icon-lg"
             aria-label="More actions"
-            className="md:hidden"
+            className="xl:hidden"
           >
             <RiMoreLine />
           </Button>
@@ -2611,7 +2623,7 @@ function OpenProjectDialog({
 
           <DialogFooter className="border-t border-border/60 px-5 py-3">
             <Button
-              variant="outline"
+              variant="destructive"
               size="lg"
               onClick={() => onOpenChange(false)}
             >

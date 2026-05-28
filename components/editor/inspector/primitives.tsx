@@ -16,27 +16,36 @@ export function Section({
   icon: Icon,
   title,
   defaultOpen = true,
+  collapsible = true,
   children,
 }: {
   icon: React.ComponentType<{ className?: string }>
   title: string
   defaultOpen?: boolean
+  /** When false the section is always expanded and the toggle chevron is hidden. */
+  collapsible?: boolean
   children: React.ReactNode
 }) {
-  const [open, setOpen] = React.useState(defaultOpen)
+  const [openState, setOpen] = React.useState(defaultOpen)
+  const open = collapsible ? openState : true
   return (
     <div>
       <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full cursor-pointer items-center gap-2 py-1.5 text-left"
+        onClick={collapsible ? () => setOpen((v) => !v) : undefined}
+        className={cn(
+          "flex w-full items-center gap-2 py-1.5 text-left",
+          collapsible && "cursor-pointer"
+        )}
       >
-        <motion.span
-          animate={{ rotate: open ? 0 : -90 }}
-          transition={{ duration: 0.18 }}
-          className="inline-flex size-4 items-center justify-center text-muted-foreground"
-        >
-          <RiArrowDownSLine className="size-4" />
-        </motion.span>
+        {collapsible ? (
+          <motion.span
+            animate={{ rotate: open ? 0 : -90 }}
+            transition={{ duration: 0.18 }}
+            className="inline-flex size-4 items-center justify-center text-muted-foreground"
+          >
+            <RiArrowDownSLine className="size-4" />
+          </motion.span>
+        ) : null}
         <span className="inline-flex size-5 items-center justify-center rounded-full bg-secondary/60 text-muted-foreground">
           <Icon className="size-3" />
         </span>

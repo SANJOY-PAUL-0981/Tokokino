@@ -98,236 +98,251 @@ export function AnnotationToolbar({ onExit }: { onExit: () => void }) {
   const previewShapeKind = annotationModeToShapeKind(annotation.mode) ?? "arrow"
 
   return (
-    <div className="flex items-center gap-0.5">
-      {/* Exit / mode chip */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            onClick={onExit}
-            aria-label="Exit annotate mode"
-            className="group inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg pr-2 pl-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <RiArrowLeftSLine className="size-4" />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="top">Exit annotate mode</TooltipContent>
-      </Tooltip>
+    <div className="flex min-w-0 items-center">
+      {/* Fixed: back button */}
+      <div className="flex flex-shrink-0 items-center">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onExit}
+              aria-label="Exit annotate mode"
+              className="group inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg pr-2 pl-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <RiArrowLeftSLine className="size-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top">Exit annotate mode</TooltipContent>
+        </Tooltip>
+        <Divider />
+      </div>
 
-      <Divider />
+      {/* Scrollable tools */}
+      <div className="flex min-w-0 flex-1 [scrollbar-width:none] overflow-x-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex items-center gap-0.5">
+          {/* Brushes */}
+          <ToolGroup>
+            {BRUSHES.map((t) => (
+              <ToolButton
+                key={t.id}
+                tool={t}
+                active={annotation.mode === t.id}
+                tint={annotation.color}
+                onClick={() => setAnnotation({ mode: t.id })}
+              />
+            ))}
+          </ToolGroup>
 
-      {/* Brushes */}
-      <ToolGroup>
-        {BRUSHES.map((t) => (
-          <ToolButton
-            key={t.id}
-            tool={t}
-            active={annotation.mode === t.id}
-            tint={annotation.color}
-            onClick={() => setAnnotation({ mode: t.id })}
-          />
-        ))}
-      </ToolGroup>
-
-      <Divider />
-
-      {/* Shapes */}
-      <ToolGroup>
-        {SHAPES.map((t) => {
-          const shapeKind = annotationModeToShapeKind(t.id)
-          const isActive = annotation.mode === t.id
-          return (
-            <ToolButton
-              key={t.id}
-              tool={t}
-              active={isActive}
-              tint={annotation.color}
-              iconOverride={
-                shapeKind === "step" ? (
-                  <StepMarkerIcon active={isActive} color={annotation.color} />
-                ) : shapeKind && shapeKind !== "blur" ? (
-                  <LineStylePreview
-                    style="solid"
-                    kind={shapeKind}
-                    active={isActive}
-                  />
-                ) : undefined
-              }
-              onClick={() => {
-                setAnnotation({
-                  mode: t.id,
-                  ...(shapeKind && shapeKind !== "blur" && !activeShapeKind
-                    ? { color: lastShapeColorRef.current }
-                    : {}),
-                })
-              }}
-            />
-          )
-        })}
-      </ToolGroup>
-
-      {annotation.mode === "blur" ? (
-        <>
           <Divider />
-          <div className="flex items-center gap-0.5 px-1">
-            {REDACTION_TEMPLATES.map((template) => {
-              const isActive = activeRedactionEffect === template.id
+
+          {/* Shapes */}
+          <ToolGroup>
+            {SHAPES.map((t) => {
+              const shapeKind = annotationModeToShapeKind(t.id)
+              const isActive = annotation.mode === t.id
               return (
-                <Tooltip key={template.id}>
-                  <TooltipTrigger asChild>
-                    <button
-                      aria-label={template.label}
-                      className={cn(
-                        "inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
-                        isActive && "bg-accent text-foreground"
-                      )}
-                      onClick={() => {
-                        setAnnotation({
-                          mode: "blur",
-                          blurEffect: template.id,
-                        })
-                      }}
-                    >
-                      <RedactionTemplatePreview
-                        effect={template.id}
+                <ToolButton
+                  key={t.id}
+                  tool={t}
+                  active={isActive}
+                  tint={annotation.color}
+                  iconOverride={
+                    shapeKind === "step" ? (
+                      <StepMarkerIcon
+                        active={isActive}
+                        color={annotation.color}
+                      />
+                    ) : shapeKind && shapeKind !== "blur" ? (
+                      <LineStylePreview
+                        style="solid"
+                        kind={shapeKind}
                         active={isActive}
                       />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">{template.label}</TooltipContent>
-                </Tooltip>
-              )
-            })}
-          </div>
-        </>
-      ) : null}
-
-      {/* Color row */}
-      {showColorControls ? (
-        <>
-          <Divider />
-          <div className="flex items-center px-1">
-            <ColorPickerPopover
-              value={annotation.color}
-              side="top"
-              align="center"
-              footer={
-                showThicknessInColorPicker ? (
-                  <ShapeThicknessPanel
-                    value={annotation.strokeWidth}
-                    color={annotation.color}
-                    onChange={(strokeWidth) => setAnnotation({ strokeWidth })}
-                  />
-                ) : null
-              }
-              onChange={(hex) => {
-                if (activeShapeKind) lastShapeColorRef.current = hex
-                setAnnotation({ color: hex })
-              }}
-            >
-              <button
-                aria-label="Annotation color"
-                title="Annotation color"
-                className="relative inline-flex size-9 cursor-pointer items-center justify-center overflow-visible rounded-lg border border-border/60 bg-secondary/40 transition-colors hover:border-foreground/30 hover:bg-accent"
-              >
-                <span
-                  className="absolute top-1.5 left-1.5 size-6 rounded-full border"
-                  style={{ background: annotation.color }}
+                    ) : undefined
+                  }
+                  onClick={() => {
+                    setAnnotation({
+                      mode: t.id,
+                      ...(shapeKind && shapeKind !== "blur" && !activeShapeKind
+                        ? { color: lastShapeColorRef.current }
+                        : {}),
+                    })
+                  }}
                 />
-                <span className="absolute top-1/2 left-1/2 grid size-[18px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full text-white ring-0">
-                  <RiEqualizerLine className="size-3 translate-y-[0.5px]" />
-                </span>
-              </button>
-            </ColorPickerPopover>
-          </div>
-        </>
-      ) : null}
-
-      {/* Stroke width */}
-      {showIntensityControls ? (
-        <>
-          <Divider />
-          <div className="flex items-center gap-0.5 px-1">
-            {ANNOTATION_STROKES.map((w) => {
-              const isActive = annotation.strokeWidth === w
-              return (
-                <Tooltip key={w}>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => setAnnotation({ strokeWidth: w })}
-                      aria-label={`Intensity ${w}px`}
-                      className={cn(
-                        "inline-flex size-7 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-accent",
-                        isActive && "bg-accent"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "block rounded-full transition-all",
-                          isActive ? "bg-foreground" : "bg-foreground/55"
-                        )}
-                        style={{ width: w + 2, height: w + 2 }}
-                      />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">Intensity {w}px</TooltipContent>
-                </Tooltip>
               )
             })}
-            <IntensitySliderButton
-              value={annotation.strokeWidth}
-              label="Intensity"
-              onChange={(strokeWidth) => setAnnotation({ strokeWidth })}
-            />
-          </div>
-        </>
-      ) : null}
+          </ToolGroup>
 
-      {showLineStyleControls ? (
-        <>
-          <Divider />
-          <div className="flex items-center gap-0.5 px-1">
-            {LINE_STYLES.map((style) => (
-              <Tooltip key={style.id}>
-                <TooltipTrigger asChild>
+          {annotation.mode === "blur" ? (
+            <>
+              <Divider />
+              <div className="flex items-center gap-0.5 px-1">
+                {REDACTION_TEMPLATES.map((template) => {
+                  const isActive = activeRedactionEffect === template.id
+                  return (
+                    <Tooltip key={template.id}>
+                      <TooltipTrigger asChild>
+                        <button
+                          aria-label={template.label}
+                          className={cn(
+                            "inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+                            isActive && "bg-accent text-foreground"
+                          )}
+                          onClick={() => {
+                            setAnnotation({
+                              mode: "blur",
+                              blurEffect: template.id,
+                            })
+                          }}
+                        >
+                          <RedactionTemplatePreview
+                            effect={template.id}
+                            active={isActive}
+                          />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        {template.label}
+                      </TooltipContent>
+                    </Tooltip>
+                  )
+                })}
+              </div>
+            </>
+          ) : null}
+
+          {/* Color row */}
+          {showColorControls ? (
+            <>
+              <Divider />
+              <div className="flex items-center px-1">
+                <ColorPickerPopover
+                  value={annotation.color}
+                  side="top"
+                  align="center"
+                  footer={
+                    showThicknessInColorPicker ? (
+                      <ShapeThicknessPanel
+                        value={annotation.strokeWidth}
+                        color={annotation.color}
+                        onChange={(strokeWidth) =>
+                          setAnnotation({ strokeWidth })
+                        }
+                      />
+                    ) : null
+                  }
+                  onChange={(hex) => {
+                    if (activeShapeKind) lastShapeColorRef.current = hex
+                    setAnnotation({ color: hex })
+                  }}
+                >
                   <button
-                    onClick={() => {
-                      setAnnotation({ lineStyle: style.id })
-                    }}
-                    aria-label={`${style.label} line`}
-                    className={cn(
-                      "inline-flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-accent",
-                      activeLineStyle === style.id && "bg-accent"
-                    )}
+                    aria-label="Annotation color"
+                    title="Annotation color"
+                    className="relative inline-flex size-9 cursor-pointer items-center justify-center overflow-visible rounded-lg border border-border/60 bg-secondary/40 transition-colors hover:border-foreground/30 hover:bg-accent"
                   >
-                    <LineStylePreview
-                      style={style.id}
-                      kind={previewShapeKind}
-                      active={activeLineStyle === style.id}
+                    <span
+                      className="absolute top-1.5 left-1.5 size-6 rounded-full border"
+                      style={{ background: annotation.color }}
                     />
+                    <span className="absolute top-1/2 left-1/2 grid size-[18px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full text-white ring-0">
+                      <RiEqualizerLine className="size-3 translate-y-[0.5px]" />
+                    </span>
                   </button>
-                </TooltipTrigger>
-                <TooltipContent side="top">{style.label}</TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        </>
-      ) : null}
+                </ColorPickerPopover>
+              </div>
+            </>
+          ) : null}
 
-      <Divider />
+          {/* Stroke width */}
+          {showIntensityControls ? (
+            <>
+              <Divider />
+              <div className="flex items-center gap-0.5 px-1">
+                {ANNOTATION_STROKES.map((w) => {
+                  const isActive = annotation.strokeWidth === w
+                  return (
+                    <Tooltip key={w}>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => setAnnotation({ strokeWidth: w })}
+                          aria-label={`Intensity ${w}px`}
+                          className={cn(
+                            "inline-flex size-7 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-accent",
+                            isActive && "bg-accent"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "block rounded-full transition-all",
+                              isActive ? "bg-foreground" : "bg-foreground/55"
+                            )}
+                            style={{ width: w + 2, height: w + 2 }}
+                          />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        Intensity {w}px
+                      </TooltipContent>
+                    </Tooltip>
+                  )
+                })}
+                <IntensitySliderButton
+                  value={annotation.strokeWidth}
+                  label="Intensity"
+                  onChange={(strokeWidth) => setAnnotation({ strokeWidth })}
+                />
+              </div>
+            </>
+          ) : null}
 
-      {/* Clear */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            onClick={() => clearAnnotations()}
-            aria-label="Clear all annotations"
-            className="group inline-flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500"
-          >
-            <RiDeleteBin6Line className="size-4" />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="top">Clear all</TooltipContent>
-      </Tooltip>
+          {showLineStyleControls ? (
+            <>
+              <Divider />
+              <div className="flex items-center gap-0.5 px-1">
+                {LINE_STYLES.map((style) => (
+                  <Tooltip key={style.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => {
+                          setAnnotation({ lineStyle: style.id })
+                        }}
+                        aria-label={`${style.label} line`}
+                        className={cn(
+                          "inline-flex size-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-accent",
+                          activeLineStyle === style.id && "bg-accent"
+                        )}
+                      >
+                        <LineStylePreview
+                          style={style.id}
+                          kind={previewShapeKind}
+                          active={activeLineStyle === style.id}
+                        />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">{style.label}</TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          <Divider />
+
+          {/* Clear */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => clearAnnotations()}
+                aria-label="Clear all annotations"
+                className="group inline-flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500"
+              >
+                <RiDeleteBin6Line className="size-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top">Clear all</TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
     </div>
   )
 }

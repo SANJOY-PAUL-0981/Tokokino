@@ -392,16 +392,16 @@ export function UploadCard({
             // canvases shrink the button into illegibility.
             style={{
               transform:
-                "scale(clamp(1, calc(1 / var(--canvas-fit-scale, 1)), 3))",
+                "scale(clamp(1, calc(1 / var(--canvas-fit-scale, 1)), 1.8))",
               transformOrigin: "center",
             }}
             className={cn(
               "pointer-events-auto grid place-items-center rounded-full border-2 border-primary bg-white text-neutral-950 shadow-[0_0_0_3px_rgba(0,0,0,0.06),0_6px_20px_-6px_rgba(0,0,0,0.18)] backdrop-blur-sm transition-[background-color,border-color] hover:bg-neutral-50 dark:bg-neutral-900 dark:text-white dark:shadow-[0_0_0_4px_rgba(0,0,0,0.4),0_8px_24px_-8px_rgba(0,0,0,0.6)] dark:hover:bg-neutral-800",
-              "size-14",
+              "size-10 sm:size-14",
               className
             )}
           >
-            <RiAddLine className="size-7" />
+            <RiAddLine className="size-5 sm:size-7" />
           </button>
         </PopoverTrigger>
         <PopoverContent

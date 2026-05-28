@@ -104,12 +104,12 @@ export function ScreenshotEditMenu({
             // (autoFit ≈ 1) or tall portrait (autoFit ≈ 0.3).
             style={{
               transform:
-                "scale(clamp(1, calc(1 / var(--canvas-fit-scale, 1)), 3))",
+                "scale(clamp(1, calc(1 / var(--canvas-fit-scale, 1)), 1.8))",
               transformOrigin: "center",
             }}
-            className="pointer-events-auto flex size-14 items-center justify-center rounded-full bg-background text-foreground shadow-xl ring-2 ring-foreground/15 transition-[ring-color] hover:ring-foreground/30"
+            className="pointer-events-auto flex size-10 items-center justify-center rounded-full bg-background text-foreground shadow-xl ring-2 ring-foreground/15 transition-[ring-color] hover:ring-foreground/30 sm:size-14"
           >
-            <RiPencilLine className="size-7" />
+            <RiPencilLine className="size-5 sm:size-7" />
           </button>
         </PopoverAnchor>
         <PopoverContent

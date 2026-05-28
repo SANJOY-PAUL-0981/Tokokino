@@ -317,7 +317,7 @@ export function FramePopover({
         align="center"
         sideOffset={8}
         collisionPadding={8}
-        className="flex h-[min(640px,82vh)] max-h-[min(640px,82vh)] w-[min(420px,calc(100vw-1rem))] flex-col gap-0 overflow-hidden bg-popover p-0"
+        className="flex h-[min(640px,82vh)] max-h-[min(640px,82vh)] w-[min(420px,calc(100vw-1rem))] flex-col gap-0 overflow-hidden bg-popover p-0 max-md:h-[min(360px,55vh)] max-md:max-h-[min(360px,55vh)]"
       >
         <motion.div
           initial={{ opacity: 0, y: -6 }}

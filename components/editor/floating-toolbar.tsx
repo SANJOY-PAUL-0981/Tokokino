@@ -3,6 +3,8 @@
 import * as React from "react"
 import {
   RiAddLine,
+  RiArrowGoBackLine,
+  RiArrowGoForwardLine,
   RiArrowRightLine,
   RiArrowRightUpLine,
   RiCursorLine,
@@ -18,6 +20,7 @@ import {
   RiResetLeftLine,
   RiSparkling2Line,
   RiStackLine,
+  RiSubtractLine,
   RiText,
 } from "@remixicon/react"
 import { AnimatePresence, motion } from "motion/react"
@@ -498,8 +501,8 @@ function computeArrangedPositions(
   return positions
 }
 
-export function FloatingToolbar() {
-  const { activeTool, setActiveTool, addCanvas, bulkEditMode } = useEditor()
+function useBulkBarState() {
+  const { addCanvas, bulkEditMode, activeTool } = useEditor()
   const canvasIds = useEditorStore(
     useShallow((s) => s.present.canvases.map((canvas) => canvas.id))
   )
@@ -530,95 +533,154 @@ export function FloatingToolbar() {
     toast("Positions reset")
   }, [canvasIds, setCanvasPositions, requestBulkFitView])
 
+  return {
+    canvasIds,
+    addCanvas,
+    bulkEditMode,
+    isAnnotateMode,
+    applyLayout,
+    resetPositions,
+  }
+}
+
+function BulkBarContent({
+  canvasIds,
+  addCanvas,
+  applyLayout,
+  resetPositions,
+}: {
+  canvasIds: string[]
+  addCanvas: () => string | null
+  applyLayout: (layout: BulkLayout) => void
+  resetPositions: () => void
+}) {
+  return (
+    <div className="pointer-events-auto flex items-center gap-0.5 rounded-xl border border-border/70 bg-popover/90 p-1 shadow-lg backdrop-blur-md">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={() => applyLayout("grid")}
+            className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground/80 transition-colors hover:bg-accent"
+          >
+            <RiLayoutGridLine className="size-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Arrange in grid</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={() => applyLayout("row")}
+            className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground/80 transition-colors hover:bg-accent"
+          >
+            <RiLayoutRowLine className="size-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Arrange in a row</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={() => applyLayout("column")}
+            className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground/80 transition-colors hover:bg-accent"
+          >
+            <RiLayoutColumnLine className="size-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Arrange in a column</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={resetPositions}
+            className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground/80 transition-colors hover:bg-accent"
+          >
+            <RiResetLeftLine className="size-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Reset positions</TooltipContent>
+      </Tooltip>
+      <span className="mx-1 h-5 w-px bg-border" />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            disabled={canvasIds.length >= MAX_CANVASES}
+            onClick={() => {
+              const id = addCanvas()
+              if (!id) toast(`Canvas limit reached (${MAX_CANVASES})`)
+            }}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+          >
+            <RiAddLine className="size-4" />
+            Add canvas
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {canvasIds.length >= MAX_CANVASES
+            ? `Canvas limit reached (${MAX_CANVASES})`
+            : "Add canvas"}
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  )
+}
+
+/** Bulk arrange bar — shown at the top of the canvas area on all screen sizes. */
+export function BulkBar() {
+  const {
+    canvasIds,
+    addCanvas,
+    bulkEditMode,
+    isAnnotateMode,
+    applyLayout,
+    resetPositions,
+  } = useBulkBarState()
   const showBulkBar = bulkEditMode && !isAnnotateMode
 
   return (
-    <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 flex w-full max-w-[calc(100vw-1.5rem)] -translate-x-1/2 flex-col items-center gap-2 px-3 sm:w-auto sm:px-0 md:max-xl:left-[calc(50%-130px)]">
+    <div className="pointer-events-none absolute top-3 left-1/2 z-20 -translate-x-1/2">
       <AnimatePresence initial={false}>
         {showBulkBar ? (
           <motion.div
             key="bulk-bar"
-            initial={{ opacity: 0, y: 12, scale: 0.96 }}
+            initial={{ opacity: 0, y: -10, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 12, scale: 0.96 }}
+            exit={{ opacity: 0, y: -10, scale: 0.96 }}
             transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
-            className="pointer-events-auto flex items-center gap-0.5 rounded-xl border border-border/70 bg-popover/90 p-1 shadow-lg backdrop-blur-md"
           >
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => applyLayout("grid")}
-                  className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground/80 transition-colors hover:bg-accent"
-                >
-                  <RiLayoutGridLine className="size-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top">Arrange in grid</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => applyLayout("row")}
-                  className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground/80 transition-colors hover:bg-accent"
-                >
-                  <RiLayoutRowLine className="size-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top">Arrange in a row</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => applyLayout("column")}
-                  className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground/80 transition-colors hover:bg-accent"
-                >
-                  <RiLayoutColumnLine className="size-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top">Arrange in a column</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={resetPositions}
-                  className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground/80 transition-colors hover:bg-accent"
-                >
-                  <RiResetLeftLine className="size-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top">Reset positions</TooltipContent>
-            </Tooltip>
-            <span className="mx-1 h-5 w-px bg-border" />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  disabled={canvasIds.length >= MAX_CANVASES}
-                  onClick={() => {
-                    const id = addCanvas()
-                    if (!id) toast(`Canvas limit reached (${MAX_CANVASES})`)
-                  }}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
-                >
-                  <RiAddLine className="size-4" />
-                  Add canvas
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                {canvasIds.length >= MAX_CANVASES
-                  ? `Canvas limit reached (${MAX_CANVASES})`
-                  : "Insert a new canvas"}
-              </TooltipContent>
-            </Tooltip>
+            <BulkBarContent
+              canvasIds={canvasIds}
+              addCanvas={addCanvas}
+              applyLayout={applyLayout}
+              resetPositions={resetPositions}
+            />
           </motion.div>
         ) : null}
       </AnimatePresence>
+    </div>
+  )
+}
 
-      <div className="flex items-center gap-2">
+export function FloatingToolbar() {
+  const { activeTool, setActiveTool } = useEditor()
+  const { isAnnotateMode } = useBulkBarState()
+
+  return (
+    <div
+      className={cn(
+        "pointer-events-none absolute bottom-4 z-20 flex w-full max-w-[calc(100vw-1.5rem)] flex-col items-center gap-2 px-3 max-md:bottom-[88px] sm:w-auto sm:px-0 md:max-xl:left-[calc(50%+132px)]",
+        // In annotate mode on mobile, anchor left so overflow scrolls right
+        isAnnotateMode
+          ? "left-3 max-md:translate-x-0 md:left-1/2 md:-translate-x-1/2"
+          : "left-1/2 -translate-x-1/2"
+      )}
+    >
+      <div className="flex items-center gap-2 max-xl:flex-col">
         <AnimatePresence initial={false}>
           {!isAnnotateMode && (
             <motion.div
@@ -636,8 +698,10 @@ export function FloatingToolbar() {
         <div
           data-mode={isAnnotateMode ? "annotate" : "default"}
           className={cn(
-            "pointer-events-auto flex items-center gap-0.5 overflow-x-auto rounded-xl border border-border/70 bg-popover/90 p-1 shadow-lg backdrop-blur-md",
-            "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            "pointer-events-auto flex items-center gap-0.5 rounded-xl border border-border/70 bg-popover/90 p-1 shadow-lg backdrop-blur-md",
+            !isAnnotateMode &&
+              "[scrollbar-width:none] overflow-x-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+            isAnnotateMode && "max-md:max-w-[calc(100vw-1.5rem)]"
           )}
         >
           <AnimatePresence mode="wait" initial={false}>
@@ -647,7 +711,10 @@ export function FloatingToolbar() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.12, ease: "easeOut" }}
-              className="flex items-center gap-0.5"
+              className={cn(
+                "flex items-center gap-0.5",
+                isAnnotateMode ? "min-w-0 flex-1" : "min-w-max"
+              )}
             >
               {isAnnotateMode ? (
                 <AnnotationToolbar onExit={() => setActiveTool("pointer")} />
@@ -1046,6 +1113,7 @@ function DefaultToolbarContents() {
           e.target.value = ""
         }}
       />
+
       <ToolbarButton
         aria-label="Add asset"
         tooltip="Add asset (image)"
@@ -1064,6 +1132,8 @@ function DefaultToolbarContents() {
               key={it.id}
               tooltip={it.label}
               contentClassName="w-auto p-0"
+              align="center"
+              collisionPadding={16}
               onOpenChange={(open) => {
                 if (!open) setActiveTool("pointer")
               }}
@@ -1256,66 +1326,68 @@ function DefaultToolbarContents() {
         )
       })}
 
-      <span className="mx-1 h-5 w-px bg-border" />
+      <span className="mx-1 hidden h-5 w-px bg-border md:block" />
 
-      <ToolbarButton
-        aria-label="Zoom out"
-        tooltip={
-          hasScalableContent ? "Zoom out" : "Add a screenshot or frame first"
-        }
-        disabled={!hasScalableContent || activeScale <= 10}
-        onClick={() => {
-          const nextScale = editorValueSchemas.scale
-            .catch(100)
-            .parse(activeScale - 10)
-          if (selectedSlot) {
-            updateScreenshotSlot(selectedSlot.id, { scale: nextScale })
-            return
+      <span className="hidden items-center md:flex">
+        <ToolbarButton
+          aria-label="Zoom out"
+          tooltip={
+            hasScalableContent ? "Zoom out" : "Add a screenshot or frame first"
           }
-          setScale(nextScale)
-        }}
-      >
-        <span className="text-base leading-none">−</span>
-      </ToolbarButton>
+          disabled={!hasScalableContent || activeScale <= 10}
+          onClick={() => {
+            const nextScale = editorValueSchemas.scale
+              .catch(100)
+              .parse(activeScale - 10)
+            if (selectedSlot) {
+              updateScreenshotSlot(selectedSlot.id, { scale: nextScale })
+              return
+            }
+            setScale(nextScale)
+          }}
+        >
+          <span className="text-base leading-none">−</span>
+        </ToolbarButton>
 
-      <button
-        type="button"
-        disabled={!hasScalableContent}
-        onClick={() => {
-          const resetScale = editorValueSchemas.scale.catch(100).parse(100)
-          if (selectedSlot) {
-            updateScreenshotSlot(selectedSlot.id, { scale: resetScale })
-            return
-          }
-          setScale(resetScale)
-        }}
-        className={cn(
-          "tabular min-w-[3.25rem] cursor-pointer rounded-md px-1 py-1.5 font-mono text-[11px] text-foreground/85 hover:bg-accent",
-          !hasScalableContent && "cursor-not-allowed opacity-40"
-        )}
-      >
-        {activeScale}%
-      </button>
+        <button
+          type="button"
+          disabled={!hasScalableContent}
+          onClick={() => {
+            const resetScale = editorValueSchemas.scale.catch(100).parse(100)
+            if (selectedSlot) {
+              updateScreenshotSlot(selectedSlot.id, { scale: resetScale })
+              return
+            }
+            setScale(resetScale)
+          }}
+          className={cn(
+            "tabular min-w-[3.25rem] cursor-pointer rounded-md px-1 py-1.5 font-mono text-[11px] text-foreground/85 hover:bg-accent",
+            !hasScalableContent && "cursor-not-allowed opacity-40"
+          )}
+        >
+          {activeScale}%
+        </button>
 
-      <ToolbarButton
-        aria-label="Zoom in"
-        tooltip={
-          hasScalableContent ? "Zoom in" : "Add a screenshot or frame first"
-        }
-        disabled={!hasScalableContent || activeScale >= 300}
-        onClick={() => {
-          const nextScale = editorValueSchemas.scale
-            .catch(100)
-            .parse(activeScale + 10)
-          if (selectedSlot) {
-            updateScreenshotSlot(selectedSlot.id, { scale: nextScale })
-            return
+        <ToolbarButton
+          aria-label="Zoom in"
+          tooltip={
+            hasScalableContent ? "Zoom in" : "Add a screenshot or frame first"
           }
-          setScale(nextScale)
-        }}
-      >
-        <span className="text-base leading-none">+</span>
-      </ToolbarButton>
+          disabled={!hasScalableContent || activeScale >= 300}
+          onClick={() => {
+            const nextScale = editorValueSchemas.scale
+              .catch(100)
+              .parse(activeScale + 10)
+            if (selectedSlot) {
+              updateScreenshotSlot(selectedSlot.id, { scale: nextScale })
+              return
+            }
+            setScale(nextScale)
+          }}
+        >
+          <span className="text-base leading-none">+</span>
+        </ToolbarButton>
+      </span>
     </>
   )
 }
@@ -1334,8 +1406,15 @@ function ScreenshotMediaPill() {
     screenshot,
     objectFit,
     setObjectFit,
+    frame,
+    scale,
+    setScale,
   } = useEditor()
   const presetTab = useEditorStore((s) => s.presetTab)
+  const undo = useEditorStore((s) => s.undo)
+  const redo = useEditorStore((s) => s.redo)
+  const canUndo = useEditorStore((s) => s.past.length > 0)
+  const canRedo = useEditorStore((s) => s.future.length > 0)
   const selectedScreenshotSlotId = useEditorStore(
     (s) => s.selectedScreenshotSlotId
   )
@@ -1359,8 +1438,53 @@ function ScreenshotMediaPill() {
       : `Maximum ${MAX_SCREENSHOT_SLOTS} screenshot boxes`
     : "Add a screenshot slot"
 
+  const hasDeviceFrame = frame.id !== "none"
+  const hasScalableContent = selectedSlot
+    ? true
+    : Boolean(screenshot) || hasDeviceFrame || screenshotSlots.length > 0
+  const activeScale = selectedSlot?.scale ?? scale
+
   return (
     <div className="pointer-events-auto flex items-center gap-0.5 rounded-xl border border-border/70 bg-popover/90 p-1 shadow-lg backdrop-blur-md">
+      {/* Undo / Redo — mobile + iPad only */}
+      <span className="flex items-center xl:hidden">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label="Undo"
+              disabled={!canUndo}
+              onClick={undo}
+              className={cn(
+                "inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground/80 transition-colors hover:bg-accent",
+                !canUndo && "cursor-not-allowed opacity-40 hover:bg-transparent"
+              )}
+            >
+              <RiArrowGoBackLine className="size-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top">Undo</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label="Redo"
+              disabled={!canRedo}
+              onClick={redo}
+              className={cn(
+                "inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground/80 transition-colors hover:bg-accent",
+                !canRedo && "cursor-not-allowed opacity-40 hover:bg-transparent"
+              )}
+            >
+              <RiArrowGoForwardLine className="size-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top">Redo</TooltipContent>
+        </Tooltip>
+        <span className="mx-1 h-5 w-px bg-border" />
+      </span>
+
       <Tooltip>
         <TooltipTrigger asChild>
           <button
@@ -1385,7 +1509,7 @@ function ScreenshotMediaPill() {
             className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap text-foreground/80 transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
           >
             <RiGalleryLine className="size-4 shrink-0" />
-            Add Slot
+            <span className="hidden sm:inline">Add Slot</span>
           </button>
         </TooltipTrigger>
         <TooltipContent side="top">{slotTooltip}</TooltipContent>
@@ -1406,7 +1530,7 @@ function ScreenshotMediaPill() {
               )}
             >
               <RiFullscreenLine className="size-4 shrink-0" />
-              Fill Mode
+              <span className="hidden sm:inline">Fill Mode</span>
             </button>
           )}
         >
@@ -1451,12 +1575,95 @@ function ScreenshotMediaPill() {
               className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap text-foreground/80 opacity-40"
             >
               <RiFullscreenLine className="size-4 shrink-0" />
-              Fill Mode
+              <span className="hidden sm:inline">Fill Mode</span>
             </button>
           </TooltipTrigger>
           <TooltipContent side="top">Add a screenshot first</TooltipContent>
         </Tooltip>
       )}
+      <span className="flex items-center md:hidden">
+        <span className="mx-1 h-5 w-px bg-border" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label="Zoom out"
+              disabled={!hasScalableContent || activeScale <= 10}
+              onClick={() => {
+                const nextScale = editorValueSchemas.scale
+                  .catch(100)
+                  .parse(activeScale - 10)
+                if (selectedSlot) {
+                  updateScreenshotSlot(selectedSlot.id, { scale: nextScale })
+                  return
+                }
+                setScale(nextScale)
+              }}
+              className={cn(
+                "inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground/80 transition-colors hover:bg-accent",
+                (!hasScalableContent || activeScale <= 10) &&
+                  "cursor-not-allowed opacity-40 hover:bg-transparent"
+              )}
+            >
+              <RiSubtractLine className="size-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {hasScalableContent
+              ? "Zoom out"
+              : "Add a screenshot or frame first"}
+          </TooltipContent>
+        </Tooltip>
+
+        <button
+          type="button"
+          disabled={!hasScalableContent}
+          onClick={() => {
+            const resetScale = editorValueSchemas.scale.catch(100).parse(100)
+            if (selectedSlot) {
+              updateScreenshotSlot(selectedSlot.id, { scale: resetScale })
+              return
+            }
+            setScale(resetScale)
+          }}
+          className={cn(
+            "min-w-[3rem] cursor-pointer rounded-md px-1 py-1.5 font-mono text-[11px] text-foreground/85 tabular-nums hover:bg-accent",
+            !hasScalableContent && "cursor-not-allowed opacity-40"
+          )}
+        >
+          {activeScale}%
+        </button>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label="Zoom in"
+              disabled={!hasScalableContent || activeScale >= 300}
+              onClick={() => {
+                const nextScale = editorValueSchemas.scale
+                  .catch(100)
+                  .parse(activeScale + 10)
+                if (selectedSlot) {
+                  updateScreenshotSlot(selectedSlot.id, { scale: nextScale })
+                  return
+                }
+                setScale(nextScale)
+              }}
+              className={cn(
+                "inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-foreground/80 transition-colors hover:bg-accent",
+                (!hasScalableContent || activeScale >= 300) &&
+                  "cursor-not-allowed opacity-40 hover:bg-transparent"
+              )}
+            >
+              <RiAddLine className="size-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {hasScalableContent ? "Zoom in" : "Add a screenshot or frame first"}
+          </TooltipContent>
+        </Tooltip>
+      </span>
     </div>
   )
 }

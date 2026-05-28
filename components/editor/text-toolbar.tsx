@@ -242,7 +242,7 @@ function TextToolbarBody({
         }}
         aria-label="Font size"
         title="Font size"
-        className="h-9 w-12 shrink-0 rounded-md bg-secondary/60 text-center font-mono text-[12px] text-foreground outline-none focus:ring-1 focus:ring-ring"
+        className="h-7 w-9 shrink-0 rounded-md bg-secondary/60 text-center font-mono text-[11px] text-foreground outline-none focus:ring-1 focus:ring-ring sm:h-9 sm:w-12 sm:text-[12px]"
       />
       <ToolbarButton
         aria-label="Increase font size"

@@ -7,6 +7,7 @@ import {
   type Modifier,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -277,6 +278,9 @@ export function LayersPanelContent() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -412,7 +416,16 @@ export function LayersPanelContent() {
         sensors={sensors}
         collisionDetection={closestCenter}
         modifiers={[restrictLayerDrag]}
-        onDragEnd={onDragEnd}
+        onDragStart={() => {
+          document.body.style.userSelect = "none"
+        }}
+        onDragEnd={(e) => {
+          document.body.style.userSelect = ""
+          onDragEnd(e)
+        }}
+        onDragCancel={() => {
+          document.body.style.userSelect = ""
+        }}
       >
         <SortableContext
           items={layers.map((layer) => layer.key)}
@@ -533,7 +546,7 @@ function LayerRow({
         {...attributes}
         {...listeners}
         aria-label="Drag layer"
-        className="flex size-5 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground/0 transition-colors group-hover:text-muted-foreground active:cursor-grabbing"
+        className="flex size-5 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground/0 transition-colors group-hover:text-muted-foreground active:cursor-grabbing [@media(hover:none)]:text-muted-foreground"
       >
         <RiDraggable className="size-3.5" />
       </button>
@@ -555,7 +568,7 @@ function LayerRow({
           {layer.meta} · z{layer.zIndex}
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:opacity-100">
         <button
           onClick={(e) => {
             e.stopPropagation()

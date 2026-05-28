@@ -34,8 +34,10 @@ import { ArrowRight } from "lucide-react"
 
 export function EffectsSidebar({
   className,
+  hideAccount = false,
 }: {
   className?: string
+  hideAccount?: boolean
   stacked?: boolean
 }) {
   const globalAspect = useEditorStore((s) => s.present.aspect)
@@ -120,6 +122,64 @@ export function EffectsSidebar({
     ]
   )
 
+  const header = (
+    <>
+      <div className="label-eyebrow mb-4 flex min-w-0 items-center gap-1.5">
+        <span>App</span>
+        <span className="text-muted-foreground/45">/</span>
+        <span
+          className="truncate text-foreground/70"
+          title={projectName || "New project"}
+        >
+          {projectName || "New project"}
+        </span>
+      </div>
+      <div className="space-y-4">
+        <div>
+          <SectionLabel>Aspect Ratio</SectionLabel>
+          <AspectPopover value={aspect.id} onChange={handleAspectChange} />
+          {customSize ? (
+            <p className="mt-1.5 px-0.5 font-mono text-[10px] text-muted-foreground">
+              Custom · {customSize.w} × {customSize.h}
+            </p>
+          ) : null}
+        </div>
+        <div>
+          <SectionLabel>Frame</SectionLabel>
+          <FramePopover
+            value={activeFrame}
+            previewImage={selectedSlot ? selectedSlot.src : undefined}
+            imageFit={selectedSlot?.objectFit ?? objectFit ?? "cover"}
+            onChange={(nextFrame) => {
+              setFrameForMatchingScreenshots(nextFrame)
+              showCompatibilityWarning(
+                aspect,
+                nextFrame,
+                findAspectOption(aspect.id)?.name
+              )
+            }}
+          />
+        </div>
+      </div>
+    </>
+  )
+
+  // Mobile: one fully-scrollable column, no fixed sections
+  if (hideAccount) {
+    return (
+      <aside
+        className={cn(
+          "h-full w-full [scrollbar-width:none] overflow-y-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+          className
+        )}
+      >
+        <div className="px-4 pt-4 pb-3">{header}</div>
+        <PresentPresetsSection flat />
+      </aside>
+    )
+  }
+
+  // Desktop: fixed header + independently-scrolling presets
   return (
     <aside
       className={cn(
@@ -127,45 +187,7 @@ export function EffectsSidebar({
         className
       )}
     >
-      <div className="shrink-0 px-4 pt-5 pb-4">
-        <div className="label-eyebrow mb-4 flex min-w-0 items-center gap-1.5">
-          <span>App</span>
-          <span className="text-muted-foreground/45">/</span>
-          <span
-            className="truncate text-foreground/70"
-            title={projectName || "New project"}
-          >
-            {projectName || "New project"}
-          </span>
-        </div>
-        <div className="space-y-4">
-          <div>
-            <SectionLabel>Aspect Ratio</SectionLabel>
-            <AspectPopover value={aspect.id} onChange={handleAspectChange} />
-            {customSize ? (
-              <p className="mt-1.5 px-0.5 font-mono text-[10px] text-muted-foreground">
-                Custom · {customSize.w} × {customSize.h}
-              </p>
-            ) : null}
-          </div>
-          <div>
-            <SectionLabel>Frame</SectionLabel>
-            <FramePopover
-              value={activeFrame}
-              previewImage={selectedSlot ? selectedSlot.src : undefined}
-              imageFit={selectedSlot?.objectFit ?? objectFit ?? "cover"}
-              onChange={(nextFrame) => {
-                setFrameForMatchingScreenshots(nextFrame)
-                showCompatibilityWarning(
-                  aspect,
-                  nextFrame,
-                  findAspectOption(aspect.id)?.name
-                )
-              }}
-            />
-          </div>
-        </div>
-      </div>
+      <div className="shrink-0 px-4 pt-5 pb-4">{header}</div>
       <div className="flex min-h-0 flex-1 flex-col pb-4">
         <PresentPresetsSection />
       </div>

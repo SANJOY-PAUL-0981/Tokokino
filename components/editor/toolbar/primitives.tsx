@@ -23,13 +23,13 @@ import {
 import { cn } from "@/lib/utils"
 
 export const iconBtnClass =
-  "inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer shrink-0"
+  "inline-flex size-7 sm:size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer shrink-0"
 
 export const popoverContentClass =
   "border-border/60 bg-popover/95 backdrop-blur-md"
 
 export const toolbarSurfaceClass =
-  "pointer-events-auto flex items-center gap-0.5 rounded-md border border-border/70 bg-popover/95 p-1 shadow-xl backdrop-blur-md"
+  "pointer-events-auto flex items-center gap-0.5 overflow-x-auto rounded-md border border-border/70 bg-popover/95 p-0.5 sm:p-1 shadow-xl backdrop-blur-md [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden max-md:max-w-[220px]"
 
 export function bulkToolbarScale(zoom: number) {
   if (!Number.isFinite(zoom) || zoom <= 0) return 1
@@ -45,7 +45,7 @@ type Side = "top" | "bottom" | "left" | "right"
 type Align = "start" | "center" | "end"
 
 export function ToolbarDivider() {
-  return <span className="mx-1 h-5 w-px bg-border" />
+  return <span className="mx-0.5 h-4 w-px bg-border sm:mx-1 sm:h-5" />
 }
 
 export function ToolbarSurface({
@@ -58,6 +58,7 @@ export function ToolbarSurface({
     <div
       {...props}
       className={cn(toolbarSurfaceClass, className)}
+      style={{ WebkitOverflowScrolling: "touch", ...props.style }}
       onPointerDown={(e) => {
         e.stopPropagation()
         props.onPointerDown?.(e)
@@ -71,7 +72,7 @@ export function ToolbarSurface({
         props.onDoubleClick?.(e)
       }}
     >
-      {children}
+      <div className="flex min-w-max items-center gap-0.5">{children}</div>
     </div>
   )
 }
@@ -142,6 +143,7 @@ export function ToolbarPopover({
   side = "top",
   align = "center",
   sideOffset = 10,
+  collisionPadding = 8,
   open: controlledOpen,
   onOpenChange,
   trigger,
@@ -153,6 +155,7 @@ export function ToolbarPopover({
   side?: Side
   align?: Align
   sideOffset?: number
+  collisionPadding?: number
   open?: boolean
   onOpenChange?: (open: boolean) => void
   trigger: ToolbarPopoverTriggerRender
@@ -187,6 +190,7 @@ export function ToolbarPopover({
         side={side}
         align={align}
         sideOffset={sideOffset}
+        collisionPadding={collisionPadding}
         className={cn(popoverContentClass, contentClassName)}
       >
         {children}

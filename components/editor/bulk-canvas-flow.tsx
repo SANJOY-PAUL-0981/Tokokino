@@ -394,7 +394,7 @@ function BulkCanvasFlowInner() {
 function GlassControls() {
   const { zoomIn, zoomOut, fitView } = useReactFlow()
   return (
-    <div className="pointer-events-auto absolute bottom-4 left-4 z-50 flex items-center gap-0.5 rounded-xl border border-white/10 bg-white/5 p-1 shadow-lg backdrop-blur-md backdrop-saturate-150 dark:border-white/10 dark:bg-white/5">
+    <div className="pointer-events-auto absolute top-3 right-3 z-50 flex flex-col items-center gap-0.5 rounded-xl border border-white/10 bg-white/5 p-1 shadow-lg backdrop-blur-md backdrop-saturate-150 dark:border-white/10 dark:bg-white/5">
       <Tooltip>
         <TooltipTrigger asChild>
           <button
@@ -406,7 +406,7 @@ function GlassControls() {
             <RiAddLine className="size-4" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top">Zoom in</TooltipContent>
+        <TooltipContent side="left">Zoom in</TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -419,9 +419,9 @@ function GlassControls() {
             <RiSubtractLine className="size-4" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top">Zoom out</TooltipContent>
+        <TooltipContent side="left">Zoom out</TooltipContent>
       </Tooltip>
-      <span className="mx-0.5 h-5 w-px bg-white/10" />
+      <span className="my-0.5 h-px w-5 bg-white/10" />
       <Tooltip>
         <TooltipTrigger asChild>
           <button
@@ -433,7 +433,7 @@ function GlassControls() {
             <RiFocus3Line className="size-4" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top">Fit view</TooltipContent>
+        <TooltipContent side="left">Fit view</TooltipContent>
       </Tooltip>
     </div>
   )

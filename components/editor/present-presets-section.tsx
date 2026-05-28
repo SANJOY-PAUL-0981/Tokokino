@@ -594,7 +594,7 @@ function TabTriggerRow({
   )
 }
 
-export function PresentPresetsSection() {
+export function PresentPresetsSection({ flat = false }: { flat?: boolean }) {
   const canvas = useActiveCanvasField((c) => c)
   const canvasRef = React.useRef(canvas)
   React.useLayoutEffect(() => {
@@ -961,7 +961,7 @@ export function PresentPresetsSection() {
   }, [])
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className={flat ? "flex flex-col" : "flex min-h-0 flex-1 flex-col"}>
       <AlertDialog
         open={downgradeDialogOpen}
         onOpenChange={setDowngradeDialogOpen}
@@ -1016,7 +1016,7 @@ export function PresentPresetsSection() {
         />
       </div>
 
-      <ScrollArea className="min-h-0 flex-1 pr-3 pl-4">
+      <ScrollArea className={flat ? "pr-3 pl-4" : "min-h-0 flex-1 pr-3 pl-4"}>
         <div className="pr-1 pb-4">
           {displayTab === "single" && (
             <div className="space-y-2">

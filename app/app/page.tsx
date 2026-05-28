@@ -9,11 +9,10 @@ import {
   EffectsSidebarSkeleton,
   InspectorSkeleton,
 } from "@/components/editor/editor-skeletons"
-import { FloatingToolbar } from "@/components/editor/floating-toolbar"
+import { BulkBar, FloatingToolbar } from "@/components/editor/floating-toolbar"
 import { Inspector } from "@/components/editor/inspector"
-import { IpadProSidebar } from "@/components/editor/ipad-pro-sidebar"
+import { IpadSidebar } from "@/components/editor/ipad-sidebar"
 import { MobileControls } from "@/components/editor/mobile-controls"
-import { MobileOnlyWarning } from "@/components/editor/mobile-only-warning"
 import { TopBar } from "@/components/editor/top-bar"
 import { EditorProvider, useEditorStore } from "@/lib/editor/store"
 import { cn } from "@/lib/utils"
@@ -60,6 +59,7 @@ function EditorLayout() {
   const setPreviewAnimation = useEditorStore((s) => s.setPreviewAnimation)
 
   const [settingsOpen, setSettingsOpen] = React.useState(false)
+  const [mobilePanelOpen, setMobilePanelOpen] = React.useState(false)
 
   React.useEffect(() => {
     if (!isPreviewMode) return
@@ -219,22 +219,36 @@ function EditorLayout() {
             <EffectsSidebar className="hidden xl:flex" />
           </DeferredMount>
         )}
+        {!isPreviewMode && (
+          <DeferredMount
+            priority={0}
+            fallback={
+              <EffectsSidebarSkeleton className="hidden w-[264px] md:flex lg:w-[288px] xl:hidden" />
+            }
+          >
+            <IpadSidebar className="hidden md:flex xl:hidden" />
+          </DeferredMount>
+        )}
         <div className="relative isolate flex min-h-0 flex-1 overflow-hidden">
+          <BulkBar />
           <DeferredMount priority={1} fallback={<CanvasSkeleton />}>
             <Canvas />
           </DeferredMount>
-          {!isPreviewMode && <IpadProSidebar />}
         </div>
-        {!isPreviewMode && <FloatingToolbar />}
+        {!isPreviewMode && (
+          <div className={cn(mobilePanelOpen && "max-md:hidden")}>
+            <FloatingToolbar />
+          </div>
+        )}
         {!isPreviewMode && (
           <DeferredMount
             priority={2}
-            fallback={<InspectorSkeleton className="hidden md:flex" />}
+            fallback={<InspectorSkeleton className="hidden xl:flex" />}
           >
-            <Inspector className="hidden md:flex" />
+            <Inspector className="hidden xl:flex" />
           </DeferredMount>
         )}
-        {!isPreviewMode && <MobileControls />}
+        {!isPreviewMode && <MobileControls onOpenChange={setMobilePanelOpen} />}
       </div>
     </div>
   )
@@ -244,7 +258,6 @@ export default function ScreenshotsPage() {
   return (
     <EditorProvider>
       <EditorLayout />
-      <MobileOnlyWarning />
     </EditorProvider>
   )
 }
