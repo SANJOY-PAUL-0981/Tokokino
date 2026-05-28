@@ -1037,7 +1037,7 @@ export function TopBar() {
                 cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
+            <AlertDialogFooter className="grid grid-cols-2 gap-2 sm:flex sm:flex-row-reverse">
               <AlertDialogCancel className="cursor-pointer">
                 Cancel
               </AlertDialogCancel>
@@ -1061,7 +1061,7 @@ export function TopBar() {
                 fresh canvas. This action can be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
+            <AlertDialogFooter className="grid grid-cols-2 gap-2 sm:flex sm:flex-row-reverse">
               <AlertDialogCancel
                 variant="destructive"
                 className="cursor-pointer"
