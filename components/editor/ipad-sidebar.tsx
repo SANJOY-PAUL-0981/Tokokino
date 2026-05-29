@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { RiLayoutMasonryLine, RiSettingsLine } from "@remixicon/react"
-import { AnimatePresence, LayoutGroup, motion } from "motion/react"
+import { LayoutGroup, motion } from "motion/react"
 
 import {
   AccountTile,
@@ -32,13 +32,10 @@ const TAB_ORDER: TabId[] = ["design", "tools"]
  */
 export function IpadSidebar({ className }: { className?: string }) {
   const [activeTab, setActiveTab] = React.useState<TabId>("design")
-  const [direction, setDirection] = React.useState<number>(1)
   const touchStartX = React.useRef<number | null>(null)
 
   const handleTabChange = (id: TabId) => {
     if (id === activeTab) return
-    const newDir = TAB_ORDER.indexOf(id) > TAB_ORDER.indexOf(activeTab) ? 1 : -1
-    setDirection(newDir)
     setActiveTab(id)
   }
 
@@ -104,46 +101,39 @@ export function IpadSidebar({ className }: { className?: string }) {
         </LayoutGroup>
       </div>
 
-      {/* Content with directional slide transition */}
+      {/* Both panels stay mounted; a single GPU-composited transform slides
+          between them. Avoids remounting the heavy panel trees on every tab
+          switch, which is what caused the touch lag. */}
       <div
         className="relative min-h-0 flex-1 overflow-hidden"
         style={{ contain: "layout style" }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <AnimatePresence initial={false} mode="wait" custom={direction}>
-          <motion.div
-            key={activeTab}
-            custom={direction}
-            variants={{
-              enter: (d: number) => ({ x: d * 32, opacity: 0 }),
-              center: {
-                x: 0,
-                opacity: 1,
-                transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] },
-              },
-              exit: (d: number) => ({
-                x: d * -20,
-                opacity: 0,
-                transition: { duration: 0.1, ease: [0.4, 0, 1, 1] },
-              }),
-            }}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            className="absolute inset-0 flex flex-col"
-            style={{ willChange: "transform, opacity" }}
+        <motion.div
+          className="flex h-full w-[200%]"
+          animate={{ x: activeTab === "design" ? "0%" : "-50%" }}
+          transition={{ type: "spring", stiffness: 420, damping: 38 }}
+          style={{ willChange: "transform" }}
+        >
+          <div
+            className="h-full w-1/2 shrink-0 overflow-hidden"
+            aria-hidden={activeTab !== "design"}
+            style={{ pointerEvents: activeTab === "design" ? "auto" : "none" }}
           >
-            {activeTab === "design" ? (
-              <EffectsSidebar
-                hideAccount
-                className="!h-full !w-full !border-none !bg-transparent"
-              />
-            ) : (
-              <Inspector className="!h-full !w-full !border-none !bg-transparent" />
-            )}
-          </motion.div>
-        </AnimatePresence>
+            <EffectsSidebar
+              hideAccount
+              className="!h-full !w-full !border-none !bg-transparent"
+            />
+          </div>
+          <div
+            className="h-full w-1/2 shrink-0 overflow-hidden"
+            aria-hidden={activeTab !== "tools"}
+            style={{ pointerEvents: activeTab === "tools" ? "auto" : "none" }}
+          >
+            <Inspector className="!h-full !w-full !border-none !bg-transparent" />
+          </div>
+        </motion.div>
       </div>
       <AccountTile />
     </aside>
