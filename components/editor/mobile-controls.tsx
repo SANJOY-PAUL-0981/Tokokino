@@ -54,12 +54,21 @@ const CATEGORIES: {
  * panel up above the strip (tap the active one again to collapse). iPad widths
  * use the left IpadSidebar; desktop uses the two inline panels.
  */
+const CATEGORY_ORDER: CategoryId[] = [
+  "layout",
+  "style",
+  "border",
+  "shadow",
+  "details",
+]
+
 export function MobileControls({
   onOpenChange,
 }: {
   onOpenChange?: (open: boolean) => void
 }) {
   const [active, setActive] = React.useState<CategoryId | null>(null)
+  const [direction, setDirection] = React.useState<1 | -1>(1)
   const frameId = useActiveCanvasField((c) => c.frame.id)
   const screenshotBoxCount = useActiveCanvasField(
     (c) => (c.screenshot ? 1 : 0) + c.screenshotSlots.length
@@ -73,74 +82,111 @@ export function MobileControls({
   // Collapse if the selected Border tab is no longer available (derived, not stored).
   const resolvedActive = active === "border" && !showBorder ? null : active
 
+  const handleTabChange = React.useCallback((next: CategoryId) => {
+    setActive((prev) => {
+      if (prev === next) return null
+      const prevIdx = prev ? CATEGORY_ORDER.indexOf(prev) : -1
+      const nextIdx = CATEGORY_ORDER.indexOf(next)
+      setDirection(nextIdx > prevIdx ? 1 : -1)
+      return next
+    })
+  }, [])
+
   React.useEffect(() => {
     onOpenChange?.(resolvedActive !== null)
   }, [resolvedActive, onOpenChange])
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 flex flex-col md:hidden">
-      <AnimatePresence initial={false}>
-        {resolvedActive ? (
-          // Outer: height-only animation on an empty shell (cheap, no content reflow)
-          // Inner: translateY (GPU-composited, no reflow)
-          <motion.div
-            key="panel-shell"
-            initial={{ height: 0 }}
-            animate={{ height: "42svh" }}
-            exit={{
-              height: 0,
-              transition: { duration: 0.18, ease: [0.4, 0, 1, 1] },
-            }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="relative overflow-hidden border-t border-border/60 bg-sidebar"
-          >
+    <>
+      {resolvedActive ? (
+        <div
+          className="fixed inset-0 z-40 md:hidden"
+          onClick={() => setActive(null)}
+          aria-hidden="true"
+        />
+      ) : null}
+      <div className="fixed inset-x-0 bottom-0 z-50 flex flex-col md:hidden">
+        <AnimatePresence initial={false}>
+          {resolvedActive ? (
+            // Outer: height-only animation on an empty shell (cheap, no content reflow)
+            // Inner: translateY (GPU-composited, no reflow)
             <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
+              key="panel-shell"
+              initial={{ height: 0 }}
+              animate={{ height: "42svh" }}
               exit={{
-                y: "100%",
+                height: 0,
                 transition: { duration: 0.18, ease: [0.4, 0, 1, 1] },
               }}
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-0"
-              style={{ willChange: "transform" }}
+              className="relative overflow-hidden border-t border-border/60 bg-sidebar"
             >
-              <CategoryPanel
-                id={resolvedActive}
-                hasDeviceFrame={hasDeviceFrame}
-                showPadding={showPadding}
-              />
-            </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-
-      <div className="border-t border-border/60 bg-sidebar pb-[env(safe-area-inset-bottom)]">
-        <div className="flex overflow-hidden px-1 py-1.5">
-          {categories.map((cat) => {
-            const isActive = resolvedActive === cat.id
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setActive(isActive ? null : cat.id)}
-                className={cn(
-                  "flex flex-1 cursor-pointer flex-col items-center gap-0.5 rounded-lg py-1.5 text-[10px] font-medium transition-colors",
-                  isActive
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-foreground/55 hover:text-foreground/80"
-                )}
-                aria-pressed={isActive}
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{
+                  y: "100%",
+                  transition: { duration: 0.18, ease: [0.4, 0, 1, 1] },
+                }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-0"
+                style={{ willChange: "transform" }}
               >
-                <cat.icon className="size-[18px]" />
-                {cat.label}
-              </button>
-            )
-          })}
-          <MobileAccountButton />
+                <AnimatePresence mode="wait" initial={false} custom={direction}>
+                  <motion.div
+                    key={resolvedActive}
+                    custom={direction}
+                    variants={{
+                      enter: (d: number) => ({ x: `${d * 40}%`, opacity: 0 }),
+                      center: { x: 0, opacity: 1 },
+                      exit: (d: number) => ({ x: `${d * -40}%`, opacity: 0 }),
+                    }}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    className="absolute inset-0"
+                    style={{ willChange: "transform" }}
+                  >
+                    <CategoryPanel
+                      id={resolvedActive}
+                      hasDeviceFrame={hasDeviceFrame}
+                      showPadding={showPadding}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
+        <div className="border-t border-border/60 bg-sidebar pb-[env(safe-area-inset-bottom)]">
+          <div className="flex overflow-hidden px-1 py-1.5">
+            {categories.map((cat) => {
+              const isActive = resolvedActive === cat.id
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => handleTabChange(cat.id)}
+                  className={cn(
+                    "flex flex-1 cursor-pointer flex-col items-center gap-0.5 rounded-lg py-1.5 text-[10px] font-medium transition-colors",
+                    isActive
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-foreground/55 hover:text-foreground/80"
+                  )}
+                  aria-pressed={isActive}
+                >
+                  <cat.icon className="size-[18px]" />
+                  {cat.label}
+                </button>
+              )
+            })}
+            <MobileAccountButton />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 

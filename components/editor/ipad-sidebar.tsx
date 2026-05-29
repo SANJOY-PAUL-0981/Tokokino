@@ -33,12 +33,28 @@ const TAB_ORDER: TabId[] = ["design", "tools"]
 export function IpadSidebar({ className }: { className?: string }) {
   const [activeTab, setActiveTab] = React.useState<TabId>("design")
   const [direction, setDirection] = React.useState<number>(1)
+  const touchStartX = React.useRef<number | null>(null)
 
   const handleTabChange = (id: TabId) => {
     if (id === activeTab) return
     const newDir = TAB_ORDER.indexOf(id) > TAB_ORDER.indexOf(activeTab) ? 1 : -1
     setDirection(newDir)
     setActiveTab(id)
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0]?.clientX ?? null
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return
+    const delta = (e.changedTouches[0]?.clientX ?? 0) - touchStartX.current
+    touchStartX.current = null
+    if (Math.abs(delta) < 50) return
+    const currentIdx = TAB_ORDER.indexOf(activeTab)
+    const nextIdx = delta < 0 ? currentIdx + 1 : currentIdx - 1
+    const nextTab = TAB_ORDER[nextIdx]
+    if (nextTab) handleTabChange(nextTab)
   }
 
   return (
@@ -89,16 +105,34 @@ export function IpadSidebar({ className }: { className?: string }) {
       </div>
 
       {/* Content with directional slide transition */}
-      <div className="relative min-h-0 flex-1 overflow-hidden">
-        <AnimatePresence initial={false} mode="popLayout" custom={direction}>
+      <div
+        className="relative min-h-0 flex-1 overflow-hidden"
+        style={{ contain: "layout style" }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <AnimatePresence initial={false} mode="wait" custom={direction}>
           <motion.div
             key={activeTab}
             custom={direction}
-            initial={{ x: direction * 40, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: direction * -40, opacity: 0 }}
-            transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+            variants={{
+              enter: (d: number) => ({ x: d * 32, opacity: 0 }),
+              center: {
+                x: 0,
+                opacity: 1,
+                transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] },
+              },
+              exit: (d: number) => ({
+                x: d * -20,
+                opacity: 0,
+                transition: { duration: 0.1, ease: [0.4, 0, 1, 1] },
+              }),
+            }}
+            initial="enter"
+            animate="center"
+            exit="exit"
             className="absolute inset-0 flex flex-col"
+            style={{ willChange: "transform, opacity" }}
           >
             {activeTab === "design" ? (
               <EffectsSidebar
