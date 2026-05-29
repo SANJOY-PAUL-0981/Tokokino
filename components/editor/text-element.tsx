@@ -734,17 +734,13 @@ export function TextElementView({
   const counterRotate = `rotate(${-text.rotation}deg)`
 
   // Compute outer dimensions
-  const outerWidth =
-    text.widthPx != null
-      ? `${text.widthPx}px`
-      : isEditing && editingAutoWidthPx != null
-        ? `${editingAutoWidthPx}px`
-        : "max-content"
+  const isAutoWidth = text.widthPx == null
+  const outerWidth = isAutoWidth ? "max-content" : `${text.widthPx}px`
   const outerHeight = text.heightPx != null ? `${text.heightPx}px` : undefined
   // Center-anchored box can't extend past the nearer canvas edge while typing.
   const isXInside = text.xPct >= 0 && text.xPct <= 100
   const outerMaxWidth =
-    text.widthPx == null && isXInside
+    isAutoWidth && isXInside
       ? `${2 * Math.min(text.xPct, 100 - text.xPct)}%`
       : undefined
 

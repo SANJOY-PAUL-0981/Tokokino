@@ -32,6 +32,7 @@ import { ColorPickerPopover } from "@/components/editor/color-picker-popover"
 import { EditableValue } from "@/components/editor/editable-value"
 import {
   downscaleImageFile,
+  downscaleImageFromUrl,
   remoteImagePreviewUrl,
   seedPlaceholderUrl,
 } from "@/lib/editor/image-resize"
@@ -582,7 +583,7 @@ export function BackgroundSection() {
   const background = useActiveCanvasField((c) => c.background)
   const screenshot = useActiveCanvasField((c) => c.screenshot)
   const setBackground = useEditorStore((s) => s.setBackground)
-  const previewPromotionIdRef = React.useRef(0)
+  const promotionIdRef = React.useRef(0)
   const fileRef = React.useRef<HTMLInputElement>(null)
   const [unsplashQuery, setUnsplashQuery] = React.useState("")
   const [unsplashStatus, setUnsplashStatus] = React.useState<
@@ -653,99 +654,44 @@ export function BackgroundSection() {
     }
   }
 
-  React.useEffect(() => {
-    return () => {
-      previewPromotionIdRef.current += 1
-    }
-  }, [])
-
-  const promoteBackgroundPreviewWhenIdle = React.useCallback(
-    ({
-      canvasId,
-      previewUrl,
-      sourceUrl,
-      thumbUrl,
-    }: {
-      canvasId: string
-      previewUrl: string
-      sourceUrl: string
-      thumbUrl?: string
-    }) => {
-      const promotionId = ++previewPromotionIdRef.current
-      const promote = () => {
-        const image = new Image()
-        image.decoding = "async"
-        image.onload = () => {
-          const decoded =
-            typeof image.decode === "function"
-              ? image.decode().catch(() => undefined)
-              : Promise.resolve()
-          void decoded.then(() => {
-            if (previewPromotionIdRef.current !== promotionId) return
-            const state = useEditorStore.getState()
-            const canvas = state.present.canvases.find((c) => c.id === canvasId)
-            const currentSource =
-              canvas?.background.sourceUrl ?? canvas?.background.value
-            if (
-              canvas?.background.type !== "image" ||
-              currentSource !== sourceUrl
-            ) {
-              return
-            }
-            setBackground(
-              {
-                type: "image",
-                value: previewUrl,
-                sourceUrl,
-                thumbUrl,
-              },
-              canvasId
-            )
-          })
-        }
-        image.src = previewUrl
-      }
-
-      if ("requestIdleCallback" in window) {
-        window.requestIdleCallback(promote, { timeout: 2000 })
-      } else {
-        setTimeout(promote, 800)
-      }
-    },
-    [setBackground]
-  )
-
-  // Paint the thumb immediately. Larger previews are decoded and promoted
-  // later while idle, so the selection/restore interaction avoids the costly
-  // image decode + CSS background repaint path.
   const selectImageFromUrl = React.useCallback(
-    (url: string, thumbUrl?: string, previewUrl?: string) => {
+    (url: string, thumbUrl?: string, _previewUrl?: string) => {
       if (thumbUrl) seedPlaceholderUrl(url, thumbUrl)
       const canvasId = useEditorStore.getState().present.activeCanvasId
-      const generatedPreview =
-        previewUrl ??
-        remoteImagePreviewUrl(url, {
-          maxDimension: BACKGROUND_MAX_DIMENSION,
-          jpegQuality: 0.9,
+      const promotionId = ++promotionIdRef.current
+
+      // Show thumb immediately for snappy selection feedback
+      setBackground(
+        { type: "image", value: thumbUrl ?? url, sourceUrl: url, thumbUrl },
+        canvasId
+      )
+
+      if (url.startsWith("data:")) return
+
+      // Downscale client-side (browser Canvas) to ~1600px JPEG.
+      // No server processing needed — purely browser APIs.
+      void downscaleImageFromUrl(url, {
+        maxDimension: BACKGROUND_MAX_DIMENSION,
+        jpegQuality: 0.9,
+      })
+        .then((downscaled) => {
+          if (promotionIdRef.current !== promotionId) return
+          const state = useEditorStore.getState()
+          const canvas = state.present.canvases.find((c) => c.id === canvasId)
+          const currentSource =
+            canvas?.background.sourceUrl ?? canvas?.background.value
+          if (canvas?.background.type !== "image" || currentSource !== url)
+            return
+          setBackground(
+            { type: "image", value: downscaled, sourceUrl: url, thumbUrl },
+            canvasId
+          )
         })
-      const placeholder = thumbUrl ?? generatedPreview ?? url
-      const placeholderBackground: Background = {
-        type: "image",
-        value: placeholder,
-        sourceUrl: url,
-        thumbUrl,
-      }
-      setBackground(placeholderBackground, canvasId)
-      if (generatedPreview && generatedPreview !== placeholder) {
-        promoteBackgroundPreviewWhenIdle({
-          canvasId,
-          previewUrl: generatedPreview,
-          sourceUrl: url,
-          thumbUrl,
+        .catch((err) => {
+          console.log("[bg] downscale failed, keeping thumb", err)
         })
-      }
     },
-    [promoteBackgroundPreviewWhenIdle, setBackground]
+    [setBackground]
   )
 
   const searchUnsplash = React.useCallback(

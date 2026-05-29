@@ -1,6 +1,6 @@
 import "server-only"
 
-import { and, desc, eq } from "drizzle-orm"
+import { and, asc, count, desc, eq } from "drizzle-orm"
 
 import { drafts } from "@/lib/db/schema"
 import { fromD1Date, getDb, toD1Date } from "@/lib/d1"
@@ -65,14 +65,32 @@ function rowToDraftMetadata(row: DraftRow): DraftRecord {
   return rowToDraft(row, null)
 }
 
-export async function listDrafts(userId: string) {
+export async function listDrafts(
+  userId: string,
+  opts: { limit?: number; offset?: number; sort?: "latest" | "oldest" } = {}
+) {
+  const { limit = 12, offset = 0, sort = "latest" } = opts
+  const order =
+    sort === "oldest" ? asc(drafts.updatedAt) : desc(drafts.updatedAt)
+
   const rows = await getDb()
     .select()
     .from(drafts)
     .where(eq(drafts.userId, userId))
-    .orderBy(desc(drafts.updatedAt))
+    .orderBy(order)
+    .limit(limit)
+    .offset(offset)
 
   return rows.map(rowToDraftMetadata)
+}
+
+export async function countDrafts(userId: string) {
+  const result = await getDb()
+    .select({ count: count() })
+    .from(drafts)
+    .where(eq(drafts.userId, userId))
+    .get()
+  return result?.count ?? 0
 }
 
 export async function getDraft({ id, userId }: { id: string; userId: string }) {

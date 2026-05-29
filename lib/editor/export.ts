@@ -174,6 +174,27 @@ function rewriteExportAssets(root: HTMLElement): {
     })
   }
 
+  // Swap background thumbnail → full-res source URL for elements that carry
+  // data-bg-source-url. The editor renders the thumb for perf; export needs
+  // the full image so the output isn't blurry.
+  for (const el of Array.from(
+    root.querySelectorAll<HTMLElement>("[data-bg-source-url]")
+  )) {
+    const sourceUrl = el.getAttribute("data-bg-source-url")
+    if (!sourceUrl) continue
+    const exportUrl = shouldProxyAssetUrl(sourceUrl)
+      ? proxiedAssetUrl(sourceUrl)
+      : sourceUrl
+    const previousValue = el.style.backgroundImage
+    el.style.backgroundImage = `url("${exportUrl}")`
+    preloadUrls.push(exportUrl)
+    rewrites.push({
+      restore: () => {
+        el.style.backgroundImage = previousValue
+      },
+    })
+  }
+
   const styleProps = [
     "backgroundImage",
     "borderImageSource",

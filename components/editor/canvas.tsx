@@ -70,6 +70,10 @@ import {
   CarouselPrevious,
   type CarouselApi,
 } from "@/components/ui/carousel"
+import {
+  downscaleImageFromUrl,
+  getOptimizedUrlSync,
+} from "@/lib/editor/image-resize"
 import { ScreenshotSlotView } from "./screenshot-slot-element"
 import { useAnnotationInteractions } from "./canvas/use-annotation-interactions"
 import { useImageFileIntake } from "./canvas/use-image-file-intake"
@@ -163,6 +167,65 @@ function CanvasViewInner({
   const bulkCanvasDragging = useEditorStore((s) => s.bulkCanvasDragging)
   const bulkViewportZoom = useEditorStore((s) => s.bulkViewportZoom)
   const presetTab = useEditorStore((s) => s.presetTab)
+  // Downscale whenever the background sourceUrl changes (on mount/hydration,
+  // and also when a custom preset applies a new image background mid-session).
+  React.useEffect(() => {
+    if (
+      background.type !== "image" ||
+      !background.sourceUrl ||
+      background.value.startsWith("data:") ||
+      !scopeId
+    )
+      return
+
+    const sourceUrl = background.sourceUrl
+    const thumbUrl = background.thumbUrl
+    const canvasId = scopeId
+    const opts = { maxDimension: 1600, jpegQuality: 0.9 }
+
+    // If we already have a cached downscale for this URL, apply it synchronously
+    // so we never show a stale or wrong image (e.g. after a preset re-apply).
+    const cached = getOptimizedUrlSync(sourceUrl, opts)
+    if (cached) {
+      useEditorStore
+        .getState()
+        .setBackground(
+          {
+            type: "image",
+            value: cached,
+            sourceUrl,
+            thumbUrl: thumbUrl ?? undefined,
+          },
+          canvasId
+        )
+      return
+    }
+
+    void downscaleImageFromUrl(sourceUrl, opts)
+      .then((downscaled) => {
+        const state = useEditorStore.getState()
+        const c = state.present.canvases.find((cv) => cv.id === canvasId)
+        if (
+          c?.background.type !== "image" ||
+          c.background.sourceUrl !== sourceUrl
+        )
+          return
+        state.setBackground(
+          {
+            type: "image",
+            value: downscaled,
+            sourceUrl,
+            thumbUrl: thumbUrl ?? undefined,
+          },
+          canvasId
+        )
+      })
+      .catch((err) => {
+        console.log("[bg] downscale failed", err)
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [background.sourceUrl])
+
   const canvasRef = React.useRef<HTMLDivElement>(null)
   const generatedAnnotationMaskId = React.useId()
   const annotationMaskId = `annotation-mask-${generatedAnnotationMaskId.replace(/:/g, "")}`

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { requireSession } from "@/lib/api-auth"
-import { createDraft, listDrafts } from "@/lib/draft-db"
+import { countDrafts, createDraft, listDrafts } from "@/lib/draft-db"
 import {
   MAX_DRAFT_BYTES,
   countCanvasesInDraftState,
@@ -14,9 +14,21 @@ export async function GET(request: Request) {
   const auth = await requireSession(request)
   if (!auth.ok) return auth.response
 
-  const drafts = await listDrafts(auth.session.user.id)
+  const url = new URL(request.url)
+  const limit = Math.min(
+    Math.max(Number(url.searchParams.get("limit") ?? "9"), 1),
+    50
+  )
+  const offset = Math.max(Number(url.searchParams.get("offset") ?? "0"), 0)
+  const sort = url.searchParams.get("sort") === "oldest" ? "oldest" : "latest"
+
+  const [draftRows, total] = await Promise.all([
+    listDrafts(auth.session.user.id, { limit, offset, sort }),
+    countDrafts(auth.session.user.id),
+  ])
+
   return NextResponse.json({
-    drafts: drafts.map((draft) => ({
+    drafts: draftRows.map((draft) => ({
       id: draft.id,
       name: draft.name,
       canvasCount: draft.canvasCount,
@@ -25,6 +37,8 @@ export async function GET(request: Request) {
       updatedAt: draft.updatedAt,
       thumbnailUrl: draft.thumbnailKey ? `/api/drafts/${draft.id}/thumb` : null,
     })),
+    total,
+    hasMore: offset + draftRows.length < total,
   })
 }
 

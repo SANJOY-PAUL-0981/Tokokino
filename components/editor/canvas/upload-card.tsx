@@ -15,6 +15,7 @@ import { motion, LayoutGroup } from "motion/react"
 import { cn } from "@/lib/utils"
 import {
   Popover,
+  PopoverAnchor,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
@@ -377,15 +378,44 @@ export function UploadCard({
     ? "Capturing screenshot…"
     : "Capture Screenshot"
 
+  const [compactOpen, setCompactOpen] = React.useState(false)
+  const compactTriggerRef = React.useRef<HTMLButtonElement>(null)
+  const compactContentRef = React.useRef<HTMLDivElement>(null)
+
+  // Canvas pointer handlers call stopPropagation, which blocks Radix's
+  // bubble-phase document listener from detecting outside clicks. Use a
+  // capture-phase listener instead so it fires before React event processing.
+  React.useEffect(() => {
+    if (!compact || !compactOpen) return
+    function handleCapture(e: PointerEvent) {
+      if (compactContentRef.current?.contains(e.target as Node)) return
+      if (compactTriggerRef.current?.contains(e.target as Node)) return
+      // Stamp the trigger DOM node synchronously so handleAreaClick (which
+      // fires on the subsequent click event, after React has already flushed
+      // this close) knows not to reopen the popover.
+      compactTriggerRef.current?.setAttribute("data-closing", "true")
+      setCompactOpen(false)
+    }
+    document.addEventListener("pointerdown", handleCapture, true)
+    return () =>
+      document.removeEventListener("pointerdown", handleCapture, true)
+  }, [compact, compactOpen])
+
   if (compact) {
     return (
-      <Popover>
-        <PopoverTrigger asChild>
+      <Popover open={compactOpen} onOpenChange={setCompactOpen}>
+        <PopoverAnchor asChild>
           <button
+            ref={compactTriggerRef}
             type="button"
             data-upload-compact-trigger
+            data-state={compactOpen ? "open" : "closed"}
             onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation()
+              setCompactOpen(!compactOpen)
+            }}
             aria-label="Add screenshot"
             // Counter-scale by the canvas's autoFit so the `+` keeps a
             // consistent on-screen size — without this, tall portrait
@@ -403,22 +433,32 @@ export function UploadCard({
           >
             <RiAddLine className="size-5 sm:size-7" />
           </button>
-        </PopoverTrigger>
+        </PopoverAnchor>
         <PopoverContent
           side="bottom"
           align="center"
           sideOffset={8}
           onPointerDown={(e) => e.stopPropagation()}
+          onInteractOutside={(e) => {
+            if (
+              e.target instanceof Node &&
+              compactTriggerRef.current?.contains(e.target)
+            ) {
+              e.preventDefault()
+            }
+          }}
           className="w-[320px] rounded-2xl border border-border bg-popover p-0 text-popover-foreground shadow-2xl"
         >
-          <UploadCard
-            isDragOver={isDragOver}
-            onBrowse={onBrowse}
-            onCapture={onCapture}
-            showHint={showHint}
-            defaultDevice={defaultDevice}
-            captureStateKey={captureStateKey}
-          />
+          <div ref={compactContentRef}>
+            <UploadCard
+              isDragOver={isDragOver}
+              onBrowse={onBrowse}
+              onCapture={onCapture}
+              showHint={showHint}
+              defaultDevice={defaultDevice}
+              captureStateKey={captureStateKey}
+            />
+          </div>
         </PopoverContent>
       </Popover>
     )

@@ -83,6 +83,12 @@ export function CanvasEmptyState({
     const trigger = rootRef.current?.querySelector<HTMLButtonElement>(
       "[data-upload-compact-trigger]"
     )
+    const isClosing = trigger?.getAttribute("data-closing") === "true"
+    if (isClosing) {
+      // Clear the attribute so the next click works normally
+      trigger?.removeAttribute("data-closing")
+      return
+    }
     trigger?.click()
   }
 

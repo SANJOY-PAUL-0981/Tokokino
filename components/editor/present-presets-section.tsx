@@ -6,6 +6,7 @@ import { animate, AnimatePresence, motion } from "motion/react"
 import { CanvasView } from "@/components/editor/canvas"
 import { BASE_CANVAS_WIDTH } from "@/components/editor/canvas/constants"
 import { env } from "@/lib/env"
+import { remoteImagePreviewUrl } from "@/lib/editor/image-resize"
 import { resolveMainOffsetPx } from "@/lib/editor/preset-geometry"
 import {
   planLayoutPreset,
@@ -46,6 +47,7 @@ import {
   useActiveCanvasId,
   useEditorStore,
   type AspectState,
+  type Background,
   type CanvasState,
   type CustomPresetGeometry,
   type CustomPresetSummary,
@@ -1103,10 +1105,13 @@ function CustomPresetList({
   if (loading) {
     return (
       <div className="grid grid-cols-2 gap-2 md:block md:space-y-2">
-        {Array.from({ length: 3 }).map((_, i) => (
+        {Array.from({ length: 2 }).map((_, i) => (
           <div
             key={i}
-            className="rounded-lg border border-border/70 bg-card/70 p-3"
+            className={cn(
+              "rounded-lg border border-border/70 bg-card/70 p-3",
+              i === 1 && "md:hidden"
+            )}
           >
             <Skeleton className="aspect-[16/10] w-full rounded-md" />
             <div className="mt-3 flex items-center justify-between gap-3">
@@ -1161,6 +1166,19 @@ function previewImageAt(canvas: CanvasState, index: number) {
   return canvas.screenshotSlots[index - 1]?.src ?? null
 }
 
+function previewSafeBackground(bg: Background): Background {
+  if (bg.type !== "image") return bg
+  if (bg.thumbUrl) return { ...bg, value: bg.thumbUrl }
+  if (bg.sourceUrl) {
+    const small = remoteImagePreviewUrl(bg.sourceUrl, {
+      maxDimension: 400,
+      jpegQuality: 0.7,
+    })
+    if (small) return { ...bg, value: small }
+  }
+  return bg
+}
+
 const CustomPresetCard = React.memo(function CustomPresetCard({
   preset,
   canvas,
@@ -1204,13 +1222,16 @@ const CustomPresetCard = React.memo(function CustomPresetCard({
       shadow: cfg.shadow,
     }))
     const offsetPx = resolveMainOffsetPx(geometry.mainOffset)
+    const previewBg = previewSafeBackground(
+      style?.background ?? canvas.background
+    )
     return {
       ...canvas,
       // Layer the saved style on top of the live canvas so the preview shows
       // the saved background/backdrop/border/shadow/etc. The screenshot
       // pixels still come from the live canvas, since the preset doesn't
       // carry images.
-      ...(style?.background ? { background: style.background } : {}),
+      background: previewBg,
       ...(style && typeof style.padding === "number"
         ? { padding: style.padding }
         : {}),
@@ -1427,6 +1448,7 @@ const SinglePresetCard = React.memo(function SinglePresetCard({
     const plan = planSinglePreset(preset, canvas, aspect)
     return {
       ...canvas,
+      background: previewSafeBackground(canvas.background),
       tilt: plan.canvasTilt,
       scale: plan.canvasScale,
       screenshotPosition: plan.screenshotPosition,
@@ -1495,6 +1517,7 @@ const LayoutPresetCard = React.memo(function LayoutPresetCard({
     }))
     return {
       ...canvas,
+      background: previewSafeBackground(canvas.background),
       tilt: plan.canvasTilt,
       scale: plan.canvasScale,
       screenshotSlots: virtualSlots,
