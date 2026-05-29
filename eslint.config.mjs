@@ -114,6 +114,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // OpenNext Cloudflare build artifacts:
     ".open-next/**",
+    // Custom Cloudflare Worker entry (compiled by Wrangler, excluded from tsconfig):
+    "worker.ts",
   ]),
 ]);
 
