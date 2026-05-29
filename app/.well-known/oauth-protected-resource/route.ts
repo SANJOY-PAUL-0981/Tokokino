@@ -5,7 +5,7 @@ export function GET() {
     resource: SITE_URL,
     authorization_servers: [SITE_URL],
     scopes_supported: ["openid", "profile", "email"],
-    bearer_methods_supported: ["cookie"],
+    bearer_methods_supported: ["header", "cookie"],
     resource_documentation: `${SITE_URL}/llms.txt`,
   }
 

@@ -19,6 +19,7 @@ export function GET() {
       skill: `${SITE_URL}/auth.md`,
       register_uri: `${SITE_URL}/api/auth/sign-up/email`,
       claim_uri: `${SITE_URL}/api/auth/sign-in/email`,
+      revocation_uri: `${SITE_URL}/api/auth/sign-out`,
       identity_types_supported: ["anonymous", "identity_assertion"],
       anonymous: {
         credential_types_supported: ["session_cookie"],

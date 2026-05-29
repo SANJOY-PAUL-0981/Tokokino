@@ -4,10 +4,10 @@ import { useEffect } from "react"
 
 export function WebMcpProvider() {
   useEffect(() => {
-    if (!("modelContext" in navigator)) return
+    if (!("modelContext" in document)) return
 
     const controller = new AbortController()
-    const ctx = navigator.modelContext as {
+    const ctx = document.modelContext as {
       registerTool: (tool: object, opts: { signal: AbortSignal }) => void
     }
     const signal = controller.signal

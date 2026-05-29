@@ -24,14 +24,24 @@ The response sets a session cookie used for all subsequent API calls.
 
 ## Credential Usage
 
-Include the session cookie returned from sign-in in all requests to protected endpoints:
+Include the session cookie returned from sign-in in all requests to protected endpoints, or pass it as a bearer token in the \`Authorization\` header:
+
+\`\`\`
+Authorization: Bearer <session-token>
+\`\`\`
+
+Protected endpoints:
 - \`/api/share\` — create and manage share links
 - \`/api/drafts\` — save and retrieve editor drafts
 - \`/api/presets\` — manage custom presets
 
 ## Session Lifecycle
 
-Sessions expire after inactivity. Re-authenticate using the sign-in endpoint to obtain a fresh session cookie. There is no token revocation endpoint; sessions expire server-side automatically.
+Sessions expire after inactivity. Re-authenticate using the sign-in endpoint to obtain a fresh session. To explicitly revoke a session:
+
+\`\`\`
+POST ${SITE_URL}/api/auth/sign-out
+\`\`\`
 `
 
 export function GET() {
