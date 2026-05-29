@@ -187,17 +187,15 @@ function CanvasViewInner({
     // so we never show a stale or wrong image (e.g. after a preset re-apply).
     const cached = getOptimizedUrlSync(sourceUrl, opts)
     if (cached) {
-      useEditorStore
-        .getState()
-        .setBackground(
-          {
-            type: "image",
-            value: cached,
-            sourceUrl,
-            thumbUrl: thumbUrl ?? undefined,
-          },
-          canvasId
-        )
+      useEditorStore.getState().setBackground(
+        {
+          type: "image",
+          value: cached,
+          sourceUrl,
+          thumbUrl: thumbUrl ?? undefined,
+        },
+        canvasId
+      )
       return
     }
 

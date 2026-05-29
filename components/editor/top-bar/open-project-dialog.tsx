@@ -193,7 +193,10 @@ export function OpenProjectDialog({
           } | null
           throw new Error(data?.error ?? "Could not load drafts")
         }
-        const data = (await res.json())
+        const data: {
+          drafts: DraftListItem[]
+          hasMore: boolean
+        } = await res.json()
         if (replace) {
           setDrafts(data.drafts)
         } else {
@@ -218,7 +221,7 @@ export function OpenProjectDialog({
     setError(null)
     setHasMore(false)
 
-    fetchDrafts(0, sort, true).then(() => {
+    void fetchDrafts(0, sort, true).then(() => {
       if (cancelled) {
         setDrafts(null)
       }
@@ -239,7 +242,7 @@ export function OpenProjectDialog({
         if (entries[0]?.isIntersecting && !isFetchingMoreRef.current) {
           isFetchingMoreRef.current = true
           setIsFetchingMore(true)
-          fetchDrafts(offsetRef.current, sort, false).finally(() => {
+          void fetchDrafts(offsetRef.current, sort, false).finally(() => {
             isFetchingMoreRef.current = false
             setIsFetchingMore(false)
           })

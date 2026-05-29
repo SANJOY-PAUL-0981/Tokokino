@@ -48,11 +48,7 @@ import {
   createImageThumbnailBlob,
 } from "@/lib/editor/export"
 import { readImageFileAsDataUrl } from "@/lib/editor/image-resize"
-import {
-  MAX_CANVASES,
-  saveCurrentEditorDraft,
-  useEditorStore,
-} from "@/lib/editor/store"
+import { saveCurrentEditorDraft, useEditorStore } from "@/lib/editor/store"
 import type {
   CurrentDraftInfo,
   CustomPresetGeometry,

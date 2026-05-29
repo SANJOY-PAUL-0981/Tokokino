@@ -119,9 +119,6 @@ export function TextElementView({
   } = useEditor()
   const isSelected = selectedTextId === text.id
   const [editingRequested, setEditingRequested] = React.useState(false)
-  const [editingAutoWidthPx, setEditingAutoWidthPx] = React.useState<
-    number | null
-  >(null)
   const [isDragging, setIsDragging] = React.useState(false)
   const [isRotateSnapped, setIsRotateSnapped] = React.useState(false)
   const [resizeLens, setResizeLens] = React.useState<ResizeLensState | null>(
@@ -177,10 +174,6 @@ export function TextElementView({
     if (!isEditing) return
     const node = editorRef.current
     if (!node) return
-    if (text.widthPx == null) {
-      const rect = textViewRef.current?.getBoundingClientRect()
-      setEditingAutoWidthPx(rect?.width ? Math.ceil(rect.width) : null)
-    }
     node.innerText = text.content
     node.focus()
     const range = document.createRange()
@@ -189,12 +182,6 @@ export function TextElementView({
     sel?.removeAllRanges()
     sel?.addRange(range)
   }, [isEditing, text.content, text.widthPx])
-
-  React.useEffect(() => {
-    if (isEditing) return
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEditingAutoWidthPx(null)
-  }, [isEditing])
 
   React.useEffect(() => {
     const selectText = (event: Event) => {

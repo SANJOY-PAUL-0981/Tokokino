@@ -33,7 +33,6 @@ import { EditableValue } from "@/components/editor/editable-value"
 import {
   downscaleImageFile,
   downscaleImageFromUrl,
-  remoteImagePreviewUrl,
   seedPlaceholderUrl,
 } from "@/lib/editor/image-resize"
 import { Button } from "@/components/ui/button"
@@ -55,7 +54,6 @@ import {
   sampleImageColorsRaw,
   useActiveCanvasField,
   useEditorStore,
-  type Background,
   type BackgroundEntry,
   type BgType,
 } from "@/lib/editor/store"
@@ -655,7 +653,7 @@ export function BackgroundSection() {
   }
 
   const selectImageFromUrl = React.useCallback(
-    (url: string, thumbUrl?: string, _previewUrl?: string) => {
+    (url: string, thumbUrl?: string) => {
       if (thumbUrl) seedPlaceholderUrl(url, thumbUrl)
       const canvasId = useEditorStore.getState().present.activeCanvasId
       const promotionId = ++promotionIdRef.current
@@ -962,8 +960,7 @@ export function BackgroundSection() {
             } else if (DEFAULT_IMAGE_BACKGROUND_ENTRY) {
               selectImageFromUrl(
                 DEFAULT_IMAGE_BACKGROUND_ENTRY.full,
-                DEFAULT_IMAGE_BACKGROUND_ENTRY.thumb,
-                DEFAULT_IMAGE_BACKGROUND_ENTRY.preview
+                DEFAULT_IMAGE_BACKGROUND_ENTRY.thumb
               )
             } else {
               setBackground({ type, value: "" })
@@ -1180,9 +1177,7 @@ export function BackgroundSection() {
                 ? (background.sourceUrl ?? background.value)
                 : null
             }
-            onSelect={(value, thumb, preview) =>
-              selectImageFromUrl(value, thumb, preview)
-            }
+            onSelect={(value, thumb) => selectImageFromUrl(value, thumb)}
           />
         </TabsContent>
 
