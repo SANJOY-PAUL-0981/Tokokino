@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { requireSession } from "@/lib/api-auth"
+import { enforceRateLimit } from "@/lib/rate-limit"
 import { countDrafts, createDraft, listDrafts } from "@/lib/draft-db"
 import {
   MAX_DRAFT_BYTES,
@@ -45,6 +46,13 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const auth = await requireSession(request)
   if (!auth.ok) return auth.response
+
+  const limited = await enforceRateLimit({
+    limiter: "WRITE_RATE_LIMITER",
+    scope: "draft-create",
+    id: auth.session.user.id,
+  })
+  if (limited) return limited
 
   const contentLength = Number(request.headers.get("content-length") ?? "0")
   if (contentLength > MAX_DRAFT_BYTES) {

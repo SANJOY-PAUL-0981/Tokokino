@@ -16,6 +16,22 @@
       "migrations_dir": "migrations"
     }
   ],
+  "unsafe": {
+    "bindings": [
+      {
+        "name": "HEAVY_RATE_LIMITER",
+        "type": "ratelimit",
+        "namespace_id": "1001",
+        "simple": { "limit": 30, "period": 60 }
+      },
+      {
+        "name": "WRITE_RATE_LIMITER",
+        "type": "ratelimit",
+        "namespace_id": "1002",
+        "simple": { "limit": 60, "period": 60 }
+      }
+    ]
+  },
   "observability": {
     "enabled": true
   }

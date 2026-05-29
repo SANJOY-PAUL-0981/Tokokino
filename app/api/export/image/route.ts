@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 
+import { enforceRateLimit, getClientIp } from "@/lib/rate-limit"
+
 export const runtime = "nodejs"
 
 const MAX_IMAGE_BYTES = 30 * 1024 * 1024
@@ -11,6 +13,13 @@ const IMAGE_FETCH_HEADERS = {
 }
 
 export async function GET(request: Request) {
+  const limited = await enforceRateLimit({
+    limiter: "HEAVY_RATE_LIMITER",
+    scope: "export-image",
+    id: getClientIp(request.headers),
+  })
+  if (limited) return limited
+
   const { searchParams } = new URL(request.url)
   const rawUrl = searchParams.get("url")
 

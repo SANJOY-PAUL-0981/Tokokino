@@ -14,6 +14,7 @@ import {
   getShareObjectKey,
   isValidShareId,
 } from "@/lib/share"
+import { enforceRateLimit } from "@/lib/rate-limit"
 import {
   deleteShareImages,
   MAX_SHARE_IMAGE_BYTES,
@@ -66,6 +67,13 @@ export async function POST(request: Request) {
   if (!session) {
     return NextResponse.json({ error: "Sign in required" }, { status: 401 })
   }
+
+  const limited = await enforceRateLimit({
+    limiter: "WRITE_RATE_LIMITER",
+    scope: "share-create",
+    id: session.user.id,
+  })
+  if (limited) return limited
 
   const contentType = request.headers.get("content-type") ?? ""
   const normalizedType = contentType.toLowerCase()

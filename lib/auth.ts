@@ -20,6 +20,20 @@ function createAuth() {
         clientSecret: env.GOOGLE_CLIENT_SECRET ?? "",
       },
     },
+    rateLimit: {
+      // Persist counters in D1 so limits hold across Workers isolates instead
+      // of the default per-isolate in-memory store.
+      enabled: process.env.NODE_ENV === "production",
+      storage: "database",
+      window: 60,
+      max: 100,
+      customRules: {
+        "/sign-in/email": { window: 60, max: 5 },
+        "/sign-up/email": { window: 60, max: 5 },
+        "/forget-password": { window: 60, max: 3 },
+        "/reset-password": { window: 60, max: 5 },
+      },
+    },
     plugins: [nextCookies()],
   })
 }

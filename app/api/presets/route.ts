@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { requireSession } from "@/lib/api-auth"
+import { enforceRateLimit } from "@/lib/rate-limit"
 import { createCustomPreset, listCustomPresets } from "@/lib/preset-db"
 import { MAX_PRESET_BYTES, createPresetBodySchema } from "@/lib/schemas/preset"
 
@@ -26,6 +27,13 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const auth = await requireSession(request)
   if (!auth.ok) return auth.response
+
+  const limited = await enforceRateLimit({
+    limiter: "WRITE_RATE_LIMITER",
+    scope: "preset-create",
+    id: auth.session.user.id,
+  })
+  if (limited) return limited
 
   const body: unknown = await request.json().catch(() => null)
   const parsed = createPresetBodySchema.safeParse(body)

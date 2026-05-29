@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { env } from "@/lib/env"
+import { enforceRateLimit, getClientIp } from "@/lib/rate-limit"
 
 const UNSPLASH_ACCESS_KEY = env.UNSPLASH_ACCESS_KEY
 
@@ -35,6 +36,13 @@ export async function GET(request: Request) {
       { status: 500 }
     )
   }
+
+  const limited = await enforceRateLimit({
+    limiter: "HEAVY_RATE_LIMITER",
+    scope: "unsplash-search",
+    id: getClientIp(request.headers),
+  })
+  if (limited) return limited
 
   const { searchParams } = new URL(request.url)
   const query = searchParams.get("q")?.trim()

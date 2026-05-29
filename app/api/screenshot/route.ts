@@ -3,6 +3,7 @@ import { z } from "zod/v4"
 
 import { captureUrlSchema } from "@/lib/editor/capture-url"
 import { env } from "@/lib/env"
+import { enforceRateLimit, getClientIp } from "@/lib/rate-limit"
 
 const ASPECT_RATIOS = ["4:3", "16:9", "1:1", "9:16", "9:19.5"] as const
 
@@ -52,6 +53,13 @@ function delayMsFromSetting(delay: z.infer<typeof requestSchema>["delay"]) {
 }
 
 export async function POST(request: Request) {
+  const limited = await enforceRateLimit({
+    limiter: "HEAVY_RATE_LIMITER",
+    scope: "screenshot",
+    id: getClientIp(request.headers),
+  })
+  if (limited) return limited
+
   const accountId = env.CLOUDFLARE_ACCOUNT_ID
   const apiToken = env.CLOUDFLARE_BROWSER_API_TOKEN
   if (!accountId || !apiToken) {
