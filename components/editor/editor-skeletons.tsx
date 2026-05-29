@@ -45,9 +45,16 @@ export function EffectsSidebarSkeleton({ className }: { className?: string }) {
       <div className="flex min-h-0 flex-1 flex-col px-4 pb-4">
         <div className="space-y-3 pt-2">
           <Skeleton className="h-4 w-16" />
-          <div className="grid grid-cols-3 gap-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="aspect-[4/3] w-full rounded-lg" />
+          <Skeleton className="h-11 w-full rounded-lg" />
+          <div className="grid grid-cols-2 gap-2 md:block md:space-y-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="aspect-[16/10] w-full rounded-[8px]" />
+                <div className="flex items-center justify-between gap-2">
+                  <Skeleton className="h-3.5 w-2/3 rounded-md" />
+                  <Skeleton className="size-5 rounded-full" />
+                </div>
+              </div>
             ))}
           </div>
         </div>

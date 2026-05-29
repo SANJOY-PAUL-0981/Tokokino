@@ -57,7 +57,7 @@ export function IpadSidebar({ className }: { className?: string }) {
   return (
     <aside
       className={cn(
-        "flex h-full min-h-0 w-[300px] shrink-0 flex-col overflow-hidden border-r border-dashed border-border/70 bg-sidebar lg:w-[320px]",
+        "flex h-full min-h-0 w-[300px] shrink-0 flex-col overflow-hidden border-l border-dashed border-border/70 bg-sidebar lg:w-[320px]",
         className
       )}
     >
@@ -123,6 +123,7 @@ export function IpadSidebar({ className }: { className?: string }) {
           >
             <EffectsSidebar
               hideAccount
+              popoverAlign="end"
               className="!h-full !w-full !border-none !bg-transparent"
             />
           </div>

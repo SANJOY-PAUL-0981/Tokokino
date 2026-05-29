@@ -35,10 +35,12 @@ import { ArrowRight } from "lucide-react"
 export function EffectsSidebar({
   className,
   hideAccount = false,
+  popoverAlign = "start",
 }: {
   className?: string
   hideAccount?: boolean
   stacked?: boolean
+  popoverAlign?: "start" | "end"
 }) {
   const globalAspect = useEditorStore((s) => s.present.aspect)
   const canvasAspect = useActiveCanvasField((c) => c.aspect)
@@ -137,7 +139,11 @@ export function EffectsSidebar({
       <div className="space-y-4">
         <div>
           <SectionLabel>Aspect Ratio</SectionLabel>
-          <AspectPopover value={aspect.id} onChange={handleAspectChange} />
+          <AspectPopover
+            value={aspect.id}
+            onChange={handleAspectChange}
+            align={popoverAlign}
+          />
           {customSize ? (
             <p className="mt-1.5 px-0.5 font-mono text-[10px] text-muted-foreground">
               Custom · {customSize.w} × {customSize.h}
@@ -148,6 +154,7 @@ export function EffectsSidebar({
           <SectionLabel>Frame</SectionLabel>
           <FramePopover
             value={activeFrame}
+            align={popoverAlign}
             previewImage={selectedSlot ? selectedSlot.src : undefined}
             imageFit={selectedSlot?.objectFit ?? objectFit ?? "cover"}
             onChange={(nextFrame) => {

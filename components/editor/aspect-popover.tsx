@@ -348,9 +348,11 @@ export function findAspectOption(id: string) {
 export function AspectPopover({
   value,
   onChange,
+  align = "start",
 }: {
   value: string
   onChange: (id: string, custom?: { w: number; h: number }) => void
+  align?: "start" | "end"
 }) {
   const [open, setOpen] = React.useState(false)
   const [query, setQuery] = React.useState("")
@@ -423,10 +425,11 @@ export function AspectPopover({
 
       <PopoverContent
         side="bottom"
-        align="center"
+        align={align}
         sideOffset={8}
         collisionPadding={8}
-        className="flex h-[min(560px,80vh)] max-h-[min(560px,80vh)] w-[min(360px,calc(100vw-1rem))] flex-col gap-0 overflow-hidden bg-popover p-0 max-md:h-[min(360px,55vh)] max-md:max-h-[min(360px,55vh)]"
+        avoidCollisions={false}
+        className="flex h-[min(560px,80dvh)] max-h-[min(560px,80dvh)] w-[min(360px,calc(100vw-1rem))] flex-col gap-0 overflow-hidden bg-popover p-0 max-md:h-[min(560px,80dvh)] max-md:max-h-[min(560px,80dvh)]"
       >
         {/* Search */}
         <motion.div

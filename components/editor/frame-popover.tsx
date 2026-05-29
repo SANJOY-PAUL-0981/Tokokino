@@ -226,11 +226,13 @@ export function FramePopover({
   onChange,
   previewImage,
   imageFit = "cover",
+  align = "start",
 }: {
   value: DeviceFrame
   onChange: (frame: DeviceFrame) => void
   previewImage?: string | null
   imageFit?: ImageFit
+  align?: "start" | "end"
 }) {
   const [open, setOpen] = React.useState(false)
   const [query, setQuery] = React.useState("")
@@ -314,10 +316,11 @@ export function FramePopover({
 
       <PopoverContent
         side="bottom"
-        align="center"
+        align={align}
         sideOffset={8}
         collisionPadding={8}
-        className="flex h-[min(640px,82vh)] max-h-[min(640px,82vh)] w-[min(420px,calc(100vw-1rem))] flex-col gap-0 overflow-hidden bg-popover p-0 max-md:h-[min(360px,55vh)] max-md:max-h-[min(360px,55vh)]"
+        avoidCollisions={false}
+        className="flex h-[min(480px,70dvh)] max-h-[min(480px,70dvh)] w-[min(420px,calc(100vw-1rem))] flex-col gap-0 overflow-hidden bg-popover p-0 max-md:h-[min(480px,70dvh)] max-md:max-h-[min(480px,70dvh)]"
       >
         <motion.div
           initial={{ opacity: 0, y: -6 }}
