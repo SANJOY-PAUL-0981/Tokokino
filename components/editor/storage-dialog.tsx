@@ -22,6 +22,17 @@ const SUPPORT_EMAIL = "hello@theshiva.xyz"
 
 type StoragePool = { used: number; limit: number }
 
+function hasStoragePool(value: unknown): value is { storage: StoragePool } {
+  if (typeof value !== "object" || value === null) return false
+  const storage = (value as { storage?: unknown }).storage
+  return (
+    typeof storage === "object" &&
+    storage !== null &&
+    typeof (storage as StoragePool).used === "number" &&
+    typeof (storage as StoragePool).limit === "number"
+  )
+}
+
 function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return "0 MB"
   const mb = bytes / (1024 * 1024)
@@ -118,11 +129,11 @@ export function StorageDialog({
         ])
         if (draftsRes.ok) {
           const data = await draftsRes.json()
-          if (!cancelled && data.storage) setDrafts(data.storage)
+          if (!cancelled && hasStoragePool(data)) setDrafts(data.storage)
         }
         if (sharesRes.ok) {
           const data = await sharesRes.json()
-          if (!cancelled && data.storage) setShares(data.storage)
+          if (!cancelled && hasStoragePool(data)) setShares(data.storage)
         }
       } catch {
         // Leave pools null — rows render a loading placeholder.
