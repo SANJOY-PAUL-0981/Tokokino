@@ -117,11 +117,11 @@ export function StorageDialog({
           fetch("/api/share", { cache: "no-store" }),
         ])
         if (draftsRes.ok) {
-          const data = (await draftsRes.json())
+          const data = await draftsRes.json()
           if (!cancelled && data.storage) setDrafts(data.storage)
         }
         if (sharesRes.ok) {
-          const data = (await sharesRes.json())
+          const data = await sharesRes.json()
           if (!cancelled && data.storage) setShares(data.storage)
         }
       } catch {
