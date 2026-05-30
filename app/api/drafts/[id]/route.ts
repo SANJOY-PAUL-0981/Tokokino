@@ -2,9 +2,11 @@ import { NextResponse } from "next/server"
 
 import { requireSession } from "@/lib/api-auth"
 import {
+  MAX_USER_DRAFT_STORAGE_BYTES,
   deleteDraft,
   getDraft,
   getDraftMetadata,
+  getUserDraftStorageUsage,
   updateDraft,
 } from "@/lib/draft-db"
 import { deleteDraftState, deleteDraftThumbnail } from "@/lib/draft-storage"
@@ -84,6 +86,20 @@ export async function PUT(
   if (stateBytes.byteLength > MAX_DRAFT_BYTES) {
     return NextResponse.json(
       { error: "Project is too large to save" },
+      { status: 413 }
+    )
+  }
+
+  // The new state replaces the existing one, so only the delta counts toward
+  // the budget.
+  const storageUsed = await getUserDraftStorageUsage(auth.session.user.id)
+  const projectedUsage = storageUsed - existing.byteSize + stateBytes.byteLength
+  if (projectedUsage > MAX_USER_DRAFT_STORAGE_BYTES) {
+    return NextResponse.json(
+      {
+        error: "Storage limit reached",
+        storage: { used: storageUsed, limit: MAX_USER_DRAFT_STORAGE_BYTES },
+      },
       { status: 413 }
     )
   }

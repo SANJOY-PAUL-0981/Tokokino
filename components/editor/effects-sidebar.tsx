@@ -4,6 +4,7 @@ import * as React from "react"
 import {
   RiArrowDownSLine,
   RiGalleryLine,
+  RiHardDrive2Line,
   RiLogoutBoxRLine,
   RiUserLine,
 } from "@remixicon/react"
@@ -16,6 +17,7 @@ import {
 } from "@/components/editor/aspect-popover"
 import { FramePopover } from "@/components/editor/frame-popover"
 import { PresentPresetsSection } from "@/components/editor/present-presets-section"
+import { StorageDialog } from "@/components/editor/storage-dialog"
 import {
   Popover,
   PopoverContent,
@@ -212,6 +214,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 export function AccountTile() {
   const { data: session, isPending: isAuthPending } = useSession()
   const [expanded, setExpanded] = React.useState(false)
+  const [storageOpen, setStorageOpen] = React.useState(false)
   const [isSigningOut, setIsSigningOut] = React.useState(false)
   const [isHydrated, setIsHydrated] = React.useState(false)
 
@@ -329,6 +332,17 @@ export function AccountTile() {
           </Link>
           <button
             type="button"
+            className="flex h-8 w-full items-center gap-2.5 rounded-md px-2 text-xs font-medium text-foreground transition-colors hover:bg-secondary/60"
+            onClick={() => {
+              setExpanded(false)
+              setStorageOpen(true)
+            }}
+          >
+            <RiHardDrive2Line className="size-4 shrink-0 text-muted-foreground" />
+            Storage
+          </button>
+          <button
+            type="button"
             disabled={isSigningOut}
             className="flex h-8 w-full items-center gap-2.5 rounded-md px-2 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:pointer-events-none disabled:opacity-60"
             onClick={() => void handleSignOut()}
@@ -338,6 +352,7 @@ export function AccountTile() {
           </button>
         </PopoverContent>
       </Popover>
+      <StorageDialog open={storageOpen} onOpenChange={setStorageOpen} />
     </div>
   )
 }

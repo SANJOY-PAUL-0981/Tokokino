@@ -12,6 +12,7 @@ import {
   RiSunLine,
   RiUserLine,
   RiGalleryLine,
+  RiHardDrive2Line,
   RiLogoutBoxLine,
 } from "@remixicon/react"
 import { useRouter } from "next/navigation"
@@ -24,6 +25,7 @@ import { PaddingSection } from "@/components/editor/inspector/padding-section"
 import { Section } from "@/components/editor/inspector/primitives"
 import { ShadowSection } from "@/components/editor/inspector/shadow-section"
 import { TiltSection } from "@/components/editor/inspector/tilt-section"
+import { StorageDialog } from "@/components/editor/storage-dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Popover,
@@ -194,6 +196,7 @@ function MobileAccountButton() {
   const { data: session } = useSession()
   const router = useRouter()
   const [open, setOpen] = React.useState(false)
+  const [storageOpen, setStorageOpen] = React.useState(false)
   const user = session?.user
 
   if (!user) {
@@ -251,6 +254,17 @@ function MobileAccountButton() {
           type="button"
           onClick={() => {
             setOpen(false)
+            setStorageOpen(true)
+          }}
+          className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-[13px] text-foreground transition-colors hover:bg-accent"
+        >
+          <RiHardDrive2Line className="size-4 text-muted-foreground" />
+          Storage
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false)
             void signOut()
           }}
           className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-[13px] text-destructive transition-colors hover:bg-destructive/10"
@@ -259,6 +273,7 @@ function MobileAccountButton() {
           Sign out
         </button>
       </PopoverContent>
+      <StorageDialog open={storageOpen} onOpenChange={setStorageOpen} />
     </Popover>
   )
 }

@@ -2,7 +2,13 @@ import { NextResponse } from "next/server"
 
 import { requireSession } from "@/lib/api-auth"
 import { enforceRateLimit } from "@/lib/rate-limit"
-import { countDrafts, createDraft, listDrafts } from "@/lib/draft-db"
+import {
+  MAX_USER_DRAFT_STORAGE_BYTES,
+  countDrafts,
+  createDraft,
+  getUserDraftStorageUsage,
+  listDrafts,
+} from "@/lib/draft-db"
 import {
   MAX_DRAFT_BYTES,
   countCanvasesInDraftState,
@@ -23,9 +29,10 @@ export async function GET(request: Request) {
   const offset = Math.max(Number(url.searchParams.get("offset") ?? "0"), 0)
   const sort = url.searchParams.get("sort") === "oldest" ? "oldest" : "latest"
 
-  const [draftRows, total] = await Promise.all([
+  const [draftRows, total, storageUsed] = await Promise.all([
     listDrafts(auth.session.user.id, { limit, offset, sort }),
     countDrafts(auth.session.user.id),
+    getUserDraftStorageUsage(auth.session.user.id),
   ])
 
   return NextResponse.json({
@@ -40,6 +47,7 @@ export async function GET(request: Request) {
     })),
     total,
     hasMore: offset + draftRows.length < total,
+    storage: { used: storageUsed, limit: MAX_USER_DRAFT_STORAGE_BYTES },
   })
 }
 
@@ -82,6 +90,17 @@ export async function POST(request: Request) {
   if (stateBytes.byteLength > MAX_DRAFT_BYTES) {
     return NextResponse.json(
       { error: "Project is too large to save" },
+      { status: 413 }
+    )
+  }
+
+  const storageUsed = await getUserDraftStorageUsage(auth.session.user.id)
+  if (storageUsed + stateBytes.byteLength > MAX_USER_DRAFT_STORAGE_BYTES) {
+    return NextResponse.json(
+      {
+        error: "Storage limit reached",
+        storage: { used: storageUsed, limit: MAX_USER_DRAFT_STORAGE_BYTES },
+      },
       { status: 413 }
     )
   }

@@ -1,10 +1,13 @@
 import "server-only"
 
-import { and, asc, count, desc, eq } from "drizzle-orm"
+import { and, asc, count, desc, eq, sql } from "drizzle-orm"
 
 import { drafts } from "@/lib/db/schema"
 import { fromD1Date, getDb, toD1Date } from "@/lib/d1"
 import { getDraftState, uploadDraftState } from "@/lib/draft-storage"
+
+/** Per-user storage budget for saved draft state: 1 GB. */
+export const MAX_USER_DRAFT_STORAGE_BYTES = 1024 * 1024 * 1024
 
 /**
  * D1 metadata for saved drafts. Full editor state lives in R2 at `stateKey`
@@ -82,6 +85,19 @@ export async function listDrafts(
     .offset(offset)
 
   return rows.map(rowToDraftMetadata)
+}
+
+export async function getUserDraftStorageUsage(
+  userId: string
+): Promise<number> {
+  const row = await getDb()
+    .select({
+      total: sql<number>`COALESCE(SUM(${drafts.byteSize}), 0)`,
+    })
+    .from(drafts)
+    .where(eq(drafts.userId, userId))
+    .get()
+  return Number(row?.total ?? 0)
 }
 
 export async function countDrafts(userId: string) {
