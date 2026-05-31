@@ -75,6 +75,13 @@ type ResizeLensState = {
   fontSize: number
 }
 
+type PinchState = {
+  pointer1Id: number
+  pointer2Id: number
+  startDistance: number
+  startFontSize: number
+}
+
 const DRAG_THRESHOLD = 4
 const CENTER_SNAP_ENTER_PX = 8
 const CENTER_SNAP_EXIT_PX = 14
@@ -145,6 +152,10 @@ export function TextElementView({
   const dragRef = React.useRef<DragState | null>(null)
   const rotateRef = React.useRef<RotateState | null>(null)
   const resizeRef = React.useRef<ResizeState | null>(null)
+  const pinchRef = React.useRef<PinchState | null>(null)
+  const activePtrsRef = React.useRef(
+    new Map<number, { x: number; y: number }>()
+  )
 
   // Keep latest text values in refs so drag handlers read fresh values
   // without needing to re-create callbacks on every render.
@@ -275,10 +286,33 @@ export function TextElementView({
       if (!canvas) return
       e.stopPropagation()
       e.preventDefault()
+
+      activePtrsRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      e.currentTarget.setPointerCapture?.(e.pointerId)
+
+      // Second pointer on the element — switch to pinch-to-zoom
+      if (activePtrsRef.current.size >= 2) {
+        if (dragRef.current) {
+          dragRef.current = null
+          setIsDragging(false)
+          onCenterGuideChangeRef.current?.({ x: false, y: false })
+        }
+        const ptrs = [...activePtrsRef.current.entries()]
+        const [id1, p1] = ptrs[0]
+        const [id2, p2] = ptrs[1]
+        const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y)
+        pinchRef.current = {
+          pointer1Id: id1,
+          pointer2Id: id2,
+          startDistance: Math.max(dist, 1),
+          startFontSize: t.fontSize,
+        }
+        return
+      }
+
       setSelectedTextId(t.id)
       setSelectedAnnotationShapeId(null)
       setEditingRequested(false)
-      e.currentTarget.setPointerCapture?.(e.pointerId)
       const rect = canvas.getBoundingClientRect()
       dragRef.current = {
         pointerId: e.pointerId,
@@ -296,8 +330,71 @@ export function TextElementView({
     [canvasRef, setSelectedAnnotationShapeId, setSelectedTextId]
   )
 
+  const updateResizeLens = React.useCallback((handle: ResizeHandleId) => {
+    const el = elRef.current
+    if (!el) return
+    const width = el.offsetWidth
+    const height = el.offsetHeight
+    if (!width || !height) return
+
+    const x =
+      handle === "ml" || handle === "tl" || handle === "bl"
+        ? 0
+        : handle === "mr" || handle === "tr" || handle === "br"
+          ? width
+          : width / 2
+    const y =
+      handle === "mt" || handle === "tl" || handle === "tr"
+        ? 0
+        : handle === "mb" || handle === "bl" || handle === "br"
+          ? height
+          : height / 2
+
+    const liveFontSize = Number.parseFloat(
+      textViewRef.current?.style.fontSize ?? ""
+    )
+    setResizeLens({
+      x,
+      y,
+      width,
+      height,
+      fontSize: Number.isFinite(liveFontSize)
+        ? liveFontSize
+        : textRef.current.fontSize,
+    })
+  }, [])
+
   const moveDrag = React.useCallback(
     (e: React.PointerEvent<Element>) => {
+      // Keep active pointer positions current for pinch distance calculation
+      if (activePtrsRef.current.has(e.pointerId)) {
+        activePtrsRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      }
+
+      // Pinch-to-zoom: scale font size by the ratio of current to start distance
+      const pinch = pinchRef.current
+      if (
+        pinch &&
+        (e.pointerId === pinch.pointer1Id || e.pointerId === pinch.pointer2Id)
+      ) {
+        e.preventDefault()
+        const p1 = activePtrsRef.current.get(pinch.pointer1Id)
+        const p2 = activePtrsRef.current.get(pinch.pointer2Id)
+        if (p1 && p2) {
+          const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y)
+          const scaleFactor = dist / pinch.startDistance
+          const newFontSize = clamp(
+            Math.round(pinch.startFontSize * scaleFactor),
+            8,
+            200
+          )
+          const textView = textViewRef.current
+          if (textView) textView.style.fontSize = `${newFontSize}px`
+          updateResizeLens("br")
+        }
+        return
+      }
+
       const drag = dragRef.current
       if (!drag || drag.pointerId !== e.pointerId) return
       e.preventDefault()
@@ -350,11 +447,34 @@ export function TextElementView({
         setToolbarRect(el.getBoundingClientRect())
       }
     },
-    [setToolbarRect]
+    [setToolbarRect, updateResizeLens]
   )
 
   const endDrag = React.useCallback(
     (e: React.PointerEvent<Element>) => {
+      activePtrsRef.current.delete(e.pointerId)
+
+      // Commit pinch-scaled font size to store
+      const pinch = pinchRef.current
+      if (
+        pinch &&
+        (e.pointerId === pinch.pointer1Id || e.pointerId === pinch.pointer2Id)
+      ) {
+        const textView = textViewRef.current
+        if (textView) {
+          const liveFontSize = Number.parseFloat(textView.style.fontSize)
+          if (
+            Number.isFinite(liveFontSize) &&
+            liveFontSize !== textRef.current.fontSize
+          ) {
+            updateText(textRef.current.id, { fontSize: liveFontSize })
+          }
+        }
+        pinchRef.current = null
+        setResizeLens(null)
+        return
+      }
+
       const drag = dragRef.current
       if (!drag || drag.pointerId !== e.pointerId) return
       // Commit final position to store once
@@ -457,40 +577,6 @@ export function TextElementView({
   )
 
   /* ---- Resize ---- */
-
-  const updateResizeLens = React.useCallback((handle: ResizeHandleId) => {
-    const el = elRef.current
-    if (!el) return
-    const width = el.offsetWidth
-    const height = el.offsetHeight
-    if (!width || !height) return
-
-    const x =
-      handle === "ml" || handle === "tl" || handle === "bl"
-        ? 0
-        : handle === "mr" || handle === "tr" || handle === "br"
-          ? width
-          : width / 2
-    const y =
-      handle === "mt" || handle === "tl" || handle === "tr"
-        ? 0
-        : handle === "mb" || handle === "bl" || handle === "br"
-          ? height
-          : height / 2
-
-    const liveFontSize = Number.parseFloat(
-      textViewRef.current?.style.fontSize ?? ""
-    )
-    setResizeLens({
-      x,
-      y,
-      width,
-      height,
-      fontSize: Number.isFinite(liveFontSize)
-        ? liveFontSize
-        : textRef.current.fontSize,
-    })
-  }, [])
 
   const startResize = React.useCallback(
     (handle: ResizeHandleId) => (e: React.PointerEvent<HTMLButtonElement>) => {
