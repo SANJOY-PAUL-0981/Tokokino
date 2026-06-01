@@ -7,21 +7,25 @@ import InfiniteScroll from "react-infinite-scroll-component"
 import { toast } from "sonner"
 import {
   RiArrowRightLine,
+  RiBubbleChartLine,
   RiCloudLine,
   RiContrastLine,
   RiDropLine,
   RiEqualizerLine,
   RiEraserLine,
+  RiFireLine,
   RiFlashlightLine,
   RiFocus2Line,
   RiGradienterLine,
   RiGridLine,
+  RiHazeLine,
   RiImageLine,
   RiLoader4Line,
   RiMacLine,
   RiMagicLine,
   RiMoonClearLine,
   RiRefreshLine,
+  RiRhythmLine,
   RiSearchLine,
   RiSunLine,
   RiUnsplashLine,
@@ -232,6 +236,8 @@ function withGradientOptions({
 
 function gradientCategoryIcon(key: string) {
   switch (key) {
+    case "trending":
+      return RiFireLine
     case "warm":
       return RiSunLine
     case "cool":
@@ -242,6 +248,12 @@ function gradientCategoryIcon(key: string) {
       return RiContrastLine
     case "pastel":
       return RiDropLine
+    case "noise":
+      return RiHazeLine
+    case "mesh":
+      return RiBubbleChartLine
+    case "aurora":
+      return RiRhythmLine
     default:
       return RiGradienterLine
   }
@@ -1430,6 +1442,7 @@ export function BackgroundSection() {
               setBackground({ type: "solid", value: hex })
             }
             isCustom={!!customSolid}
+            tileShape="rect"
           />
         </TabsContent>
 
