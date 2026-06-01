@@ -673,7 +673,7 @@ export function FloatingToolbar() {
   return (
     <div
       className={cn(
-        "pointer-events-none absolute bottom-4 z-20 flex w-full max-w-[calc(100vw-1.5rem)] flex-col items-center gap-2 px-3 max-md:bottom-[88px] sm:w-auto sm:px-0 md:max-xl:left-[calc(50%-150px)]",
+        "pointer-events-none absolute bottom-4 z-20 flex w-full max-w-[calc(100vw-1.5rem)] flex-col items-center gap-2 px-3 max-md:bottom-[150px] sm:w-auto sm:px-0 md:max-xl:left-[calc(50%-150px)]",
         // In annotate mode on mobile, anchor left so overflow scrolls right
         isAnnotateMode
           ? "left-3 max-md:translate-x-0 md:-translate-x-1/2 md:max-xl:left-[calc(50%-150px)] xl:left-1/2"

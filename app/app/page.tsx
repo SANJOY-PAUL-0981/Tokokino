@@ -60,6 +60,7 @@ function EditorLayout() {
 
   const [settingsOpen, setSettingsOpen] = React.useState(false)
   const [mobilePanelOpen, setMobilePanelOpen] = React.useState(false)
+  const [floatingOpen, setFloatingOpen] = React.useState(false)
 
   React.useEffect(() => {
     if (!isPreviewMode) return
@@ -236,7 +237,13 @@ function EditorLayout() {
           </DeferredMount>
         </div>
         {!isPreviewMode && (
-          <div className={cn(mobilePanelOpen && "max-md:hidden")}>
+          <div
+            className={cn(
+              // Phone: the toolbar is gated behind the bottom bar's tools button.
+              !floatingOpen && "max-md:hidden",
+              mobilePanelOpen && "max-md:hidden"
+            )}
+          >
             <FloatingToolbar />
           </div>
         )}
@@ -248,7 +255,13 @@ function EditorLayout() {
             <Inspector className="hidden xl:flex" />
           </DeferredMount>
         )}
-        {!isPreviewMode && <MobileControls onOpenChange={setMobilePanelOpen} />}
+        {!isPreviewMode && (
+          <MobileControls
+            onOpenChange={setMobilePanelOpen}
+            floatingOpen={floatingOpen}
+            onFloatingOpenChange={setFloatingOpen}
+          />
+        )}
       </div>
     </div>
   )

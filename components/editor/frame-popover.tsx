@@ -197,6 +197,11 @@ const SECTIONS: FrameSection[] = [
 ].filter((section) => section.options.length > 0)
 
 const ALL_OPTIONS = SECTIONS.flatMap((s) => s.options)
+
+export function findFrameOptionName(id: string) {
+  return ALL_OPTIONS.find((o) => o.id === id)?.name ?? "None"
+}
+
 const BROWSER_TILE_PREVIEW_WIDTH = 112
 const BROWSER_TILE_PREVIEW_VIRTUAL_WIDTH = 240
 
@@ -475,6 +480,209 @@ export function FramePopover({
         </motion.div>
       </PopoverContent>
     </Popover>
+  )
+}
+
+/**
+ * Mobile-only frame picker body (no Popover chrome). Lives inside a bottom
+ * Drawer: search up top, scrollable device grid, color + orientation footer.
+ */
+export function MobileFramePicker({
+  value,
+  onChange,
+  previewImage,
+  imageFit = "cover",
+}: {
+  value: DeviceFrame
+  onChange: (frame: DeviceFrame) => void
+  previewImage?: string | null
+  imageFit?: ImageFit
+}) {
+  const [query, setQuery] = React.useState("")
+  const screenshot = useActiveCanvasField((c) => c.screenshot)
+  const previewScreenshot =
+    previewImage === undefined ? screenshot : previewImage
+
+  const current = ALL_OPTIONS.find((o) => o.id === value.id) ?? ALL_OPTIONS[0]
+  const currentDevice = getDeviceMockup(current.id)
+  const effectiveOrientation = isBrowserFrame(current.id)
+    ? "horizontal"
+    : value.orientation
+  const currentColor = resolveFrameColor(current, currentDevice, value.color)
+
+  const q = query.trim().toLowerCase()
+  const matches = (o: FrameOption, section: FrameSection) => {
+    if (!q) return true
+    const haystack: string[] = [
+      o.name,
+      section.label,
+      section.id,
+      o.kind,
+      `${o.w}x${o.h}`,
+      `${o.w}×${o.h}`,
+      ...optionColors(o).map((color) => formatColor(color)),
+      ...(FRAME_SEARCH_ALIASES[o.id] ?? []),
+    ]
+    return haystack.some((entry) => entry.toLowerCase().includes(q))
+  }
+
+  const visibleSections = SECTIONS.map((s) => ({
+    ...s,
+    options: s.options.filter((o) => matches(o, s)),
+  })).filter((s) => s.options.length > 0)
+
+  const selectFrame = React.useCallback(
+    (option: FrameOption) => {
+      const device = getDeviceMockup(option.id)
+      onChange({
+        id: option.id,
+        color: resolveFrameColor(option, device, value.color),
+        orientation: isBrowserFrame(option.id) ? "horizontal" : "vertical",
+      })
+    },
+    [onChange, value.color]
+  )
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      {/* Search */}
+      <div className="relative shrink-0 px-3 pb-2">
+        <RiSearchLine className="pointer-events-none absolute top-1/2 left-5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Search devices…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="h-9 !pl-8 text-[13px]"
+        />
+      </div>
+
+      {/* Device grid */}
+      <ScrollFadeBody
+        rootClassName="min-h-0 flex-1"
+        className="h-full overscroll-contain px-3 pt-1 pb-3"
+      >
+        {visibleSections.map((section, idx) => (
+          <div key={section.id}>
+            {idx !== 0 ? <div className="mt-4 h-px bg-border/50" /> : null}
+            <div className="mt-3 mb-2.5 flex items-center gap-1.5 first:mt-0">
+              <section.icon className="size-3.5 text-foreground/80" />
+              <span className="text-[11px] font-medium tracking-tight">
+                {section.label}
+              </span>
+              <span className="tabular ml-auto font-mono text-[10px] text-muted-foreground">
+                {section.options.length}
+              </span>
+            </div>
+            <div className={frameSectionGridClass(section.id)}>
+              {section.options.map((option) => (
+                <DeviceTile
+                  key={option.id}
+                  option={option}
+                  selectedColor={currentColor}
+                  active={value.id === option.id}
+                  screenshot={previewScreenshot}
+                  imageFit={imageFit}
+                  compact={isCompactFrameSection(section.id)}
+                  onSelect={selectFrame}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {visibleSections.length === 0 ? (
+          <p className="px-2 py-8 text-center font-mono text-[10px] text-muted-foreground">
+            No matches for &ldquo;{query}&rdquo;
+          </p>
+        ) : null}
+      </ScrollFadeBody>
+
+      {/* Color + orientation footer */}
+      {current.colors.length > 0 ||
+      (currentDevice &&
+        current.kind !== "desktop" &&
+        current.kind !== "watch") ? (
+        <div className="shrink-0 border-t border-border/60 bg-popover px-3 py-2.5">
+          <div className="flex flex-wrap items-start gap-3">
+            {current.colors.length > 0 ? (
+              <div className="min-w-[150px] flex-1">
+                <div className="label-eyebrow mb-1.5 px-1 !text-[9px]">
+                  Color
+                </div>
+                <Select
+                  value={currentColor}
+                  onValueChange={(color) =>
+                    onChange({
+                      id: current.id,
+                      color,
+                      orientation: effectiveOrientation,
+                    })
+                  }
+                >
+                  <SelectTrigger
+                    className="!h-9 w-full justify-between bg-secondary/40 px-2 text-[12px]"
+                    aria-label="Device color"
+                  >
+                    <ColorOption color={currentColor} />
+                  </SelectTrigger>
+                  <SelectContent
+                    align="start"
+                    position="popper"
+                    className="z-[1100] min-w-[160px]"
+                  >
+                    {current.colors.map((color) => (
+                      <SelectItem key={color} value={color}>
+                        <ColorOption color={color} />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+
+            {currentDevice &&
+            current.kind !== "desktop" &&
+            current.kind !== "watch" ? (
+              <div className="w-[140px] shrink-0">
+                <div className="label-eyebrow mb-1.5 px-1 !text-[9px]">
+                  Orientation
+                </div>
+                <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-secondary/40 p-0.5">
+                  {(["vertical", "horizontal"] as const).map((orientation) => {
+                    const active = effectiveOrientation === orientation
+                    return (
+                      <button
+                        key={orientation}
+                        aria-label={formatOrientation(orientation)}
+                        title={formatOrientation(orientation)}
+                        onClick={() =>
+                          onChange({
+                            id: current.id,
+                            color: currentColor,
+                            orientation,
+                          })
+                        }
+                        className={cn(
+                          "flex flex-1 items-center justify-center rounded-md px-2 py-2 transition-colors",
+                          active
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        <OrientGlyph
+                          orientation={orientation}
+                          active={active}
+                        />
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </div>
   )
 }
 

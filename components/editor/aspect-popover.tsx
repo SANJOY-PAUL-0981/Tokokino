@@ -345,6 +345,128 @@ export function findAspectOption(id: string) {
   return ALL_OPTIONS.find((o) => o.id === id)
 }
 
+/**
+ * Mobile-only aspect picker body (no Popover chrome). Designed to live inside a
+ * bottom Drawer. Search + a horizontal "quick presets" strip up top, then the
+ * full searchable section list, then the custom-size row pinned at the bottom.
+ */
+export function MobileAspectPicker({
+  value,
+  onChange,
+  onClose,
+}: {
+  value: string
+  onChange: (id: string, custom?: { w: number; h: number }) => void
+  onClose: () => void
+}) {
+  const [query, setQuery] = React.useState("")
+  const [w, setW] = React.useState("1920")
+  const [h, setH] = React.useState("1200")
+
+  const q = query.trim().toLowerCase()
+  const matches = (o: AspectOption) => {
+    if (!q) return true
+    return (
+      o.name.toLowerCase().includes(q) ||
+      o.ratio.toLowerCase().includes(q) ||
+      `${o.w}×${o.h}`.includes(q) ||
+      `${o.w}x${o.h}`.includes(q)
+    )
+  }
+
+  const filteredOptions = ALL_OPTIONS.filter(matches)
+
+  const customW = Number(w)
+  const customH = Number(h)
+  const isCustomValid =
+    Number.isFinite(customW) &&
+    Number.isFinite(customH) &&
+    customW > 0 &&
+    customH > 0
+
+  const applyCustomSize = () => {
+    if (!isCustomValid) return
+    onChange("custom", { w: Math.round(customW), h: Math.round(customH) })
+    onClose()
+  }
+
+  const select = (id: string) => {
+    onChange(id)
+    onClose()
+  }
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      {/* Search */}
+      <div className="shrink-0 px-3 pb-2">
+        <div className="relative">
+          <RiSearchLine className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search ratios…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="h-10 !pl-9 text-[13px]"
+          />
+        </div>
+      </div>
+
+      {/* Presets — single x-axis scroll (no vertical list on mobile) */}
+      <div className="min-h-0 flex-1 px-3 py-1">
+        <div className="label-eyebrow mb-2 !text-[9px]">Presets</div>
+        {filteredOptions.length > 0 ? (
+          <div className="-mx-3 flex [scrollbar-width:none] items-end gap-3 overflow-x-auto px-3 pb-2 [&::-webkit-scrollbar]:hidden">
+            {filteredOptions.map((o) => (
+              <div key={o.id} className="shrink-0">
+                <AspectTile
+                  option={o}
+                  active={value === o.id}
+                  onSelect={() => select(o.id)}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="px-2 py-8 text-center font-mono text-[10px] text-muted-foreground">
+            No matches for &ldquo;{query}&rdquo;
+          </p>
+        )}
+      </div>
+
+      {/* Custom */}
+      <div className="shrink-0 border-t border-border/60 bg-popover px-3 py-2.5">
+        <div className="label-eyebrow mb-1.5 px-1 !text-[9px]">Custom size</div>
+        <div className="flex items-center gap-1.5">
+          <NumberInput
+            value={w}
+            onChange={setW}
+            label="W"
+            onEnter={applyCustomSize}
+          />
+          <span className="text-muted-foreground">×</span>
+          <NumberInput
+            value={h}
+            onChange={setH}
+            label="H"
+            onEnter={applyCustomSize}
+          />
+          <button
+            onClick={applyCustomSize}
+            disabled={!isCustomValid}
+            className={cn(
+              "h-9 shrink-0 rounded-md px-3 text-[12px] font-medium",
+              isCustomValid
+                ? "bg-foreground text-background hover:bg-foreground/90"
+                : "cursor-not-allowed bg-muted text-muted-foreground"
+            )}
+          >
+            Apply
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function AspectPopover({
   value,
   onChange,
