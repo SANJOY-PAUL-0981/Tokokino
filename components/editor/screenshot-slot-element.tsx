@@ -190,8 +190,8 @@ export function ScreenshotSlotRender({
   const effectiveWidthPct = rowLayout?.widthPct ?? slot.widthPct
 
   const containerStyle: React.CSSProperties = {
-    left: `${slot.xPct}%`,
-    top: `${slot.yPct}%`,
+    left: `var(--editor-position-x, ${slot.xPct}%)`,
+    top: `var(--editor-position-y, ${slot.yPct}%)`,
     width: `${effectiveWidthPct}%`,
     aspectRatio: boxAspectRatio,
     transform: `translate(-50%, -50%) rotate(var(--slot-ts-rot, ${slot.rotation}deg))`,

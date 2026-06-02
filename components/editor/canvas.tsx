@@ -406,9 +406,12 @@ function CanvasViewInner({
         position: "absolute",
         left:
           screenshotPosition === "center"
-            ? `${mainRowLayout.xPct}%`
-            : `${screenshotAnchor.x}%`,
-        top: screenshotPosition === "center" ? "50%" : `${screenshotAnchor.y}%`,
+            ? `var(--editor-main-position-x, ${mainRowLayout.xPct}%)`
+            : `var(--editor-main-position-x, ${screenshotAnchor.x}%)`,
+        top:
+          screenshotPosition === "center"
+            ? "var(--editor-main-position-y, 50%)"
+            : `var(--editor-main-position-y, ${screenshotAnchor.y}%)`,
         width: `${mainRowLayout.widthPct}%`,
         aspectRatio: screenshotBoxAspect,
         transform: "translate(-50%, -50%)",

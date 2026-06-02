@@ -118,7 +118,7 @@ export function MainScreenshotRender({
   const mergedStyle: React.CSSProperties = {
     ...style,
     transform:
-      `${baseTransform} translate(${offset.x}px, ${offset.y}px)`.trim(),
+      `${baseTransform} translate(var(--editor-main-offset-x, ${offset.x}px), var(--editor-main-offset-y, ${offset.y}px))`.trim(),
   }
   const selectionRadius = frameSelectionRadius(
     frame.id,

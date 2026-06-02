@@ -14,12 +14,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
@@ -143,7 +141,7 @@ function DraftCard({
         }}
         disabled={isDeleting}
         aria-label={`Delete ${draft.name}`}
-        className="absolute top-2 right-2 inline-flex size-7 items-center justify-center rounded-full border border-white/10 bg-background/80 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:border-destructive/40 hover:bg-destructive/15 hover:text-destructive focus:opacity-100"
+        className="absolute top-2 right-2 inline-flex size-7 items-center justify-center rounded-full border border-border/60 bg-background/85 text-muted-foreground opacity-100 shadow-sm transition-opacity hover:border-destructive/40 hover:bg-destructive/15 hover:text-destructive focus:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
       >
         <RiDeleteBinLine className="size-3.5" />
       </button>
@@ -174,6 +172,7 @@ export function OpenProjectDialog({
   const [isFetchingMore, setIsFetchingMore] = React.useState(false)
   const offsetRef = React.useRef(0)
   const isFetchingMoreRef = React.useRef(false)
+  const scrollAreaRef = React.useRef<HTMLDivElement>(null)
   const sentinelRef = React.useRef<HTMLDivElement>(null)
 
   const fetchDrafts = React.useCallback(
@@ -220,6 +219,8 @@ export function OpenProjectDialog({
     setDrafts(null)
     setError(null)
     setHasMore(false)
+    setIsFetchingMore(false)
+    isFetchingMoreRef.current = false
 
     void fetchDrafts(0, sort, true).then(() => {
       if (cancelled) {
@@ -235,6 +236,7 @@ export function OpenProjectDialog({
   // Infinite scroll via IntersectionObserver on sentinel
   React.useEffect(() => {
     const el = sentinelRef.current
+    const root = scrollAreaRef.current
     if (!el || !hasMore) return
 
     const observer = new IntersectionObserver(
@@ -248,7 +250,7 @@ export function OpenProjectDialog({
           })
         }
       },
-      { threshold: 0.1 }
+      { root, rootMargin: "160px 0px", threshold: 0 }
     )
     observer.observe(el)
     return () => observer.disconnect()
@@ -325,9 +327,9 @@ export function OpenProjectDialog({
       </AlertDialog>
 
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="gap-0 p-0 sm:max-w-[640px]">
-          <div className="border-b border-border/60 px-5 py-4">
-            <div className="flex items-center justify-between gap-4">
+        <DialogContent className="flex max-h-[min(560px,calc(100dvh-2rem))] flex-col gap-0 overflow-hidden rounded-md bg-popover p-0 sm:max-w-[720px]">
+          <div className="shrink-0 border-b border-border/60 bg-popover px-5 py-4">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div>
                 <DialogTitle className="text-[15px]">Open project</DialogTitle>
                 <DialogDescription className="mt-0.5 text-[12px]">
@@ -338,7 +340,7 @@ export function OpenProjectDialog({
                 value={sort}
                 onValueChange={(val) => setSort(val as SortOrder)}
               >
-                <SelectTrigger className="mr-6 h-8 w-[110px] rounded-md border border-border/70 bg-background px-2.5 text-[11px] font-medium text-foreground shadow-none transition-colors hover:border-primary/50 hover:bg-secondary/20 focus-visible:border-border/70 focus-visible:ring-0">
+                <SelectTrigger className="h-8 w-full self-stretch rounded-md border border-border/70 bg-background px-2.5 text-[11px] font-medium text-foreground shadow-none transition-colors hover:border-primary/50 hover:bg-secondary/20 focus-visible:border-border/70 focus-visible:ring-0 sm:mr-6 sm:w-[110px] sm:self-auto">
                   <SelectValue placeholder="Latest" />
                 </SelectTrigger>
                 <SelectContent
@@ -353,7 +355,10 @@ export function OpenProjectDialog({
             </div>
           </div>
 
-          <div className="max-h-[60vh] overflow-y-auto p-4">
+          <div
+            ref={scrollAreaRef}
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:max-h-[396px]"
+          >
             {drafts === null && !error ? (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -411,16 +416,6 @@ export function OpenProjectDialog({
               ) : null}
             </div>
           </div>
-
-          <DialogFooter className="border-t border-border/60 px-5 py-3">
-            <Button
-              variant="destructive"
-              size="lg"
-              onClick={() => onOpenChange(false)}
-            >
-              Close
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

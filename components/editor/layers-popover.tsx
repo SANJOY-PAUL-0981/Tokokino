@@ -6,7 +6,7 @@ import {
   type DragEndEvent,
   type Modifier,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   closestCenter,
   useSensor,
@@ -277,9 +277,9 @@ export function LayersPanelContent() {
               : (layers[0]?.key ?? null))
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
     useSensor(TouchSensor, {
-      activationConstraint: { delay: 250, tolerance: 5 },
+      activationConstraint: { delay: 200, tolerance: 8 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -546,7 +546,9 @@ function LayerRow({
         {...attributes}
         {...listeners}
         aria-label="Drag layer"
-        className="flex size-5 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground/0 transition-colors group-hover:text-muted-foreground active:cursor-grabbing [@media(hover:none)]:text-muted-foreground"
+        onClick={(e) => e.stopPropagation()}
+        style={{ touchAction: "none" }}
+        className="flex size-7 shrink-0 cursor-grab touch-none items-center justify-center rounded text-muted-foreground/0 transition-colors select-none group-hover:text-muted-foreground active:cursor-grabbing [@media(hover:none)]:text-muted-foreground"
       >
         <RiDraggable className="size-3.5" />
       </button>

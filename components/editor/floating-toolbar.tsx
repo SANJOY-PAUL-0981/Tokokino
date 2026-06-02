@@ -5,11 +5,9 @@ import {
   RiAddLine,
   RiArrowGoBackLine,
   RiArrowGoForwardLine,
-  RiArrowRightLine,
   RiArrowRightUpLine,
   RiCursorLine,
   RiDragMove2Line,
-  RiFocus3Line,
   RiFullscreenLine,
   RiGalleryLine,
   RiGroupLine,
@@ -30,6 +28,15 @@ import { useShallow } from "zustand/react/shallow"
 import { AnnotationToolbar } from "@/components/editor/annotation-toolbar"
 import { LayersPanelContent } from "@/components/editor/layers-popover"
 import {
+  PositionSwipeField,
+  type PositionSwipePoint,
+} from "@/components/editor/position-swipe-field"
+import {
+  clearPositionPreviewVarsAfterPaint,
+  setElementPositionPreview,
+  setMainScreenshotPositionPreview,
+} from "@/components/editor/position-preview-vars"
+import {
   ToolbarButton,
   ToolbarPopover,
 } from "@/components/editor/toolbar/primitives"
@@ -43,7 +50,6 @@ import {
   type EnhancePreset,
   MAX_CANVASES,
   MAX_SCREENSHOT_SLOTS,
-  SCREENSHOT_POSITIONS,
   type ScreenshotPosition,
   screenshotPositionAnchor as screenshotPositionAnchorFn,
   useActiveCanvasField,
@@ -211,32 +217,20 @@ type BulkLayout = "grid" | "row" | "column"
 
 const BASE_CANVAS_WIDTH = 1100
 const ARRANGE_GAP = 80
-const SCREENSHOT_OFFSET_GRID_SPREAD_PX = 300
-const POSITION_GRID_OUT_OF_BOUNDS_PCT = 25
 const SCREENSHOT_GROUP_BOX_HEIGHT_PCT = 28
 
 type PercentPoint = { xPct: number; yPct: number }
 type PercentBox = PercentPoint & { widthPct: number; heightPct: number }
+
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, value))
+}
 
 function positionIdFromPercent(xPct: number, yPct: number): ScreenshotPosition {
   const col = Math.round(Math.max(0, Math.min(4, xPct / 25)))
   const row = Math.round(Math.max(0, Math.min(4, yPct / 25)))
   if (col === 2 && row === 2) return "center"
   return `${row}-${col}` as ScreenshotPosition
-}
-
-function screenshotPositionFromOffset(
-  position: ScreenshotPosition,
-  offset: { x: number; y: number }
-): ScreenshotPosition {
-  const anchor = screenshotPositionAnchorFn(position)
-  const xPct = anchor.x + (offset.x / SCREENSHOT_OFFSET_GRID_SPREAD_PX) * 50
-  const yPct = anchor.y + (offset.y / SCREENSHOT_OFFSET_GRID_SPREAD_PX) * 50
-  const min = -POSITION_GRID_OUT_OF_BOUNDS_PCT
-  const max = 100 + POSITION_GRID_OUT_OF_BOUNDS_PCT
-
-  if (xPct < min || xPct > max || yPct < min || yPct > max) return "center"
-  return positionIdFromPercent(xPct, yPct)
 }
 
 function canvasDimsFromAspect(aspect: AspectState) {
@@ -350,27 +344,6 @@ function mainScreenshotOffsetForPoint({
     x: ((point.xPct - baseX) / 100) * dims.width,
     y: ((point.yPct - baseY) / 100) * dims.height,
   }
-}
-
-function mainScreenshotOffsetForAnchor({
-  aspect,
-  frame,
-  position,
-  slots,
-}: {
-  aspect: AspectState
-  frame: DeviceFrame
-  position: ScreenshotPosition
-  slots: ScreenshotSlot[]
-}) {
-  const anchor = screenshotPositionAnchorFn(position)
-  return mainScreenshotOffsetForPoint({
-    aspect,
-    frame,
-    position,
-    slots,
-    point: { xPct: anchor.x, yPct: anchor.y },
-  })
 }
 
 function centerOfBoxes(boxes: PercentBox[]): PercentPoint | null {
@@ -736,7 +709,6 @@ function DefaultToolbarContents() {
     aspect,
     screenshotPosition,
     screenshotOffset,
-    setScreenshotPosition,
     setScreenshotPlacement,
     addText,
     setSelectedTextId,
@@ -835,7 +807,7 @@ function DefaultToolbarContents() {
                       ? "screenshot"
                       : null
 
-  const currentPositionId = React.useMemo<ScreenshotPosition | null>(() => {
+  const currentPositionPoint = React.useMemo<PositionSwipePoint | null>(() => {
     let xPct: number
     let yPct: number
     if (positionTarget === "text" && selectedText) {
@@ -869,12 +841,15 @@ function DefaultToolbarContents() {
       xPct = (bounds.minX + bounds.maxX) / 2
       yPct = (bounds.minY + bounds.maxY) / 2
     } else if (positionTarget === "canvas") {
-      // Map canvas pixel position to grid position
-      // Canvas coordinates: center is {0,0}, spread of CANVAS_POS_SPREAD px
       const CANVAS_POS_SPREAD = 600
-      const colPct = (activeCanvasPosition.x / CANVAS_POS_SPREAD) * 50 + 50
-      const rowPct = (activeCanvasPosition.y / CANVAS_POS_SPREAD) * 50 + 50
-      return positionIdFromPercent(colPct, rowPct)
+      return {
+        xPct: clampPercent(
+          (activeCanvasPosition.x / CANVAS_POS_SPREAD) * 50 + 50
+        ),
+        yPct: clampPercent(
+          (activeCanvasPosition.y / CANVAS_POS_SPREAD) * 50 + 50
+        ),
+      }
     } else if (positionTarget === "allScreenshots") {
       const center = allScreenshotGroupCenter({
         hasMainScreenshot,
@@ -885,23 +860,23 @@ function DefaultToolbarContents() {
         slots: screenshotSlots,
       })
       if (!center) return null
-      return positionIdFromPercent(center.xPct, center.yPct)
+      return {
+        xPct: clampPercent(center.xPct),
+        yPct: clampPercent(center.yPct),
+      }
     } else if (positionTarget === "screenshot") {
-      const rowPosition = mainScreenshotRowPositionPct({
+      const point = mainScreenshotPositionPct({
         aspect,
         frame,
         position: screenshotPosition,
         offset: screenshotOffset,
         slots: screenshotSlots,
       })
-      if (rowPosition) {
-        return positionIdFromPercent(rowPosition.xPct, rowPosition.yPct)
-      }
-      return screenshotPositionFromOffset(screenshotPosition, screenshotOffset)
+      return { xPct: clampPercent(point.xPct), yPct: clampPercent(point.yPct) }
     } else {
       return null
     }
-    return positionIdFromPercent(xPct, yPct)
+    return { xPct: clampPercent(xPct), yPct: clampPercent(yPct) }
   }, [
     positionTarget,
     selectedText,
@@ -917,91 +892,109 @@ function DefaultToolbarContents() {
     hasMainScreenshot,
   ])
 
-  const handlePositionClick = (posId: ScreenshotPosition) => {
-    const emitHideFloatingToolbar = (
-      kind: "text" | "asset" | "annotation" | "slot" | "screenshot",
-      id: string
-    ) => {
-      window.dispatchEvent(
-        new CustomEvent("tokokino:hide-floating-toolbar", {
-          detail: { kind, id, durationMs: 320 },
-        })
+  const getActiveCanvasElement = React.useCallback(() => {
+    if (typeof document === "undefined" || !activeCanvasId) return null
+    return document.querySelector<HTMLElement>(
+      `[data-canvas-id="${CSS.escape(activeCanvasId)}"]`
+    )
+  }, [activeCanvasId])
+
+  const queryActiveCanvasElement = React.useCallback(
+    (selector: string) =>
+      getActiveCanvasElement()?.querySelector<HTMLElement>(selector) ?? null,
+    [getActiveCanvasElement]
+  )
+
+  const collectPositionPreviewElements = React.useCallback(() => {
+    const canvasElement = getActiveCanvasElement()
+    if (!canvasElement) return []
+
+    const elements: Array<HTMLElement | null> = [canvasElement]
+    if (selectedTextId) {
+      elements.push(
+        canvasElement.querySelector<HTMLElement>(
+          `[data-editor-text-id="${CSS.escape(selectedTextId)}"]`
+        )
       )
     }
-    const anchor = screenshotPositionAnchorFn(posId)
-    const latest = useEditorStore.getState()
-    const latestSlotId = latest.selectedScreenshotSlotId
-    const latestCanvas = latest.present.canvases.find(
-      (c) => c.id === latest.present.activeCanvasId
-    )
-    const latestSelectedSlot = latestSlotId
-      ? (latestCanvas?.screenshotSlots.find((s) => s.id === latestSlotId) ??
-        null)
-      : null
-    if (positionTarget === "text" && selectedTextId) {
-      emitHideFloatingToolbar("text", selectedTextId)
-      updateText(selectedTextId, { xPct: anchor.x, yPct: anchor.y })
-    } else if (positionTarget === "asset" && selectedAssetId) {
-      emitHideFloatingToolbar("asset", selectedAssetId)
-      updateAsset(selectedAssetId, { xPct: anchor.x, yPct: anchor.y })
-    } else if (positionTarget === "annotation" && selectedAnnotationShapeId) {
-      emitHideFloatingToolbar("annotation", selectedAnnotationShapeId)
-      updateAnnotationShape(selectedAnnotationShapeId, {
-        xPct: anchor.x,
-        yPct: anchor.y,
-      })
-    } else if (positionTarget === "slot" && latestSelectedSlot) {
-      emitHideFloatingToolbar("slot", latestSelectedSlot.id)
-      updateScreenshotSlot(latestSelectedSlot.id, {
-        xPct: anchor.x,
-        yPct: anchor.y,
-      })
-    } else if (positionTarget === "slotGroup" && !latestSelectedSlot) {
-      setScreenshotSlotGroupPosition({ xPct: anchor.x, yPct: anchor.y })
-    } else if (positionTarget === "canvas" && activeCanvasId) {
-      // Map anchor percentage (0-100) to canvas pixel coordinates
-      // center=50% maps to 0px, 0% maps to -SPREAD, 100% maps to +SPREAD
-      const CANVAS_POS_SPREAD = 600
-      const x = ((anchor.x - 50) / 50) * CANVAS_POS_SPREAD
-      const y = ((anchor.y - 50) / 50) * CANVAS_POS_SPREAD
-      setCanvasPosition(activeCanvasId, { x, y })
-    } else if (positionTarget === "screenshot") {
-      emitHideFloatingToolbar("screenshot", "")
-      if (screenshotSlots.length > 0) {
-        setScreenshotPlacement(
-          posId,
-          mainScreenshotOffsetForAnchor({
-            aspect,
-            frame,
-            position: posId,
-            slots: screenshotSlots,
+    if (selectedAssetId) {
+      elements.push(
+        canvasElement.querySelector<HTMLElement>(
+          `[data-editor-asset-id="${CSS.escape(selectedAssetId)}"]`
+        )
+      )
+    }
+    if (selectedAnnotationShapeId) {
+      elements.push(
+        canvasElement.querySelector<HTMLElement>(
+          `[data-annotation-shape-id="${CSS.escape(selectedAnnotationShapeId)}"]`
+        )
+      )
+    }
+    for (const slot of screenshotSlots) {
+      elements.push(
+        canvasElement.querySelector<HTMLElement>(
+          `[data-screenshot-slot-id="${CSS.escape(slot.id)}"]`
+        )
+      )
+    }
+    return elements
+  }, [
+    getActiveCanvasElement,
+    screenshotSlots,
+    selectedAnnotationShapeId,
+    selectedAssetId,
+    selectedTextId,
+  ])
+
+  const applyPositionPoint = React.useCallback(
+    (point: PositionSwipePoint) => {
+      const safePoint = {
+        xPct: clampPercent(point.xPct),
+        yPct: clampPercent(point.yPct),
+      }
+      const posId = positionIdFromPercent(safePoint.xPct, safePoint.yPct)
+
+      const emitHideFloatingToolbar = (
+        kind: "text" | "asset" | "annotation" | "slot" | "screenshot",
+        id: string
+      ) => {
+        window.dispatchEvent(
+          new CustomEvent("tokokino:hide-floating-toolbar", {
+            detail: { kind, id, durationMs: 320 },
           })
         )
-      } else {
-        setScreenshotPosition(posId)
       }
-    } else if (positionTarget === "allScreenshots") {
-      const currentGroupCenter = allScreenshotGroupCenter({
-        hasMainScreenshot,
-        aspect,
-        frame,
-        position: screenshotPosition,
-        offset: screenshotOffset,
-        slots: screenshotSlots,
-      })
-      if (!currentGroupCenter) return
-
-      const dx = anchor.x - currentGroupCenter.xPct
-      const dy = anchor.y - currentGroupCenter.yPct
-
-      if (hasMainScreenshot) {
-        const mainCenter = mainScreenshotPositionPct({
-          aspect,
-          frame,
-          position: screenshotPosition,
-          offset: screenshotOffset,
-          slots: screenshotSlots,
-        })
+      const latest = useEditorStore.getState()
+      const latestSlotId = latest.selectedScreenshotSlotId
+      const latestCanvas = latest.present.canvases.find(
+        (c) => c.id === latest.present.activeCanvasId
+      )
+      const latestSelectedSlot = latestSlotId
+        ? (latestCanvas?.screenshotSlots.find((s) => s.id === latestSlotId) ??
+          null)
+        : null
+      if (positionTarget === "text" && selectedTextId) {
+        emitHideFloatingToolbar("text", selectedTextId)
+        updateText(selectedTextId, safePoint)
+      } else if (positionTarget === "asset" && selectedAssetId) {
+        emitHideFloatingToolbar("asset", selectedAssetId)
+        updateAsset(selectedAssetId, safePoint)
+      } else if (positionTarget === "annotation" && selectedAnnotationShapeId) {
+        emitHideFloatingToolbar("annotation", selectedAnnotationShapeId)
+        updateAnnotationShape(selectedAnnotationShapeId, safePoint)
+      } else if (positionTarget === "slot" && latestSelectedSlot) {
+        emitHideFloatingToolbar("slot", latestSelectedSlot.id)
+        updateScreenshotSlot(latestSelectedSlot.id, safePoint)
+      } else if (positionTarget === "slotGroup" && !latestSelectedSlot) {
+        setScreenshotSlotGroupPosition(safePoint)
+      } else if (positionTarget === "canvas" && activeCanvasId) {
+        const CANVAS_POS_SPREAD = 600
+        const x = ((safePoint.xPct - 50) / 50) * CANVAS_POS_SPREAD
+        const y = ((safePoint.yPct - 50) / 50) * CANVAS_POS_SPREAD
+        setCanvasPosition(activeCanvasId, { x, y })
+      } else if (positionTarget === "screenshot") {
+        emitHideFloatingToolbar("screenshot", "")
         setScreenshotPlacement(
           posId,
           mainScreenshotOffsetForPoint({
@@ -1009,25 +1002,205 @@ function DefaultToolbarContents() {
             frame,
             position: posId,
             slots: screenshotSlots,
-            point: {
-              xPct: mainCenter.xPct + dx,
-              yPct: mainCenter.yPct + dy,
-            },
+            point: safePoint,
           })
         )
-      }
+      } else if (positionTarget === "allScreenshots") {
+        const currentGroupCenter = allScreenshotGroupCenter({
+          hasMainScreenshot,
+          aspect,
+          frame,
+          position: screenshotPosition,
+          offset: screenshotOffset,
+          slots: screenshotSlots,
+        })
+        if (!currentGroupCenter) return
 
-      if (screenshotSlots.length > 0) {
-        const slotCenter = screenshotSlotGroupCenter(screenshotSlots)
-        if (slotCenter) {
-          setScreenshotSlotGroupPosition({
-            xPct: slotCenter.xPct + dx,
-            yPct: slotCenter.yPct + dy,
+        const dx = safePoint.xPct - currentGroupCenter.xPct
+        const dy = safePoint.yPct - currentGroupCenter.yPct
+
+        if (hasMainScreenshot) {
+          const mainCenter = mainScreenshotPositionPct({
+            aspect,
+            frame,
+            position: screenshotPosition,
+            offset: screenshotOffset,
+            slots: screenshotSlots,
           })
+          setScreenshotPlacement(
+            posId,
+            mainScreenshotOffsetForPoint({
+              aspect,
+              frame,
+              position: posId,
+              slots: screenshotSlots,
+              point: {
+                xPct: mainCenter.xPct + dx,
+                yPct: mainCenter.yPct + dy,
+              },
+            })
+          )
+        }
+
+        if (screenshotSlots.length > 0) {
+          const slotCenter = screenshotSlotGroupCenter(screenshotSlots)
+          if (slotCenter) {
+            setScreenshotSlotGroupPosition({
+              xPct: slotCenter.xPct + dx,
+              yPct: slotCenter.yPct + dy,
+            })
+          }
         }
       }
-    }
-  }
+      clearPositionPreviewVarsAfterPaint(collectPositionPreviewElements())
+    },
+    [
+      activeCanvasId,
+      aspect,
+      collectPositionPreviewElements,
+      frame,
+      hasMainScreenshot,
+      positionTarget,
+      screenshotOffset,
+      screenshotPosition,
+      screenshotSlots,
+      selectedAnnotationShapeId,
+      selectedAssetId,
+      selectedTextId,
+      setCanvasPosition,
+      setScreenshotPlacement,
+      setScreenshotSlotGroupPosition,
+      updateAnnotationShape,
+      updateAsset,
+      updateScreenshotSlot,
+      updateText,
+    ]
+  )
+
+  const previewPositionPoint = React.useCallback(
+    (point: PositionSwipePoint) => {
+      const safePoint = {
+        xPct: clampPercent(point.xPct),
+        yPct: clampPercent(point.yPct),
+      }
+      const canvasElement = getActiveCanvasElement()
+      if (!canvasElement) return
+
+      if (positionTarget === "text" && selectedTextId) {
+        setElementPositionPreview(
+          queryActiveCanvasElement(
+            `[data-editor-text-id="${CSS.escape(selectedTextId)}"]`
+          ),
+          safePoint
+        )
+        return
+      }
+      if (positionTarget === "asset" && selectedAssetId) {
+        setElementPositionPreview(
+          queryActiveCanvasElement(
+            `[data-editor-asset-id="${CSS.escape(selectedAssetId)}"]`
+          ),
+          safePoint
+        )
+        return
+      }
+      if (positionTarget === "annotation" && selectedAnnotationShapeId) {
+        setElementPositionPreview(
+          queryActiveCanvasElement(
+            `[data-annotation-shape-id="${CSS.escape(selectedAnnotationShapeId)}"]`
+          ),
+          safePoint
+        )
+        return
+      }
+      if (positionTarget === "slot" && selectedSlot) {
+        setElementPositionPreview(
+          queryActiveCanvasElement(
+            `[data-screenshot-slot-id="${CSS.escape(selectedSlot.id)}"]`
+          ),
+          safePoint
+        )
+        return
+      }
+      if (positionTarget === "slotGroup") {
+        const center = screenshotSlotGroupCenter(screenshotSlots)
+        if (!center) return
+        const dx = safePoint.xPct - center.xPct
+        const dy = safePoint.yPct - center.yPct
+        for (const slot of screenshotSlots) {
+          setElementPositionPreview(
+            queryActiveCanvasElement(
+              `[data-screenshot-slot-id="${CSS.escape(slot.id)}"]`
+            ),
+            {
+              xPct: clampPercent(slot.xPct + dx),
+              yPct: clampPercent(slot.yPct + dy),
+            }
+          )
+        }
+        return
+      }
+      if (positionTarget === "screenshot") {
+        setMainScreenshotPositionPreview(canvasElement, safePoint)
+        return
+      }
+      if (positionTarget === "allScreenshots") {
+        const currentGroupCenter = allScreenshotGroupCenter({
+          hasMainScreenshot,
+          aspect,
+          frame,
+          position: screenshotPosition,
+          offset: screenshotOffset,
+          slots: screenshotSlots,
+        })
+        if (!currentGroupCenter) return
+
+        const dx = safePoint.xPct - currentGroupCenter.xPct
+        const dy = safePoint.yPct - currentGroupCenter.yPct
+
+        if (hasMainScreenshot) {
+          const mainCenter = mainScreenshotPositionPct({
+            aspect,
+            frame,
+            position: screenshotPosition,
+            offset: screenshotOffset,
+            slots: screenshotSlots,
+          })
+          setMainScreenshotPositionPreview(canvasElement, {
+            xPct: clampPercent(mainCenter.xPct + dx),
+            yPct: clampPercent(mainCenter.yPct + dy),
+          })
+        }
+
+        for (const slot of screenshotSlots) {
+          setElementPositionPreview(
+            queryActiveCanvasElement(
+              `[data-screenshot-slot-id="${CSS.escape(slot.id)}"]`
+            ),
+            {
+              xPct: clampPercent(slot.xPct + dx),
+              yPct: clampPercent(slot.yPct + dy),
+            }
+          )
+        }
+      }
+    },
+    [
+      aspect,
+      frame,
+      getActiveCanvasElement,
+      hasMainScreenshot,
+      positionTarget,
+      queryActiveCanvasElement,
+      screenshotOffset,
+      screenshotPosition,
+      screenshotSlots,
+      selectedAnnotationShapeId,
+      selectedAssetId,
+      selectedSlot,
+      selectedTextId,
+    ]
+  )
 
   const positionTargetLabel =
     positionTarget === "text"
@@ -1217,7 +1390,7 @@ function DefaultToolbarContents() {
                   ? "Nothing to position — select an element or add a screenshot"
                   : `Position ${positionTargetLabel}`
               }
-              contentClassName="w-52 p-3"
+              contentClassName="w-64 p-3"
               onOpenChange={(open) => {
                 if (!open) setActiveTool("pointer")
               }}
@@ -1267,47 +1440,13 @@ function DefaultToolbarContents() {
                     </span>
                   </button>
                 ) : null}
-                <div className="grid grid-cols-5 gap-1.5">
-                  {SCREENSHOT_POSITIONS.map((pos) => (
-                    <button
-                      key={pos.id}
-                      onClick={() => handlePositionClick(pos.id)}
-                      aria-label={`Move ${positionTargetLabel} to ${positionLabel(pos.id)}`}
-                      className={cn(
-                        "relative flex size-8 cursor-pointer items-center justify-center rounded-md border transition-all duration-200 ease-out active:scale-95",
-                        currentPositionId === pos.id
-                          ? "border-primary bg-primary text-white shadow-[0_0_0_3px_rgba(255,85,113,0.18)]"
-                          : "border-border/60 bg-secondary/40 text-muted-foreground hover:border-foreground/30 hover:bg-secondary/55"
-                      )}
-                    >
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          "pointer-events-none absolute inset-0 rounded-md bg-white/10 transition-all duration-200 ease-out",
-                          currentPositionId === pos.id
-                            ? "scale-100 opacity-100"
-                            : "scale-75 opacity-0"
-                        )}
-                      />
-                      {pos.isCenter ? (
-                        <RiFocus3Line
-                          className={cn(
-                            "size-3.5 transition-transform duration-200 ease-out",
-                            currentPositionId === pos.id && "scale-110"
-                          )}
-                        />
-                      ) : (
-                        <RiArrowRightLine
-                          className={cn(
-                            "size-3.5 transition-transform duration-200 ease-out",
-                            currentPositionId === pos.id && "scale-110"
-                          )}
-                          style={{ transform: `rotate(${pos.angle}deg)` }}
-                        />
-                      )}
-                    </button>
-                  ))}
-                </div>
+                <PositionSwipeField
+                  ariaLabel={`Position ${positionTargetLabel}`}
+                  disabled={isDisabled}
+                  value={currentPositionPoint}
+                  onPreview={previewPositionPoint}
+                  onChange={applyPositionPoint}
+                />
               </div>
             </ToolbarPopover>
           )
@@ -1666,16 +1805,4 @@ function ScreenshotMediaPill() {
       </span>
     </div>
   )
-}
-
-function positionLabel(id: ScreenshotPosition) {
-  if (id === "center") return "center"
-  const [row, col] = id.split("-").map(Number)
-  const vertical = ["top", "upper middle", "middle", "lower middle", "bottom"][
-    row
-  ]
-  const horizontal = ["left", "left middle", "center", "right middle", "right"][
-    col
-  ]
-  return `${vertical} ${horizontal}`
 }

@@ -832,8 +832,8 @@ export function TextElementView({
           !isEditing && "touch-none"
         )}
         style={{
-          left: `${text.xPct}%`,
-          top: `${text.yPct}%`,
+          left: `var(--editor-position-x, ${text.xPct}%)`,
+          top: `var(--editor-position-y, ${text.yPct}%)`,
           transform: `translate(-50%, -50%) rotate(${text.rotation}deg)`,
           transition:
             !isDragging && shouldAnimatePositionMove

@@ -84,6 +84,10 @@ export function ScreenshotBare({
   innerLightingStyle,
 }: ScreenshotBareProps) {
   const [editOpen, setEditOpen] = React.useState(false)
+  const screenshotLeftValue =
+    typeof screenshotLeft === "number" ? `${screenshotLeft}px` : "50%"
+  const screenshotTopValue =
+    typeof screenshotTop === "number" ? `${screenshotTop}px` : "50%"
 
   return (
     <div
@@ -107,8 +111,8 @@ export function ScreenshotBare({
         onPointerCancel={onPointerUp}
         style={{
           ...imgStyle,
-          left: screenshotLeft ?? "50%",
-          top: screenshotTop ?? "50%",
+          left: `var(--editor-main-bare-left, ${screenshotLeftValue})`,
+          top: `var(--editor-main-bare-top, ${screenshotTopValue})`,
           ...(positionedStyle
             ? null
             : {
@@ -141,8 +145,8 @@ export function ScreenshotBare({
           style={{
             ...innerLightingStyle,
             borderRadius: imgStyle.borderRadius,
-            left: screenshotLeft ?? "50%",
-            top: screenshotTop ?? "50%",
+            left: `var(--editor-main-bare-left, ${screenshotLeftValue})`,
+            top: `var(--editor-main-bare-top, ${screenshotTopValue})`,
             zIndex: 1,
             ...(positionedStyle
               ? {

@@ -348,8 +348,8 @@ export function framePositionTransform({
 
   return [
     "translate(-50%, -50%)",
-    `translate(${frameAnchorTravel(anchor.x, "x")}, ${frameAnchorTravel(anchor.y, "y")})`,
-    `translate(${offset.x}px, ${offset.y}px)`,
+    `translate(var(--editor-main-anchor-x, ${frameAnchorTravel(anchor.x, "x")}), var(--editor-main-anchor-y, ${frameAnchorTravel(anchor.y, "y")}))`,
+    `translate(var(--editor-main-offset-x, ${offset.x}px), var(--editor-main-offset-y, ${offset.y}px))`,
     transform,
     rotationTransform,
   ].join(" ")

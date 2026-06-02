@@ -494,8 +494,8 @@ export function AnnotationShapeElement({
         onPointerCancel={endDrag}
         data-annotation-shape-id={shape.id}
         style={{
-          left: `${shape.xPct}%`,
-          top: `${shape.yPct}%`,
+          left: `var(--editor-position-x, ${shape.xPct}%)`,
+          top: `var(--editor-position-y, ${shape.yPct}%)`,
           width: isStep ? STEP_SIZE : `${shape.widthPct}%`,
           height: isStep ? STEP_SIZE : `${shape.heightPct}%`,
           transform: `translate(-50%, -50%) rotate(${rotation}deg)`,

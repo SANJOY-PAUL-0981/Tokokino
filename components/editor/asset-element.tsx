@@ -352,8 +352,8 @@ export function AssetElementView({
           isSelected ? "cursor-grabbing" : "cursor-grab"
         )}
         style={{
-          left: `${asset.xPct}%`,
-          top: `${asset.yPct}%`,
+          left: `var(--editor-position-x, ${asset.xPct}%)`,
+          top: `var(--editor-position-y, ${asset.yPct}%)`,
           width: `${asset.widthPct}%`,
           height: heightStyle,
           transform: `translate(-50%, -50%) rotate(${asset.rotation}deg) scaleX(${asset.flipX ? -1 : 1}) scaleY(${asset.flipY ? -1 : 1})`,
