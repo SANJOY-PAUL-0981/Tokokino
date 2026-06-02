@@ -14,6 +14,7 @@ import {
   getShareObjectKey,
   isValidShareId,
 } from "@/lib/share"
+import { detectShareImageContentType } from "@/lib/share-image"
 import { enforceRateLimit } from "@/lib/rate-limit"
 import {
   deleteShareImage,
@@ -23,37 +24,6 @@ import {
 } from "@/lib/share-storage"
 
 export const runtime = "nodejs"
-
-type ShareImageContentType = "image/png" | "image/jpeg"
-
-function detectShareImageContentType(
-  image: Uint8Array
-): ShareImageContentType | null {
-  if (
-    image.length >= 8 &&
-    image[0] === 0x89 &&
-    image[1] === 0x50 &&
-    image[2] === 0x4e &&
-    image[3] === 0x47 &&
-    image[4] === 0x0d &&
-    image[5] === 0x0a &&
-    image[6] === 0x1a &&
-    image[7] === 0x0a
-  ) {
-    return "image/png"
-  }
-
-  if (
-    image.length >= 3 &&
-    image[0] === 0xff &&
-    image[1] === 0xd8 &&
-    image[2] === 0xff
-  ) {
-    return "image/jpeg"
-  }
-
-  return null
-}
 
 export async function GET(request: Request) {
   const auth = getAuth()

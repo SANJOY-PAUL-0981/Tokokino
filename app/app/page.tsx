@@ -4,6 +4,7 @@ import * as React from "react"
 import { Canvas } from "@/components/editor/canvas"
 import { DeferredMount } from "@/components/editor/deferred-mount"
 import { EffectsSidebar } from "@/components/editor/effects-sidebar"
+import { EditorErrorBoundary } from "@/components/editor/error-boundary"
 import {
   CanvasSkeleton,
   EffectsSidebarSkeleton,
@@ -57,6 +58,7 @@ function EditorLayout() {
   )
   const previewAnimation = useEditorStore((s) => s.previewAnimation)
   const setPreviewAnimation = useEditorStore((s) => s.setPreviewAnimation)
+  const activeCanvasId = useEditorStore((s) => s.present.activeCanvasId)
 
   const [settingsOpen, setSettingsOpen] = React.useState(false)
   const [mobilePanelOpen, setMobilePanelOpen] = React.useState(false)
@@ -232,9 +234,14 @@ function EditorLayout() {
         )}
         <div className="relative isolate flex min-h-0 flex-1 overflow-hidden">
           <BulkBar />
-          <DeferredMount priority={1} fallback={<CanvasSkeleton />}>
-            <Canvas />
-          </DeferredMount>
+          <EditorErrorBoundary
+            label="Canvas"
+            resetKeys={[activeCanvasId, isPreviewMode]}
+          >
+            <DeferredMount priority={1} fallback={<CanvasSkeleton />}>
+              <Canvas />
+            </DeferredMount>
+          </EditorErrorBoundary>
         </div>
         {!isPreviewMode && (
           <div

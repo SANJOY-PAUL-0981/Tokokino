@@ -6,6 +6,7 @@ export const runtime = "nodejs"
 
 const MAX_IMAGE_BYTES = 30 * 1024 * 1024
 const MAX_REDIRECTS = 5
+const IMAGE_FETCH_TIMEOUT_MS = 12_000
 const IMAGE_FETCH_HEADERS = {
   Accept:
     "image/avif,image/webp,image/png,image/jpeg,image/svg+xml,image/*,*/*;q=0.8",
@@ -45,7 +46,18 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Blocked image host" }, { status: 400 })
   }
 
-  const response = await fetchImage(imageUrl)
+  let response: Response
+  try {
+    response = await fetchImage(imageUrl)
+  } catch (error) {
+    if (isTimeoutError(error)) {
+      return NextResponse.json(
+        { error: "Image fetch timed out" },
+        { status: 504 }
+      )
+    }
+    throw error
+  }
 
   if (!response.ok) {
     return NextResponse.json(
@@ -67,7 +79,18 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Image is too large" }, { status: 413 })
   }
 
-  const image = await response.arrayBuffer()
+  let image: ArrayBuffer
+  try {
+    image = await response.arrayBuffer()
+  } catch (error) {
+    if (isTimeoutError(error)) {
+      return NextResponse.json(
+        { error: "Image fetch timed out" },
+        { status: 504 }
+      )
+    }
+    throw error
+  }
   if (image.byteLength > MAX_IMAGE_BYTES) {
     return NextResponse.json({ error: "Image is too large" }, { status: 413 })
   }
@@ -108,6 +131,7 @@ async function fetchImage(url: URL, redirectCount = 0): Promise<Response> {
   const response = await fetch(url, {
     headers: IMAGE_FETCH_HEADERS,
     redirect: "manual",
+    signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS),
   })
 
   if (![301, 302, 303, 307, 308].includes(response.status)) return response
@@ -127,4 +151,9 @@ async function fetchImage(url: URL, redirectCount = 0): Promise<Response> {
   }
 
   return fetchImage(nextUrl, redirectCount + 1)
+}
+
+function isTimeoutError(error: unknown) {
+  if (!(error instanceof Error || error instanceof DOMException)) return false
+  return error.name === "TimeoutError" || error.name === "AbortError"
 }

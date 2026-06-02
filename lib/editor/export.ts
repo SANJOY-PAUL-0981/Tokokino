@@ -102,7 +102,7 @@ const URL_FUNCTION_RE = /url\((['"]?)(.*?)\1\)/g
 const EXPORT_IMAGE_PROXY_PATH = "/api/export/image"
 const EXPORT_ASSET_PRELOAD_TIMEOUT_MS = 12_000
 
-function shouldProxyAssetUrl(value: string) {
+export function shouldProxyAssetUrl(value: string) {
   const trimmed = value.trim()
   if (
     !trimmed ||
