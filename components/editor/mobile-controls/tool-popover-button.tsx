@@ -11,7 +11,7 @@ export function MobileToolPopoverButton({
   disabled = false,
   onClick,
 }: {
-  label: string
+  label: React.ReactNode
   icon: React.ComponentType<{ className?: string }>
   active?: boolean
   disabled?: boolean
@@ -20,7 +20,7 @@ export function MobileToolPopoverButton({
   return (
     <button
       type="button"
-      aria-label={label}
+      aria-label={typeof label === "string" ? label : undefined}
       aria-pressed={active}
       disabled={disabled}
       onClick={onClick}
@@ -33,7 +33,9 @@ export function MobileToolPopoverButton({
       )}
     >
       <Icon className="size-6" />
-      <span className="text-[11px] font-medium">{label}</span>
+      <span className="text-center text-[11px] leading-tight font-medium">
+        {label}
+      </span>
     </button>
   )
 }

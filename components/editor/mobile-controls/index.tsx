@@ -569,7 +569,7 @@ export function MobileControls({
                   >
                     <div className="grid grid-cols-2 gap-1.5">
                       <MobileToolPopoverButton
-                        label="Slot"
+                        label="Extra Shot"
                         icon={RiGalleryLine}
                         disabled={
                           screenshotSlots.length >= MAX_SCREENSHOT_SLOTS
@@ -577,7 +577,7 @@ export function MobileControls({
                         onClick={addSlot}
                       />
                       <MobileToolPopoverButton
-                        label="Image"
+                        label="Add Asset"
                         icon={RiImageAddLine}
                         onClick={() => assetInputRef.current?.click()}
                       />
