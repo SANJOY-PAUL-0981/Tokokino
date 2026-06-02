@@ -145,7 +145,7 @@ function PresetCardRow({
 }) {
   if (horizontal) {
     return (
-      <div className="flex [scrollbar-width:none] gap-3 overflow-x-auto px-4 pb-1 [&::-webkit-scrollbar]:hidden">
+      <div className="flex [scrollbar-width:none] gap-3 overflow-x-auto overflow-y-visible px-4 pt-1 pb-2 [&::-webkit-scrollbar]:hidden">
         {children}
       </div>
     )

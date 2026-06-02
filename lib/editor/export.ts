@@ -100,6 +100,7 @@ type AssetRewrite = {
 
 const URL_FUNCTION_RE = /url\((['"]?)(.*?)\1\)/g
 const EXPORT_IMAGE_PROXY_PATH = "/api/export/image"
+const EXPORT_ASSET_PRELOAD_TIMEOUT_MS = 12_000
 
 function shouldProxyAssetUrl(value: string) {
   const trimmed = value.trim()
@@ -233,9 +234,20 @@ async function waitForExportAssets(urls: string[]) {
       (url) =>
         new Promise<void>((resolve) => {
           const image = new Image()
+          let settled = false
+          const finish = () => {
+            if (settled) return
+            settled = true
+            window.clearTimeout(timeoutId)
+            resolve()
+          }
+          const timeoutId = window.setTimeout(
+            finish,
+            EXPORT_ASSET_PRELOAD_TIMEOUT_MS
+          )
           image.crossOrigin = "anonymous"
-          image.onload = () => resolve()
-          image.onerror = () => resolve()
+          image.onload = finish
+          image.onerror = finish
           image.src = url
         })
     )

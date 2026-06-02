@@ -38,7 +38,11 @@ export function InlineOptions({
   }
 
   if (id === "layout") {
-    return <PresentPresetsSection flat horizontal showPresetHeading={false} />
+    return (
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4">
+        <PresentPresetsSection flat horizontal showPresetHeading={false} />
+      </div>
+    )
   }
 
   if (id === "layers") {

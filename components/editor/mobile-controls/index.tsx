@@ -201,6 +201,8 @@ export function MobileControls({
   // The inline panel covers everything except Frame (which uses the Drawer).
   const inlineActive = resolvedActive === "frame" ? null : resolvedActive
   const drawerOpen = resolvedActive === "frame"
+  const isPortraitLayoutAspect =
+    inlineActive === "layout" && (aspect.h || 10) > (aspect.w || 16)
 
   React.useEffect(() => {
     onOpenChange?.(drawerOpen || historyOpen || annotationOpen || toolsOpen)
@@ -406,15 +408,19 @@ export function MobileControls({
                 "pointer-events-auto flex w-[min(440px,calc(100vw-1rem))] flex-col overflow-hidden rounded-md border border-border/60 bg-sidebar/95 shadow-xl backdrop-blur",
                 inlineActive === "layers"
                   ? "h-[42vh] max-h-[360px] min-h-[160px]"
-                  : TALL_CATEGORIES.has(inlineActive)
-                    ? "h-[36vh] max-h-[270px] min-h-[240px]"
-                    : inlineActive === "move"
-                      ? "max-h-[32vh]"
-                      : inlineActive === "background" ||
-                          inlineActive === "border" ||
-                          inlineActive === "shadow"
-                        ? "max-h-[38vh]"
-                        : "max-h-[46vh]"
+                  : inlineActive === "layout"
+                    ? isPortraitLayoutAspect
+                      ? "h-[47vh] max-h-[520px] min-h-[320px]"
+                      : "h-[36vh] max-h-[280px] min-h-[240px]"
+                    : TALL_CATEGORIES.has(inlineActive)
+                      ? "h-[42vh] max-h-[360px] min-h-[240px]"
+                      : inlineActive === "move"
+                        ? "max-h-[32vh]"
+                        : inlineActive === "background" ||
+                            inlineActive === "border" ||
+                            inlineActive === "shadow"
+                          ? "max-h-[38vh]"
+                          : "max-h-[46vh]"
               )}
             >
               <div className="flex shrink-0 items-center justify-between px-3 py-2">
