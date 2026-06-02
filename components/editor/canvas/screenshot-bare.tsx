@@ -125,7 +125,9 @@ export function ScreenshotBare({
           objectFit === "fill" && "h-full w-full object-fill",
           objectFit === "contain" && "max-h-full max-w-full object-contain",
           screenshotLayer.hidden && "pointer-events-none",
-          isScreenshotDragging || suppressTransition
+          isScreenshotDragging ||
+            suppressTransition ||
+            activeTool === "position"
             ? "cursor-grabbing transition-none"
             : "transition-all duration-300 ease-out",
           activeTool === "pointer" && "cursor-grab",

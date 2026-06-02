@@ -160,7 +160,7 @@ export function ScreenshotBrowserFrame({
         className={cn(
           "pointer-events-auto absolute top-0 left-0 max-h-full max-w-full select-none",
           screenshotLayer.hidden && "pointer-events-none",
-          isScreenshotDragging
+          isScreenshotDragging || activeTool === "position"
             ? "cursor-grabbing transition-none"
             : "transition-all duration-300 ease-out",
           activeTool === "pointer" && "cursor-grab"
@@ -322,7 +322,7 @@ export function BrowserFrameEmptyState({
         data-editor-enhance-filter={enhanceFilter || ""}
         className={cn(
           "pointer-events-auto absolute top-0 left-0 max-h-full max-w-full select-none",
-          isScreenshotDragging
+          isScreenshotDragging || activeTool === "position"
             ? "cursor-grabbing transition-none"
             : "transition-all duration-300 ease-out",
           activeTool === "pointer" && !isScreenshotDragging && "cursor-grab"

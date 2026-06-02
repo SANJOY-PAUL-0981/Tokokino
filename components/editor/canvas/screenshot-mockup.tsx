@@ -142,7 +142,7 @@ export function ScreenshotMockup({
         className={cn(
           "pointer-events-auto absolute top-0 left-0 max-h-full max-w-full select-none",
           screenshotLayer.hidden && "pointer-events-none",
-          isScreenshotDragging
+          isScreenshotDragging || activeTool === "position"
             ? "cursor-grabbing transition-none"
             : "transition-all duration-300 ease-out",
           activeTool === "pointer" && "cursor-grab"
