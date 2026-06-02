@@ -312,7 +312,7 @@ export function SharesGallery({
   return (
     <div className="h-full min-h-0 w-full overflow-y-auto bg-background text-foreground">
       <section className="border-b border-border/70 bg-card/30">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-6 sm:px-8 lg:px-10">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-5 py-5 sm:gap-8 sm:px-8 sm:py-6 lg:px-10">
           <nav className="flex items-center">
             <BrandLogo />
           </nav>
@@ -334,37 +334,37 @@ export function SharesGallery({
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
-              <h1 className="max-w-4xl text-4xl leading-none font-semibold tracking-normal sm:text-6xl lg:text-7xl">
+              <h1 className="max-w-4xl text-3xl leading-none font-semibold tracking-normal sm:text-6xl lg:text-7xl">
                 My Shares
               </h1>
-              <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
+              <p className="max-w-2xl text-[13px] leading-6 text-muted-foreground sm:text-base sm:leading-7">
                 Review public screenshot links, copy them again, download
                 finished images, or remove anything that should no longer be
                 visible.
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-background/70 p-3 shadow-sm">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg bg-secondary/45 px-4 py-3">
-                  <p className="text-xs font-medium text-muted-foreground">
+            <div className="flex flex-col gap-2.5 rounded-xl border border-border/70 bg-background/70 p-2.5 shadow-sm sm:gap-3 sm:p-3">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                <div className="rounded-lg bg-secondary/45 px-3 py-2.5 sm:px-4 sm:py-3">
+                  <p className="text-[11px] font-medium text-muted-foreground sm:text-xs">
                     Saved
                   </p>
-                  <p className="tabular mt-1 text-2xl font-semibold">
+                  <p className="tabular mt-0.5 text-xl font-semibold sm:mt-1 sm:text-2xl">
                     {formatCount(shares.length)}
                   </p>
                 </div>
-                <div className="rounded-lg bg-secondary/45 px-4 py-3">
-                  <p className="text-xs font-medium text-muted-foreground">
+                <div className="rounded-lg bg-secondary/45 px-3 py-2.5 sm:px-4 sm:py-3">
+                  <p className="text-[11px] font-medium text-muted-foreground sm:text-xs">
                     Views
                   </p>
-                  <p className="tabular mt-1 text-2xl font-semibold">
+                  <p className="tabular mt-0.5 text-xl font-semibold sm:mt-1 sm:text-2xl">
                     {formatCount(totalViews)}
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-lg bg-secondary/45 px-4 py-3">
+              <div className="rounded-lg bg-secondary/45 px-3 py-2.5 sm:px-4 sm:py-3">
                 <div className="flex items-baseline justify-between gap-2">
                   <p className="text-xs font-medium text-muted-foreground">
                     Storage

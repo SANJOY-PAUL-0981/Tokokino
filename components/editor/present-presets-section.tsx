@@ -1171,20 +1171,25 @@ function CustomPresetList({
   onDelete: (id: string) => void | Promise<void>
 }) {
   if (loading) {
+    const aw = aspect.w || 16
+    const ah = aspect.h || 10
+    const aspectStyle: React.CSSProperties = { aspectRatio: `${aw} / ${ah}` }
     return (
       <PresetCardRow horizontal={horizontal}>
         {Array.from({ length: 2 }).map((_, i) => (
           <PresetCardSlot key={i} horizontal={horizontal}>
+            {/* Mirror PresetCardShell exactly so the loading state doesn't
+                shift size/spacing when the real cards swap in. */}
             <div
               className={cn(
-                "rounded-lg border border-border/70 bg-card/70 p-3",
+                "w-full overflow-hidden rounded-[8px] border border-white/12 bg-white/[0.045] p-1.5",
                 !horizontal && i === 1 && "md:hidden"
               )}
             >
-              <Skeleton className="aspect-[16/10] w-full rounded-md" />
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <Skeleton className="h-5 w-2/3 rounded-md" />
-                <Skeleton className="size-8 rounded-full" />
+              <Skeleton className="w-full rounded-[6px]" style={aspectStyle} />
+              <div className="mt-1.5 flex items-center justify-between gap-1.5">
+                <Skeleton className="h-3 w-2/3 rounded" />
+                <Skeleton className="size-5 shrink-0 rounded-full" />
               </div>
             </div>
           </PresetCardSlot>
@@ -1364,7 +1369,7 @@ const CustomPresetCard = React.memo(function CustomPresetCard({
             setDeleteOpen(true)
           }}
           aria-label={`Delete ${preset.name}`}
-          className="absolute top-3 right-3 z-[1] inline-flex size-6 items-center justify-center rounded-full border border-white/12 bg-background/80 text-muted-foreground opacity-0 transition-opacity group-hover/preset:opacity-100 hover:border-destructive/45 hover:text-destructive focus:opacity-100"
+          className="absolute top-3 right-3 z-[1] inline-flex size-6 items-center justify-center rounded-full border border-white/12 bg-background/80 text-muted-foreground opacity-0 transition-opacity group-hover/preset:opacity-100 hover:border-destructive/45 hover:text-destructive focus:opacity-100 [@media(hover:none)]:opacity-100"
         >
           <RiDeleteBinLine className="size-3.5" />
         </button>

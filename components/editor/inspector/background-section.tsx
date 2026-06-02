@@ -77,29 +77,30 @@ const TILE_GRID_VARIANTS = {
   initial: { opacity: 0 },
   animate: {
     opacity: 1,
-    transition: { staggerChildren: 0.025, delayChildren: 0.04 },
+    transition: { staggerChildren: 0.018, delayChildren: 0 },
   },
   exit: {
     opacity: 0,
-    transition: { duration: 0.12, ease: POP_EASE },
+    transition: { duration: 0.1, ease: POP_EASE },
   },
 }
 
+// Note: no animated `filter: blur()` here — animating blur across the whole
+// tile grid stalls the main thread on mobile and causes a blank/white flash
+// before the tiles appear. Transform + opacity stay GPU-cheap.
 const TILE_ITEM_VARIANTS = {
-  initial: { opacity: 0, y: 8, scale: 0.96, filter: "blur(4px)" },
+  initial: { opacity: 0, y: 6, scale: 0.97 },
   animate: {
     opacity: 1,
     y: 0,
     scale: 1,
-    filter: "blur(0px)",
-    transition: { duration: 0.28, ease: POP_EASE },
+    transition: { duration: 0.22, ease: POP_EASE },
   },
   exit: {
     opacity: 0,
     y: -4,
     scale: 0.98,
-    filter: "blur(2px)",
-    transition: { duration: 0.12, ease: POP_EASE },
+    transition: { duration: 0.1, ease: POP_EASE },
   },
 }
 
@@ -307,14 +308,16 @@ function BackgroundTile({
   active,
   onClick,
   layoutId,
+  animate = true,
 }: {
   item: BackgroundEntry
   active: boolean
   onClick: () => void
   layoutId: string
+  animate?: boolean
 }) {
-  return (
-    <motion.div variants={TILE_ITEM_VARIANTS} className="relative">
+  const tile = (
+    <>
       <button
         onClick={onClick}
         title={item.name}
@@ -332,12 +335,25 @@ function BackgroundTile({
         />
       </button>
       {active ? (
-        <motion.span
-          layoutId={layoutId}
-          className="pointer-events-none absolute -inset-0.5 rounded-[9px] ring-1 ring-primary/50"
-          transition={{ type: "spring", stiffness: 380, damping: 32 }}
-        />
+        animate ? (
+          <motion.span
+            layoutId={layoutId}
+            className="pointer-events-none absolute -inset-0.5 rounded-[9px] ring-1 ring-primary/50"
+            transition={{ type: "spring", stiffness: 380, damping: 32 }}
+          />
+        ) : (
+          <span className="pointer-events-none absolute -inset-0.5 rounded-[9px] ring-1 ring-primary/50" />
+        )
       ) : null}
+    </>
+  )
+
+  // On mobile we render tiles statically (no entrance variants / layout
+  // animation) to avoid jank on expand.
+  if (!animate) return <div className="relative">{tile}</div>
+  return (
+    <motion.div variants={TILE_ITEM_VARIANTS} className="relative">
+      {tile}
     </motion.div>
   )
 }
@@ -345,9 +361,11 @@ function BackgroundTile({
 function BackgroundLibrary({
   activeSourceUrl,
   onSelect,
+  flat = false,
 }: {
   activeSourceUrl: string | null
   onSelect: (value: string, thumb?: string, preview?: string) => void
+  flat?: boolean
 }) {
   const categories = BACKGROUND_LIBRARY
   const [activeKey, setActiveKey] = React.useState<string>(() => {
@@ -409,84 +427,97 @@ function BackgroundLibrary({
       </div>
 
       <motion.div
-        layout
+        // On mobile (flat) the panel itself scrolls; animating this container's
+        // height makes the box grow before the tiles fill it, flashing white.
+        // Skip the height animation there and let the grid swap in instantly.
+        layout={!flat}
         transition={{ layout: { duration: 0.3, ease: POP_EASE } }}
         className="relative w-full"
       >
-        {expanded ? (
-          <ScrollArea className="[&>[data-slot=scroll-area-viewport]]:max-h-[280px]">
+        {(() => {
+          const tiles = visible.map((item) => (
+            <BackgroundTile
+              key={item.id}
+              item={item}
+              active={activeSourceUrl === item.full}
+              onClick={() => onSelect(item.full, item.thumb, item.preview)}
+              layoutId={`bg-tile-ring-${category.key}`}
+              animate={!flat}
+            />
+          ))
+          const expandTile =
+            !expanded && showExpandTile ? (
+              <motion.button
+                variants={flat ? undefined : TILE_ITEM_VARIANTS}
+                onClick={() => setExpanded(true)}
+                title={`Show all ${items.length} ${category.label.toLowerCase()} backgrounds`}
+                className="group relative aspect-video cursor-pointer overflow-hidden rounded-lg border border-border/60 transition-colors hover:border-foreground/30"
+              >
+                {peek ? (
+                  <span
+                    aria-hidden
+                    className="block size-full scale-110 bg-cover bg-center blur-sm"
+                    style={{ backgroundImage: `url("${peek.thumb}")` }}
+                  />
+                ) : (
+                  <div className="h-full w-full bg-secondary/40" />
+                )}
+                <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-black/45 text-white">
+                  <RiArrowRightLine className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                  <span className="text-[9px] font-semibold">
+                    +{hidden.length}
+                  </span>
+                </span>
+              </motion.button>
+            ) : null
+
+          // Mobile: render the grid statically — no entrance/exit animation,
+          // no inner ScrollArea (the panel scrolls). Desktop keeps the animated
+          // grid and the capped inner scroll.
+          if (flat) {
+            return (
+              <div className="grid grid-cols-3 gap-2 px-1 py-1">
+                {tiles}
+                {expandTile}
+              </div>
+            )
+          }
+
+          const animatedGrid = (
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
-                key={`bg-expanded-${category.key}`}
+                key={`bg-${expanded ? "expanded" : "collapsed"}-${category.key}`}
                 variants={TILE_GRID_VARIANTS}
                 initial="initial"
                 animate="animate"
                 exit="exit"
                 className="grid grid-cols-3 gap-2 px-1 py-1 pr-2"
               >
-                {visible.map((item) => (
-                  <BackgroundTile
-                    key={item.id}
-                    item={item}
-                    active={activeSourceUrl === item.full}
-                    onClick={() =>
-                      onSelect(item.full, item.thumb, item.preview)
-                    }
-                    layoutId={`bg-tile-ring-${category.key}`}
-                  />
-                ))}
+                {tiles}
+                {expandTile}
               </motion.div>
             </AnimatePresence>
-          </ScrollArea>
-        ) : (
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={`bg-collapsed-${category.key}`}
-              variants={TILE_GRID_VARIANTS}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              className="grid grid-cols-3 gap-2 px-1 py-1"
-            >
-              {visible.map((item) => (
-                <BackgroundTile
-                  key={item.id}
-                  item={item}
-                  active={activeSourceUrl === item.full}
-                  onClick={() => onSelect(item.full, item.thumb, item.preview)}
-                  layoutId={`bg-tile-ring-${category.key}`}
-                />
-              ))}
-              {showExpandTile ? (
-                <motion.button
-                  variants={TILE_ITEM_VARIANTS}
-                  onClick={() => setExpanded(true)}
-                  title={`Show all ${items.length} ${category.label.toLowerCase()} backgrounds`}
-                  className="group relative aspect-video cursor-pointer overflow-hidden rounded-lg border border-border/60 transition-colors hover:border-foreground/30"
-                >
-                  {peek ? (
-                    <span
-                      aria-hidden
-                      className="block size-full scale-110 bg-cover bg-center blur-sm"
-                      style={{ backgroundImage: `url("${peek.thumb}")` }}
-                    />
-                  ) : (
-                    <div className="h-full w-full bg-secondary/40" />
-                  )}
-                  <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-black/45 text-white">
-                    <RiArrowRightLine className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-                    <span className="text-[9px] font-semibold">
-                      +{hidden.length}
-                    </span>
-                  </span>
-                </motion.button>
-              ) : null}
-            </motion.div>
-          </AnimatePresence>
-        )}
+          )
+
+          return expanded ? (
+            <ScrollArea className="[&>[data-slot=scroll-area-viewport]]:max-h-[280px]">
+              {animatedGrid}
+            </ScrollArea>
+          ) : (
+            animatedGrid
+          )
+        })()}
       </motion.div>
 
-      {expanded ? (
+      {expanded && flat ? (
+        <button
+          onClick={() => setExpanded(false)}
+          className="mt-2 cursor-pointer text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Show less
+        </button>
+      ) : null}
+      {expanded && !flat ? (
         <motion.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -589,7 +620,7 @@ function GradientCustomizerPopover({
   )
 }
 
-export function BackgroundSection() {
+export function BackgroundSection({ flat = false }: { flat?: boolean } = {}) {
   const background = useActiveCanvasField((c) => c.background)
   const screenshot = useActiveCanvasField((c) => c.screenshot)
   const setBackground = useEditorStore((s) => s.setBackground)
@@ -989,7 +1020,7 @@ export function BackgroundSection() {
         }}
         className="w-full"
       >
-        <div className="-mx-4 bg-[#111111] px-4 pt-1 pb-3">
+        <div className="pt-1 pb-3">
           <TabsList className="flex h-auto w-full justify-between bg-transparent p-0">
             <BgTabTrigger value="none" label="None">
               <RiEraserLine className="size-4 text-muted-foreground group-data-[state=active]:text-[#e8445a]" />
@@ -1186,6 +1217,7 @@ export function BackgroundSection() {
           </div>
 
           <BackgroundLibrary
+            flat={flat}
             activeSourceUrl={
               background.type === "image"
                 ? (background.sourceUrl ?? background.value)
