@@ -29,6 +29,6 @@ export async function GET() {
       message: "Intentional Sentry API route test failure captured.",
       eventId: Sentry.lastEventId(),
     },
-    { status: 500 },
+    { status: 500 }
   )
 }
