@@ -22,8 +22,12 @@ const nextConfig = {
 }
 
 export default withSentryConfig(nextConfig, {
+  authToken: process.env.SENTRY_AUTH_TOKEN,
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
+  release: {
+    create: Boolean(process.env.SENTRY_AUTH_TOKEN),
+  },
   silent: !process.env.CI,
   sourcemaps: {
     disable:
@@ -31,4 +35,5 @@ export default withSentryConfig(nextConfig, {
       !process.env.SENTRY_ORG ||
       !process.env.SENTRY_PROJECT,
   },
+  telemetry: false,
 })
