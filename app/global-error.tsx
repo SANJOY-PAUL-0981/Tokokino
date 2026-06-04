@@ -1,6 +1,5 @@
 "use client"
 
-import * as Sentry from "@sentry/nextjs"
 import Link from "next/link"
 import { useEffect } from "react"
 import { RiArrowLeftLine, RiHome5Line, RiRefreshLine } from "@remixicon/react"
@@ -13,7 +12,9 @@ export default function GlobalError({
   error: Error & { digest?: string }
 }) {
   useEffect(() => {
-    Sentry.captureException(error)
+    void import("@sentry/nextjs").then((Sentry) => {
+      Sentry.captureException(error)
+    })
   }, [error])
 
   return (
