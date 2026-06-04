@@ -26,6 +26,7 @@
 
 - [ ] I ran `pnpm lint`
 - [ ] I ran `pnpm typecheck`
+- [ ] I ran `pnpm test`
 - [ ] I did not include secrets or sensitive data
 - [ ] I updated docs when behavior changed
 - [ ] I kept this PR focused and reasonably small
