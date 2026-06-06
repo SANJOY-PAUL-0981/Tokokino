@@ -406,7 +406,7 @@ export function MobileControls({
               exit={{ opacity: 0, y: 12, scale: 0.98 }}
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
               className={cn(
-                "pointer-events-auto flex w-[min(440px,calc(100vw-1rem))] flex-col overflow-hidden rounded-md border border-border/60 bg-sidebar/95 shadow-xl backdrop-blur",
+                "pointer-events-auto flex w-[min(620px,calc(100vw-0.5rem))] flex-col overflow-hidden rounded-md border border-border/60 bg-sidebar/95 shadow-xl backdrop-blur",
                 inlineActive === "layers"
                   ? "h-[42vh] max-h-[360px] min-h-[160px]"
                   : inlineActive === "layout"
@@ -417,11 +417,13 @@ export function MobileControls({
                       ? "h-[42vh] max-h-[360px] min-h-[240px]"
                       : inlineActive === "move"
                         ? "max-h-[32vh]"
-                        : inlineActive === "background" ||
-                            inlineActive === "border" ||
-                            inlineActive === "shadow"
-                          ? "max-h-[38vh]"
-                          : "max-h-[46vh]"
+                        : inlineActive === "backdrop"
+                          ? "h-[32vh] max-h-[300px] min-h-[260px]"
+                          : inlineActive === "background" ||
+                              inlineActive === "border" ||
+                              inlineActive === "shadow"
+                            ? "max-h-[38vh]"
+                            : "max-h-[46vh]"
               )}
             >
               <div className="flex shrink-0 items-center justify-between px-3 py-2">

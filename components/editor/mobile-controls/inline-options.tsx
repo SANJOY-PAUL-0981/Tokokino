@@ -10,6 +10,7 @@ import { PaddingSection } from "@/components/editor/inspector/padding-section"
 import { ShadowSection } from "@/components/editor/inspector/shadow-section"
 import { TiltSection } from "@/components/editor/inspector/tilt-section"
 import type { AspectState } from "@/lib/editor/store"
+import { cn } from "@/lib/utils"
 
 import type { CategoryId } from "./categories"
 import { MobileEnhancePanel } from "./enhance-panel"
@@ -54,13 +55,21 @@ export function InlineOptions({
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-2 pb-6">
-      <div>
+    <div
+      data-mobile-backdrop-scroll={id === "backdrop" ? "" : undefined}
+      className={cn(
+        "min-h-0 flex-1 overscroll-contain py-2 pb-6",
+        id === "backdrop" ? "overflow-y-auto px-1" : "overflow-y-auto px-4"
+      )}
+    >
+      <div className={cn(id === "backdrop" && "min-h-0")}>
         {id === "fit" ? <MobileFitPanel /> : null}
         {id === "move" ? <MobileMovePanel /> : null}
         {id === "enhance" ? <MobileEnhancePanel /> : null}
         {id === "background" ? <BackgroundSection flat /> : null}
-        {id === "backdrop" ? <BackdropSection popoverSide="top" /> : null}
+        {id === "backdrop" ? (
+          <BackdropSection controlsVariant="inline" popoverSide="top" />
+        ) : null}
         {id === "border" ? <BorderSection /> : null}
         {id === "padding" ? <PaddingSection /> : null}
         {id === "shadow" ? <ShadowSection /> : null}

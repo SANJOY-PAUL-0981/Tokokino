@@ -749,7 +749,11 @@ export function TopBar() {
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-dashed border-border/70 bg-background px-2 sm:px-3">
-      <BrandLogo />
+      <BrandLogo
+        className="shrink-0"
+        markClassName="sm:!size-10"
+        wordmarkClassName="max-[380px]:hidden"
+      />
 
       <div className="hidden min-w-0 flex-1 items-center justify-center gap-1.5 md:flex">
         <div className="tool-cluster hidden xl:flex">

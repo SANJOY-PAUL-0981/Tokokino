@@ -29,11 +29,21 @@ const letterVariants = {
   },
 }
 
-export const BrandLogo = React.memo(function BrandLogo() {
+type BrandLogoProps = {
+  className?: string
+  markClassName?: string
+  wordmarkClassName?: string
+}
+
+export const BrandLogo = React.memo(function BrandLogo({
+  className,
+  markClassName,
+  wordmarkClassName,
+}: BrandLogoProps) {
   return (
     <Link
       href="/"
-      className={cn("flex min-w-0 items-center gap-0 select-none")}
+      className={cn("flex min-w-0 items-center gap-0 select-none", className)}
       aria-label={WORDMARK}
     >
       <motion.span
@@ -47,13 +57,14 @@ export const BrandLogo = React.memo(function BrandLogo() {
           alt={WORDMARK}
           width={48}
           height={48}
-          className={cn("size-10 sm:size-12")}
+          className={cn("size-10 sm:size-12", markClassName)}
         />
       </motion.span>
 
       <motion.span
         className={cn(
-          "font-mono text-[20px] leading-none font-medium tracking-[-0.02em] text-foreground"
+          "inline-flex shrink-0 font-mono text-[20px] leading-none font-medium whitespace-nowrap text-foreground",
+          wordmarkClassName
         )}
         initial="hidden"
         animate="visible"
