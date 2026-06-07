@@ -292,6 +292,7 @@ export function TweetCardView({
             data.author.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
+                key={`${data.id}-avatar-${data.author.avatarUrl}`}
                 src={data.author.avatarUrl}
                 alt={data.author.name}
                 width={56}
@@ -343,7 +344,7 @@ export function TweetCardView({
             {media.map((item, index) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                key={item.url}
+                key={`${data.id}-${item.url}`}
                 src={item.url}
                 alt={item.alt ?? ""}
                 draggable={false}

@@ -254,6 +254,56 @@ async function waitForExportAssets(urls: string[]) {
   )
 }
 
+function readBlobAsDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result)
+      else reject(new Error("FileReader did not return a string"))
+    }
+    reader.onerror = () => reject(reader.error ?? new Error("FileReader error"))
+    reader.readAsDataURL(blob)
+  })
+}
+
+async function waitForImageElement(img: HTMLImageElement): Promise<void> {
+  if (img.complete && img.naturalWidth > 0) return
+  await new Promise<void>((resolve) => {
+    img.addEventListener("load", () => resolve(), { once: true })
+    img.addEventListener("error", () => resolve(), { once: true })
+  })
+}
+
+/**
+ * Inline every <img> in the export clone as a data URL. Preloading assets in
+ * separate Image() objects does not update the cloned DOM nodes, so html-to-image
+ * can otherwise paint stale decoded frames when a reused <img> src changes
+ * between tweets (e.g. avatar from the previous post).
+ */
+async function embedCloneImages(root: HTMLElement): Promise<void> {
+  await Promise.all(
+    Array.from(root.querySelectorAll("img")).map(async (img) => {
+      const src = img.getAttribute("src")
+      if (!src) return
+
+      if (!src.startsWith("data:")) {
+        try {
+          const response = await fetch(src, { credentials: "omit" })
+          if (response.ok) {
+            const dataUrl = await readBlobAsDataUrl(await response.blob())
+            img.src = dataUrl
+            img.removeAttribute("crossorigin")
+          }
+        } catch {
+          /* keep original src and wait below */
+        }
+      }
+
+      await waitForImageElement(img)
+    })
+  )
+}
+
 function makeExportStyle(scopeId: string) {
   const exportStyle = document.createElement("style")
   exportStyle.id = "__export-override"
@@ -463,6 +513,7 @@ export async function exportCanvas(
 
   try {
     await waitForExportAssets(assetUrls)
+    await embedCloneImages(exportTarget.node)
 
     if (format === "png") {
       const rawBlob = await toBlob(exportTarget.node, baseOptions)
@@ -597,6 +648,7 @@ export async function captureCanvasAsPngBlob(
 
   try {
     await waitForExportAssets(assetUrls)
+    await embedCloneImages(exportTarget.node)
 
     // html-to-image is flaky on the first call (fonts/images not yet embedded
     // in the cloned document). Two attempts is the standard workaround.

@@ -1,5 +1,4 @@
-import type { FontFamilyOption, TweetCard, TweetTheme } from "./state-types"
-import { FONT_FAMILIES } from "./fonts"
+import type { TweetCard, TweetTheme } from "./state-types"
 
 export type TweetCardSettings = {
   theme: TweetTheme
@@ -30,33 +29,6 @@ export const TWEET_THEME_OPTIONS: {
   { id: "dark", label: "Dark", swatch: "#000000" },
   { id: "light", label: "Light", swatch: "#ffffff" },
   { id: "dim", label: "Dim", swatch: "#15202b" },
-]
-
-const TWEET_FONT_LABELS = [
-  "Inter",
-  "Geist",
-  "Roboto",
-  "Poppins",
-  "Outfit",
-  "Space Grotesk",
-  "Nunito",
-  "Playfair Display",
-  "Lora",
-  "Fira Code",
-  "Geist Mono",
-] as const
-
-export const TWEET_FONT_OPTIONS: FontFamilyOption[] = [
-  {
-    id: "tweet-default",
-    label: "X Default",
-    css: DEFAULT_TWEET_FONT_FAMILY,
-    category: "system",
-  },
-  ...TWEET_FONT_LABELS.map((label) =>
-    FONT_FAMILIES.find((font) => font.label === label)
-  ).filter((font): font is FontFamilyOption => Boolean(font)),
-  ...FONT_FAMILIES.filter((font) => font.category === "system"),
 ]
 
 export function tweetSettingsFromCard(tweet: TweetCard): TweetCardSettings {

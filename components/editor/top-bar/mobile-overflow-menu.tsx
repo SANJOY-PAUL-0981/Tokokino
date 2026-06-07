@@ -197,7 +197,10 @@ export function MobileOverflowMenu({
 
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onClick={() => void onCopyPng()}
+            onClick={() => {
+              setMenuOpen(false)
+              void onCopyPng()
+            }}
             disabled={isCopyingPng}
           >
             <RiFileCopyLine />
@@ -207,6 +210,8 @@ export function MobileOverflowMenu({
           <DropdownMenuItem
             onClick={(e) => {
               e.preventDefault()
+              toast.dismiss()
+              setMenuOpen(false)
               setTheme(isDark ? "light" : "dark")
             }}
           >

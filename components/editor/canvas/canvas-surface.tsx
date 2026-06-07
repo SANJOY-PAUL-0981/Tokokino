@@ -82,7 +82,7 @@ export function CanvasSurface() {
       const bottomGutter = isPreviewMode
         ? 80
         : isMobile
-          ? window.innerHeight * 0.42 + 64
+          ? rect.height * 0.42 + 64
           : 96
 
       setLayoutMetrics({ topGutter, bottomGutter })

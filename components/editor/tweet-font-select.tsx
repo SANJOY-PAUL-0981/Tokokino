@@ -4,16 +4,28 @@ import * as React from "react"
 import { RiArrowDownSLine, RiCheckLine } from "@remixicon/react"
 
 import {
+  FontFamilyPickerList,
+  resolveFontFamilyOption,
+} from "@/components/editor/font-family-picker-list"
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
 import {
-  TWEET_FONT_OPTIONS,
+  DEFAULT_TWEET_FONT_FAMILY,
   TWEET_THEME_OPTIONS,
   type TweetCardSettings,
 } from "@/lib/editor/tweet-settings"
+import type { FontFamilyOption } from "@/lib/editor/state-types"
 import { cn } from "@/lib/utils"
+
+const TWEET_DEFAULT_FONT_OPTION: FontFamilyOption = {
+  id: "tweet-default",
+  label: "X Default",
+  css: DEFAULT_TWEET_FONT_FAMILY,
+  category: "system",
+}
 
 type TweetFontSelectProps = {
   value: TweetCardSettings["fontFamily"]
@@ -29,9 +41,7 @@ export function TweetFontSelect({
   contentClassName,
 }: TweetFontSelectProps) {
   const [open, setOpen] = React.useState(false)
-  const activeFont =
-    TWEET_FONT_OPTIONS.find((font) => font.css === value) ??
-    TWEET_FONT_OPTIONS[0]
+  const activeFont = resolveFontFamilyOption(value, [TWEET_DEFAULT_FONT_OPTION])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -46,9 +56,9 @@ export function TweetFontSelect({
         >
           <span
             className="min-w-0 truncate"
-            style={{ fontFamily: activeFont?.css }}
+            style={{ fontFamily: activeFont.css }}
           >
-            {activeFont?.label ?? "Choose font"}
+            {activeFont.label}
           </span>
           <RiArrowDownSLine
             className={cn(
@@ -60,43 +70,24 @@ export function TweetFontSelect({
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        side="bottom"
+        side="top"
         sideOffset={6}
         onPointerDown={(e) => e.stopPropagation()}
         className={cn(
-          "z-1200 w-[216px] overflow-hidden rounded-lg border-border/70 bg-popover p-1 shadow-xl",
+          "z-1200 flex w-[min(288px,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border-border/70 bg-popover p-2 shadow-xl",
           contentClassName
         )}
       >
-        <div className="h-48 touch-pan-y overflow-y-auto overscroll-contain pr-1">
-          {TWEET_FONT_OPTIONS.map((font) => {
-            const active = font.css === value
-            return (
-              <button
-                key={font.id}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onValueChange(font.css)
-                  setOpen(false)
-                }}
-                className={cn(
-                  "flex min-h-8 w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors",
-                  active
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground hover:bg-accent"
-                )}
-              >
-                <span className="grid size-4 shrink-0 place-items-center">
-                  {active ? <RiCheckLine className="size-4" /> : null}
-                </span>
-                <span className="truncate" style={{ fontFamily: font.css }}>
-                  {font.label}
-                </span>
-              </button>
-            )
-          })}
-        </div>
+        <FontFamilyPickerList
+          value={value}
+          pinnedOptions={[TWEET_DEFAULT_FONT_OPTION]}
+          className="h-72"
+          listClassName="bg-secondary/30"
+          onSelect={(fontFamily) => {
+            onValueChange(fontFamily)
+            setOpen(false)
+          }}
+        />
       </PopoverContent>
     </Popover>
   )

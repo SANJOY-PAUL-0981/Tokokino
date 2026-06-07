@@ -78,7 +78,7 @@ function EditorLayout() {
   }, [isPreviewMode, setIsPreviewMode, setIsPreviewAutoScroll])
 
   return (
-    <div className="flex h-svh min-h-0 flex-col bg-background">
+    <div className="fixed inset-0 flex min-h-0 flex-col overflow-hidden bg-background pt-[env(safe-area-inset-top)]">
       {!isPreviewMode && <TopBar />}
       <AnimatePresence>
         {isPreviewMode && (

@@ -4,6 +4,7 @@ import * as React from "react"
 import { RiMoonLine, RiSunLine } from "@remixicon/react"
 import { AnimatePresence, motion } from "motion/react"
 import { useTheme } from "next-themes"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -29,7 +30,10 @@ export function ThemeToggle() {
           size="icon"
           className="focus-visible:ring-0 focus-visible:outline-none"
           aria-label="Toggle theme"
-          onClick={() => setTheme(isDark ? "light" : "dark")}
+          onClick={() => {
+            toast.dismiss()
+            setTheme(isDark ? "light" : "dark")
+          }}
         >
           <AnimatePresence mode="wait" initial={false}>
             <motion.span

@@ -719,15 +719,17 @@ export function TopBar() {
   const handleCopyPng = React.useCallback(async () => {
     if (isCopyingPng) return
     setIsCopyingPng(true)
+    const toastId = toast.loading("Copying to clipboard…")
     try {
       await copyCanvasAsPng(activeCanvasId, "1080p", {
         watermark: includeExportWatermark,
       })
+      toast.success("Copied to clipboard", { id: toastId })
       setIsCopiedPng(true)
       setTimeout(() => setIsCopiedPng(false), 1800)
     } catch (err) {
       console.error(err)
-      toast.error("Copy failed. Please try again.")
+      toast.error("Copy failed. Please try again.", { id: toastId })
     } finally {
       setIsCopyingPng(false)
     }
