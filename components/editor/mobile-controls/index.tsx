@@ -85,6 +85,7 @@ export function MobileControls({
   const frame = useActiveCanvasField((c) => c.frame)
   const objectFit = useActiveCanvasField((c) => c.objectFit)
   const screenshot = useActiveCanvasField((c) => c.screenshot)
+  const tweet = useActiveCanvasField((c) => c.tweet)
   const screenshotSlots = useActiveCanvasField((c) => c.screenshotSlots)
   const scale = useActiveCanvasField((c) => c.scale)
   const texts = useActiveCanvasField((c) => c.texts)
@@ -190,6 +191,9 @@ export function MobileControls({
   const categories = (
     tab === "design" ? DESIGN_CATEGORIES : TOOLS_CATEGORIES
   ).filter((c) => {
+    if (c.id === "tweet") return Boolean(tweet)
+    if (tweet && (c.id === "frame" || c.id === "fit" || c.id === "layout"))
+      return false
     if (c.id === "border") return showBorder
     if (c.id === "padding") return showPadding
     return true
@@ -308,6 +312,10 @@ export function MobileControls({
   )
 
   const addSlot = React.useCallback(() => {
+    if (tweet) {
+      toast.error("X posts use one content slot")
+      return
+    }
     const id = addScreenshotSlot()
     if (!id) {
       toast.error(`Screenshot box limit reached (${MAX_SCREENSHOT_SLOTS})`)
@@ -322,6 +330,7 @@ export function MobileControls({
     setToolsOpen(false)
   }, [
     addScreenshotSlot,
+    tweet,
     setActiveTool,
     setIsScreenshotSelected,
     setSelectedAnnotationShapeId,
@@ -598,6 +607,7 @@ export function MobileControls({
                         label="Extra Shot"
                         icon={RiGalleryLine}
                         disabled={
+                          Boolean(tweet) ||
                           screenshotSlots.length >= MAX_SCREENSHOT_SLOTS
                         }
                         onClick={addSlot}

@@ -4,6 +4,7 @@ import * as React from "react"
 import { RiAddLine } from "@remixicon/react"
 
 import { cn } from "@/lib/utils"
+import type { TweetCardSettings } from "@/lib/editor/tweet-settings"
 import { EmptyStateBackdrop } from "./empty-state-backdrop"
 import {
   UploadCard,
@@ -15,6 +16,7 @@ type BoxEmptyStateProps = {
   isDragOver?: boolean
   onBrowse: () => void
   onCapture?: (url: string, settings: CaptureSettings) => void | Promise<void>
+  onLoadTweet?: (url: string, settings?: TweetCardSettings) => Promise<void>
   url?: string
   onUrlChange?: (value: string) => void
   /** Force compact `+` trigger. Otherwise auto-detected by container width. */
@@ -43,6 +45,7 @@ export function BoxEmptyState({
   plainWideCard = false,
   defaultCaptureDevice,
   captureStateKey,
+  onLoadTweet,
 }: BoxEmptyStateProps) {
   const handleCapture = onCapture
     ? (url: string, settings: CaptureSettings) => onCapture(url, settings)
@@ -84,6 +87,7 @@ export function BoxEmptyState({
             isDragOver={isDragOver}
             onBrowse={onBrowse}
             onCapture={handleCapture}
+            onLoadTweet={onLoadTweet}
             showHint
             defaultDevice={defaultCaptureDevice}
             captureStateKey={captureStateKey}
@@ -104,6 +108,7 @@ export function BoxEmptyState({
               isDragOver={isDragOver}
               onBrowse={onBrowse}
               onCapture={handleCapture}
+              onLoadTweet={onLoadTweet}
               showHint
               defaultDevice={defaultCaptureDevice}
               captureStateKey={captureStateKey}
@@ -120,6 +125,7 @@ export function BoxEmptyState({
               isDragOver={isDragOver}
               onBrowse={onBrowse}
               onCapture={handleCapture}
+              onLoadTweet={onLoadTweet}
               showHint
               defaultDevice={defaultCaptureDevice}
               captureStateKey={captureStateKey}
