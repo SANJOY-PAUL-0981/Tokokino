@@ -1,10 +1,15 @@
 "use client"
 
 import Link from "next/link"
+import { Geist, Geist_Mono } from "next/font/google"
 import { useEffect } from "react"
 import { RiArrowLeftLine, RiHome5Line, RiRefreshLine } from "@remixicon/react"
 
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+
+const fontSans = Geist({ subsets: ["latin"], variable: "--font-sans" })
+const fontMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
 
 export default function GlobalError({
   error,
@@ -20,7 +25,15 @@ export default function GlobalError({
   }, [error])
 
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      className={cn(
+        "dark antialiased",
+        fontSans.variable,
+        fontMono.variable,
+        "font-sans"
+      )}
+    >
       <body>
         <main className="relative flex min-h-svh items-center justify-center overflow-hidden bg-background px-5 py-10 text-foreground">
           <div
@@ -31,11 +44,11 @@ export default function GlobalError({
                 "radial-gradient(circle at 18% 20%, color-mix(in oklch, var(--primary) 26%, transparent), transparent 28rem), radial-gradient(circle at 82% 76%, color-mix(in oklch, var(--accent-foreground) 24%, transparent), transparent 30rem)",
             }}
           />
-          <section className="relative grid w-full max-w-4xl gap-8 border-y border-border/45 py-12 md:grid-cols-[0.8fr_1.2fr] md:items-center">
+          <section className="relative flex w-full max-w-2xl flex-col items-center gap-8 border-y border-border/45 py-12 text-center">
             <div className="font-mono text-[clamp(4rem,18vw,10rem)] leading-none font-semibold text-primary">
               500
             </div>
-            <div className="space-y-6">
+            <div className="flex flex-col items-center gap-6">
               <div className="space-y-3">
                 <p className="font-mono text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
                   Render interrupted
@@ -48,7 +61,7 @@ export default function GlobalError({
                   return to a stable route.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap justify-center gap-3">
                 <Button
                   type="button"
                   size="lg"

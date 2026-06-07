@@ -30,20 +30,18 @@ export function InlineOptions({
 }) {
   if (id === "aspect") {
     return (
-      <MobileAspectPicker
-        value={aspect.id}
-        onChange={onAspectChange}
-        onClose={onClose}
-      />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <MobileAspectPicker
+          value={aspect.id}
+          onChange={onAspectChange}
+          onClose={onClose}
+        />
+      </div>
     )
   }
 
   if (id === "layout") {
-    return (
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4">
-        <PresentPresetsSection flat horizontal showPresetHeading={false} />
-      </div>
-    )
+    return <PresentPresetsSection flat horizontal showPresetHeading={false} />
   }
 
   if (id === "layers") {

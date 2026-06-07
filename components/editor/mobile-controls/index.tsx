@@ -201,9 +201,6 @@ export function MobileControls({
   // The inline panel covers everything except Frame (which uses the Drawer).
   const inlineActive = resolvedActive === "frame" ? null : resolvedActive
   const drawerOpen = resolvedActive === "frame"
-  const isPortraitLayoutAspect =
-    inlineActive === "layout" && (aspect.h || 10) > (aspect.w || 16)
-
   React.useEffect(() => {
     onOpenChange?.(drawerOpen || historyOpen || annotationOpen || toolsOpen)
   }, [annotationOpen, drawerOpen, historyOpen, onOpenChange, toolsOpen])
@@ -392,7 +389,12 @@ export function MobileControls({
         />
       ) : null}
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex flex-col items-center gap-2 px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] md:hidden">
+      <div
+        className={cn(
+          "pointer-events-none fixed inset-x-0 bottom-0 z-50 flex flex-col items-center px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] md:hidden",
+          inlineActive === "layout" ? "gap-1" : "gap-2"
+        )}
+      >
         {/* Scrim — keeps the flat controls legible over a bright canvas */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-44 bg-gradient-to-t from-background via-background/85 to-transparent" />
 
@@ -409,24 +411,29 @@ export function MobileControls({
                 "pointer-events-auto flex w-[min(620px,calc(100vw-0.5rem))] flex-col overflow-hidden rounded-md border border-border/60 bg-sidebar/95 shadow-xl backdrop-blur",
                 inlineActive === "layers"
                   ? "h-[42vh] max-h-[360px] min-h-[160px]"
-                  : inlineActive === "layout"
-                    ? isPortraitLayoutAspect
-                      ? "h-[47vh] max-h-[520px] min-h-[320px]"
-                      : "h-[36vh] max-h-[280px] min-h-[240px]"
-                    : TALL_CATEGORIES.has(inlineActive)
-                      ? "h-[42vh] max-h-[360px] min-h-[240px]"
-                      : inlineActive === "move"
-                        ? "max-h-[32vh]"
-                        : inlineActive === "backdrop"
-                          ? "h-[32vh] max-h-[300px] min-h-[260px]"
-                          : inlineActive === "background" ||
-                              inlineActive === "border" ||
-                              inlineActive === "shadow"
-                            ? "max-h-[38vh]"
-                            : "max-h-[46vh]"
+                  : inlineActive === "aspect"
+                    ? "h-[min(480px,70dvh)] max-h-[min(480px,70dvh)]"
+                    : inlineActive === "layout"
+                      ? "h-max max-h-[calc(100dvh-env(safe-area-inset-bottom)-9rem)]"
+                      : TALL_CATEGORIES.has(inlineActive)
+                        ? "h-[42vh] max-h-[360px] min-h-[240px]"
+                        : inlineActive === "move"
+                          ? "max-h-[32vh]"
+                          : inlineActive === "backdrop"
+                            ? "h-[32vh] max-h-[300px] min-h-[260px]"
+                            : inlineActive === "background" ||
+                                inlineActive === "border" ||
+                                inlineActive === "shadow"
+                              ? "max-h-[38vh]"
+                              : "max-h-[46vh]"
               )}
             >
-              <div className="flex shrink-0 items-center justify-between px-3 py-2">
+              <div
+                className={cn(
+                  "flex shrink-0 items-center justify-between px-3",
+                  inlineActive === "layout" ? "py-1" : "py-2"
+                )}
+              >
                 <span className="text-[13px] font-medium text-foreground">
                   {activeLabel}
                 </span>
@@ -439,13 +446,23 @@ export function MobileControls({
                   <RiCloseLine className="size-4" />
                 </button>
               </div>
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div
+                className={cn(
+                  "flex flex-col",
+                  inlineActive === "layout"
+                    ? "shrink-0 overflow-y-auto overscroll-contain"
+                    : "min-h-0 flex-1"
+                )}
+              >
                 <motion.div
                   key={inlineActive}
                   initial={{ opacity: 0.72 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.1, ease: "easeOut" }}
-                  className="flex min-h-0 flex-1 flex-col"
+                  className={cn(
+                    "flex flex-col",
+                    inlineActive === "layout" ? "shrink-0" : "min-h-0 flex-1"
+                  )}
                 >
                   <InlineOptions
                     id={inlineActive}

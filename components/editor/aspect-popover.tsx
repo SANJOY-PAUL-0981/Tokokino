@@ -23,7 +23,10 @@ import {
   RiYoutubeLine,
 } from "@remixicon/react"
 
-import { ScrollFadeBody } from "@/components/editor/scroll-fade"
+import {
+  hiddenScrollbarClass,
+  ScrollFadeBody,
+} from "@/components/editor/scroll-fade"
 import { Input } from "@/components/ui/input"
 import {
   Popover,
@@ -340,6 +343,9 @@ const SECTIONS: AspectSection[] = [
 ]
 
 const ALL_OPTIONS = SECTIONS.flatMap((s) => s.options)
+const ALL_CATEGORY_ID = "all"
+
+const aspectOptionsWrapClassName = "flex flex-wrap items-end gap-x-2 gap-y-3"
 
 export function findAspectOption(id: string) {
   return ALL_OPTIONS.find((o) => o.id === id)
@@ -347,8 +353,8 @@ export function findAspectOption(id: string) {
 
 /**
  * Mobile-only aspect picker body (no Popover chrome). Designed to live inside a
- * bottom Drawer. Search + a horizontal "quick presets" strip up top, then the
- * full searchable section list, then the custom-size row pinned at the bottom.
+ * bottom Drawer. Search + category tabs up top, a vertically scrolling wrapped
+ * preset grid, then the custom-size row pinned at the bottom.
  */
 export function MobileAspectPicker({
   value,
@@ -362,6 +368,7 @@ export function MobileAspectPicker({
   const [query, setQuery] = React.useState("")
   const [w, setW] = React.useState("1920")
   const [h, setH] = React.useState("1200")
+  const [activeSectionId, setActiveSectionId] = React.useState(ALL_CATEGORY_ID)
 
   const q = query.trim().toLowerCase()
   const matchesOption = (o: AspectOption) => {
@@ -376,9 +383,20 @@ export function MobileAspectPicker({
   const matchesSection = (s: AspectSection) =>
     !q || s.label.toLowerCase().includes(q)
 
-  const filteredOptions = SECTIONS.flatMap((s) =>
-    matchesSection(s) ? s.options : s.options.filter(matchesOption)
-  ).filter(Boolean)
+  const tabSections = SECTIONS.map((s) => {
+    const options = matchesSection(s)
+      ? s.options
+      : s.options.filter(matchesOption)
+    return { ...s, options }
+  })
+  const matchingSections = tabSections.filter((s) => s.options.length > 0)
+  const selectedSection = tabSections.find((s) => s.id === activeSectionId)
+  const visibleSections =
+    activeSectionId === ALL_CATEGORY_ID
+      ? matchingSections
+      : selectedSection
+        ? [selectedSection]
+        : []
 
   const customW = Number(w)
   const customH = Number(h)
@@ -412,28 +430,54 @@ export function MobileAspectPicker({
             className="h-10 !pl-9 text-[13px]"
           />
         </div>
+        <AspectCategoryTabs
+          sections={tabSections}
+          activeSectionId={activeSectionId}
+          onChange={setActiveSectionId}
+          className="mt-2"
+        />
       </div>
 
-      {/* Presets — single x-axis scroll (no vertical list on mobile) */}
-      <div className="min-h-0 flex-1 px-3 py-1">
-        {filteredOptions.length > 0 ? (
-          <div className="-mx-3 flex [scrollbar-width:none] items-end gap-3 overflow-x-auto px-3 pb-2 [&::-webkit-scrollbar]:hidden">
-            {filteredOptions.map((o) => (
-              <div key={o.id} className="shrink-0">
+      <ScrollFadeBody
+        rootClassName="min-h-0 flex-1"
+        className="h-full overscroll-contain px-3 pt-1 pb-3"
+      >
+        {visibleSections.map((section, idx) => (
+          <div key={section.id}>
+            {activeSectionId === ALL_CATEGORY_ID ? (
+              <div className="mt-3 mb-2.5 flex items-center gap-1.5 first:mt-0">
+                {section.icon ? (
+                  <section.icon className="size-3.5 text-foreground/80" />
+                ) : (
+                  <RiAspectRatioLine className="size-3.5 text-foreground/80" />
+                )}
+                <span className="text-[11px] font-medium tracking-tight">
+                  {section.label}
+                </span>
+              </div>
+            ) : null}
+            <div className={aspectOptionsWrapClassName}>
+              {section.options.map((o) => (
                 <AspectTile
+                  key={o.id}
                   option={o}
                   active={value === o.id}
                   onSelect={() => select(o.id)}
                 />
-              </div>
-            ))}
+              ))}
+            </div>
+            {idx < visibleSections.length - 1 ? (
+              <div className="mt-4 h-px bg-border/50" />
+            ) : null}
           </div>
-        ) : (
+        ))}
+
+        {visibleSections.length === 0 ? (
           <p className="px-2 py-8 text-center font-mono text-[10px] text-muted-foreground">
             No matches for &ldquo;{query}&rdquo;
           </p>
-        )}
-      </div>
+        ) : null}
+      </ScrollFadeBody>
 
       {/* Custom */}
       <div className="shrink-0 border-t border-border/60 bg-popover px-3 py-2.5">
@@ -485,6 +529,7 @@ export function AspectPopover({
   const [h, setH] = React.useState("1200")
 
   const current = ALL_OPTIONS.find((o) => o.id === value) ?? ALL_OPTIONS[0]
+  const [activeSectionId, setActiveSectionId] = React.useState(ALL_CATEGORY_ID)
 
   const q = query.trim().toLowerCase()
   const matches = (o: AspectOption) => {
@@ -502,10 +547,18 @@ export function AspectPopover({
     return section.label.toLowerCase().includes(q)
   }
 
-  const visibleSections = SECTIONS.map((s) => {
+  const tabSections = SECTIONS.map((s) => {
     const options = sectionMatches(s) ? s.options : s.options.filter(matches)
     return { ...s, options }
-  }).filter((s) => s.options.length > 0)
+  })
+  const matchingSections = tabSections.filter((s) => s.options.length > 0)
+  const selectedSection = tabSections.find((s) => s.id === activeSectionId)
+  const visibleSections =
+    activeSectionId === ALL_CATEGORY_ID
+      ? matchingSections
+      : selectedSection
+        ? [selectedSection]
+        : []
 
   const customW = Number(w)
   const customH = Number(h)
@@ -561,14 +614,22 @@ export function AspectPopover({
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, ease: POP_EASE, delay: 0.02 }}
-          className="relative shrink-0 border-b border-border/60 p-2"
+          className="shrink-0 border-b border-border/60 p-2"
         >
-          <RiSearchLine className="pointer-events-none absolute top-1/2 left-4 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search ratios…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="h-8 !pl-8 text-[12px]"
+          <div className="relative">
+            <RiSearchLine className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search ratios…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="h-8 !pl-8 text-[12px]"
+            />
+          </div>
+          <AspectCategoryTabs
+            sections={tabSections}
+            activeSectionId={activeSectionId}
+            onChange={setActiveSectionId}
+            className="mt-2"
           />
         </motion.div>
 
@@ -588,21 +649,24 @@ export function AspectPopover({
                 delay: 0.06 + idx * 0.035,
               }}
             >
-              {section.id !== "basic" ? (
-                <div className="mt-5 mb-3 flex items-center gap-1.5">
+              {activeSectionId === ALL_CATEGORY_ID ? (
+                <div className="mt-5 mb-3 flex items-center gap-1.5 first:mt-0">
                   {section.icon ? (
                     <section.icon className="size-3.5 text-foreground/80" />
-                  ) : null}
+                  ) : (
+                    <RiAspectRatioLine className="size-3.5 text-foreground/80" />
+                  )}
                   <span className="text-[11px] font-medium tracking-tight">
                     {section.label}
                   </span>
                 </div>
               ) : null}
 
-              <div className="flex flex-wrap items-end gap-x-2 gap-y-3">
+              <div className={aspectOptionsWrapClassName}>
                 {section.options.map((o, optIdx) => (
                   <motion.div
                     key={o.id}
+                    className="shrink-0"
                     initial={{ opacity: 0, scale: 0.9, y: 6 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{
@@ -622,7 +686,7 @@ export function AspectPopover({
                   </motion.div>
                 ))}
               </div>
-              {idx === 0 && visibleSections.length > 1 ? (
+              {idx < visibleSections.length - 1 ? (
                 <div className="mt-4 h-px bg-border/50" />
               ) : null}
             </motion.div>
@@ -675,6 +739,77 @@ export function AspectPopover({
         </motion.div>
       </PopoverContent>
     </Popover>
+  )
+}
+
+function AspectCategoryTabs({
+  sections,
+  activeSectionId,
+  onChange,
+  className,
+}: {
+  sections: AspectSection[]
+  activeSectionId?: string
+  onChange: (id: string) => void
+  className?: string
+}) {
+  if (sections.length === 0) return null
+
+  return (
+    <div
+      role="tablist"
+      aria-label="Aspect ratio categories"
+      className={cn(
+        "flex gap-1 overflow-x-auto overflow-y-hidden",
+        hiddenScrollbarClass,
+        className
+      )}
+    >
+      <button
+        role="tab"
+        aria-selected={activeSectionId === ALL_CATEGORY_ID}
+        onClick={() => onChange(ALL_CATEGORY_ID)}
+        className={cn(
+          "flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium whitespace-nowrap transition-colors",
+          activeSectionId === ALL_CATEGORY_ID
+            ? "bg-primary text-primary-foreground"
+            : "text-muted-foreground hover:bg-secondary/55 hover:text-foreground"
+        )}
+      >
+        <RiAspectRatioLine className="size-3.5" />
+        <span>All</span>
+        <span className="tabular font-mono text-[10px] opacity-70">
+          {sections.reduce(
+            (count, section) => count + section.options.length,
+            0
+          )}
+        </span>
+      </button>
+      {sections.map((section) => {
+        const Icon = section.icon ?? RiAspectRatioLine
+        const active = section.id === activeSectionId
+        return (
+          <button
+            key={section.id}
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(section.id)}
+            className={cn(
+              "flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium whitespace-nowrap transition-colors",
+              active
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-secondary/55 hover:text-foreground"
+            )}
+          >
+            <Icon className="size-3.5" />
+            <span>{section.label}</span>
+            <span className="tabular font-mono text-[10px] opacity-70">
+              {section.options.length}
+            </span>
+          </button>
+        )
+      })}
+    </div>
   )
 }
 

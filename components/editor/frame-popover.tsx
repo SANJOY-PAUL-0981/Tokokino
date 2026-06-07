@@ -15,7 +15,10 @@ import {
   RiWindow2Line,
 } from "@remixicon/react"
 
-import { ScrollFadeBody } from "@/components/editor/scroll-fade"
+import {
+  hiddenScrollbarClass,
+  ScrollFadeBody,
+} from "@/components/editor/scroll-fade"
 import { Input } from "@/components/ui/input"
 import { ShimmerImage } from "@/components/ui/shimmer-image"
 import {
@@ -197,6 +200,7 @@ const SECTIONS: FrameSection[] = [
 ].filter((section) => section.options.length > 0)
 
 const ALL_OPTIONS = SECTIONS.flatMap((s) => s.options)
+const ALL_CATEGORY_ID = "all"
 
 export function findFrameOptionName(id: string) {
   return ALL_OPTIONS.find((o) => o.id === id)?.name ?? "None"
@@ -253,6 +257,7 @@ export function FramePopover({
   const CurrentIcon =
     SECTIONS.find((s) => s.options.some((o) => o.id === current.id))?.icon ??
     RiSmartphoneLine
+  const [activeSectionId, setActiveSectionId] = React.useState(ALL_CATEGORY_ID)
 
   const currentColor = resolveFrameColor(current, currentDevice, value.color)
   const q = query.trim().toLowerCase()
@@ -271,10 +276,18 @@ export function FramePopover({
     return haystack.some((entry) => entry.toLowerCase().includes(q))
   }
 
-  const visibleSections = SECTIONS.map((s) => ({
+  const tabSections = SECTIONS.map((s) => ({
     ...s,
     options: s.options.filter((o) => matches(o, s)),
-  })).filter((s) => s.options.length > 0)
+  }))
+  const matchingSections = tabSections.filter((s) => s.options.length > 0)
+  const selectedSection = tabSections.find((s) => s.id === activeSectionId)
+  const visibleSections =
+    activeSectionId === ALL_CATEGORY_ID
+      ? matchingSections
+      : selectedSection
+        ? [selectedSection]
+        : []
 
   const selectFrame = React.useCallback(
     (option: FrameOption) => {
@@ -331,14 +344,23 @@ export function FramePopover({
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, ease: POP_EASE, delay: 0.02 }}
-          className="relative shrink-0 border-b border-border/60 p-2"
+          className="shrink-0 border-b border-border/60 p-2"
         >
-          <RiSearchLine className="pointer-events-none absolute top-1/2 left-4 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search devices..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="h-8 !pl-8 text-[12px]"
+          <div className="relative">
+            <RiSearchLine className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search devices..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="h-8 !pl-8 text-[12px]"
+            />
+          </div>
+
+          <FrameCategoryTabs
+            sections={tabSections}
+            activeSectionId={activeSectionId}
+            onChange={setActiveSectionId}
+            className="mt-2"
           />
         </motion.div>
 
@@ -358,16 +380,17 @@ export function FramePopover({
               }}
             >
               {idx !== 0 ? <div className="mt-4 h-px bg-border/50" /> : null}
-              <div className="mt-3 mb-2.5 flex items-center gap-1.5 first:mt-0">
-                <section.icon className="size-3.5 text-foreground/80" />
-                <span className="text-[11px] font-medium tracking-tight">
-                  {section.label}
-                </span>
-                <span className="tabular ml-auto font-mono text-[10px] text-muted-foreground">
-                  {section.options.length}
-                </span>
-              </div>
-
+              {activeSectionId === ALL_CATEGORY_ID ? (
+                <div className="mt-3 mb-2.5 flex items-center gap-1.5 first:mt-0">
+                  <section.icon className="size-3.5 text-foreground/80" />
+                  <span className="text-[11px] font-medium tracking-tight">
+                    {section.label}
+                  </span>
+                  <span className="tabular ml-auto font-mono text-[10px] text-muted-foreground">
+                    {section.options.length}
+                  </span>
+                </div>
+              ) : null}
               <div className={frameSectionGridClass(section.id)}>
                 {section.options.map((option) => (
                   <DeviceTile
@@ -509,6 +532,7 @@ export function MobileFramePicker({
     ? "horizontal"
     : value.orientation
   const currentColor = resolveFrameColor(current, currentDevice, value.color)
+  const [activeSectionId, setActiveSectionId] = React.useState(ALL_CATEGORY_ID)
 
   const q = query.trim().toLowerCase()
   const matches = (o: FrameOption, section: FrameSection) => {
@@ -526,10 +550,18 @@ export function MobileFramePicker({
     return haystack.some((entry) => entry.toLowerCase().includes(q))
   }
 
-  const visibleSections = SECTIONS.map((s) => ({
+  const tabSections = SECTIONS.map((s) => ({
     ...s,
     options: s.options.filter((o) => matches(o, s)),
-  })).filter((s) => s.options.length > 0)
+  }))
+  const matchingSections = tabSections.filter((s) => s.options.length > 0)
+  const selectedSection = tabSections.find((s) => s.id === activeSectionId)
+  const visibleSections =
+    activeSectionId === ALL_CATEGORY_ID
+      ? matchingSections
+      : selectedSection
+        ? [selectedSection]
+        : []
 
   const selectFrame = React.useCallback(
     (option: FrameOption) => {
@@ -556,6 +588,12 @@ export function MobileFramePicker({
             className="h-10 !pl-9 text-[13px]"
           />
         </div>
+        <FrameCategoryTabs
+          sections={tabSections}
+          activeSectionId={activeSectionId}
+          onChange={setActiveSectionId}
+          className="mt-2"
+        />
       </div>
 
       {/* Device grid */}
@@ -566,15 +604,17 @@ export function MobileFramePicker({
         {visibleSections.map((section, idx) => (
           <div key={section.id}>
             {idx !== 0 ? <div className="mt-4 h-px bg-border/50" /> : null}
-            <div className="mt-3 mb-2.5 flex items-center gap-1.5 first:mt-0">
-              <section.icon className="size-3.5 text-foreground/80" />
-              <span className="text-[11px] font-medium tracking-tight">
-                {section.label}
-              </span>
-              <span className="tabular ml-auto font-mono text-[10px] text-muted-foreground">
-                {section.options.length}
-              </span>
-            </div>
+            {activeSectionId === ALL_CATEGORY_ID ? (
+              <div className="mt-3 mb-2.5 flex items-center gap-1.5 first:mt-0">
+                <section.icon className="size-3.5 text-foreground/80" />
+                <span className="text-[11px] font-medium tracking-tight">
+                  {section.label}
+                </span>
+                <span className="tabular ml-auto font-mono text-[10px] text-muted-foreground">
+                  {section.options.length}
+                </span>
+              </div>
+            ) : null}
             <div className={frameSectionGridClass(section.id)}>
               {section.options.map((option) => (
                 <DeviceTile
@@ -684,6 +724,76 @@ export function MobileFramePicker({
           </div>
         </div>
       ) : null}
+    </div>
+  )
+}
+
+function FrameCategoryTabs({
+  sections,
+  activeSectionId,
+  onChange,
+  className,
+}: {
+  sections: FrameSection[]
+  activeSectionId?: string
+  onChange: (id: string) => void
+  className?: string
+}) {
+  if (sections.length === 0) return null
+
+  return (
+    <div
+      role="tablist"
+      aria-label="Frame categories"
+      className={cn(
+        "flex gap-1 overflow-x-auto overflow-y-hidden",
+        hiddenScrollbarClass,
+        className
+      )}
+    >
+      <button
+        role="tab"
+        aria-selected={activeSectionId === ALL_CATEGORY_ID}
+        onClick={() => onChange(ALL_CATEGORY_ID)}
+        className={cn(
+          "flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium whitespace-nowrap transition-colors",
+          activeSectionId === ALL_CATEGORY_ID
+            ? "bg-primary text-primary-foreground"
+            : "text-muted-foreground hover:bg-secondary/55 hover:text-foreground"
+        )}
+      >
+        <RiSmartphoneLine className="size-3.5" />
+        <span>All</span>
+        <span className="tabular font-mono text-[10px] opacity-70">
+          {sections.reduce(
+            (count, section) => count + section.options.length,
+            0
+          )}
+        </span>
+      </button>
+      {sections.map((section) => {
+        const active = section.id === activeSectionId
+        return (
+          <button
+            key={section.id}
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(section.id)}
+            className={cn(
+              "flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium whitespace-nowrap transition-colors",
+              active
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-secondary/55 hover:text-foreground"
+            )}
+          >
+            <section.icon className="size-3.5" />
+            <span>{section.label}</span>
+            <span className="tabular font-mono text-[10px] opacity-70">
+              {section.options.length}
+            </span>
+          </button>
+        )
+      })}
     </div>
   )
 }

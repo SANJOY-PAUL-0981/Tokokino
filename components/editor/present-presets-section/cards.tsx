@@ -40,6 +40,18 @@ import { cn } from "@/lib/utils"
 
 import type { PresetTab } from "./tabs"
 
+const MOBILE_PRESET_CARD_WIDTH = 172
+/** Shell padding + label row below the aspect-ratio preview. */
+const PRESET_CARD_CHROME_HEIGHT = 36
+
+function mobilePresetRowMinHeight(aspect: AspectState) {
+  const aw = aspect.w || 16
+  const ah = aspect.h || 10
+  return Math.ceil(
+    MOBILE_PRESET_CARD_WIDTH * (ah / aw) + PRESET_CARD_CHROME_HEIGHT
+  )
+}
+
 export function PresetCardsBody({
   displayTab,
   horizontal,
@@ -78,13 +90,14 @@ export function PresetCardsBody({
   return (
     <>
       {displayTab === "single" && (
-        <PresetCardRow horizontal={horizontal}>
+        <PresetCardRow horizontal={horizontal} aspect={aspect}>
           {PRESENT_PRESETS.map((preset) => (
             <PresetCardSlot key={preset.id} horizontal={horizontal}>
               <SinglePresetCard
                 preset={preset}
                 canvas={canvas}
                 aspect={aspect}
+                horizontal={horizontal}
                 active={activeSinglePresetId === preset.id}
                 onApply={onApplySingle}
               />
@@ -94,7 +107,7 @@ export function PresetCardsBody({
       )}
 
       {(displayTab === "multi" || displayTab === "triple") && (
-        <PresetCardRow horizontal={horizontal}>
+        <PresetCardRow horizontal={horizontal} aspect={aspect}>
           {LAYOUT_PRESETS.filter((preset) =>
             displayTab === "triple"
               ? preset.slots.length === 2
@@ -105,6 +118,7 @@ export function PresetCardsBody({
                 preset={preset}
                 canvas={canvas}
                 aspect={aspect}
+                horizontal={horizontal}
                 active={activeLayoutPresetId === preset.id}
                 onApply={onApplyLayout}
               />
@@ -138,14 +152,21 @@ export function PresetCardsBody({
  * default responsive grid/column. */
 function PresetCardRow({
   horizontal,
+  aspect,
   children,
 }: {
   horizontal: boolean
+  aspect?: AspectState
   children: React.ReactNode
 }) {
   if (horizontal) {
     return (
-      <div className="flex [scrollbar-width:none] gap-3 overflow-x-auto overflow-y-visible px-4 pt-1 pb-2 [&::-webkit-scrollbar]:hidden">
+      <div
+        className="flex [scrollbar-width:none] items-end gap-3 overflow-x-auto overflow-y-hidden px-4 pt-1 pb-2 [&::-webkit-scrollbar]:hidden"
+        style={
+          aspect ? { minHeight: mobilePresetRowMinHeight(aspect) } : undefined
+        }
+      >
         {children}
       </div>
     )
@@ -194,7 +215,7 @@ function CustomPresetList({
     const ah = aspect.h || 10
     const aspectStyle: React.CSSProperties = { aspectRatio: `${aw} / ${ah}` }
     return (
-      <PresetCardRow horizontal={horizontal}>
+      <PresetCardRow horizontal={horizontal} aspect={aspect}>
         {Array.from({ length: 2 }).map((_, i) => (
           <PresetCardSlot key={i} horizontal={horizontal}>
             {/* Mirror PresetCardShell exactly so the loading state doesn't
@@ -238,13 +259,14 @@ function CustomPresetList({
   }
 
   return (
-    <PresetCardRow horizontal={horizontal}>
+    <PresetCardRow horizontal={horizontal} aspect={aspect}>
       {presets.map((preset) => (
         <PresetCardSlot key={preset.id} horizontal={horizontal}>
           <CustomPresetCard
             preset={preset}
             canvas={canvas}
             aspect={aspect}
+            horizontal={horizontal}
             active={activeCustomPresetId === preset.id}
             onApply={onApply}
             onDelete={onDelete}
@@ -277,6 +299,7 @@ const CustomPresetCard = React.memo(function CustomPresetCard({
   preset,
   canvas,
   aspect,
+  horizontal = false,
   active,
   onApply,
   onDelete,
@@ -284,6 +307,7 @@ const CustomPresetCard = React.memo(function CustomPresetCard({
   preset: CustomPresetSummary
   canvas: CanvasState
   aspect: AspectState
+  horizontal?: boolean
   active: boolean
   onApply: (preset: CustomPresetSummary) => void
   onDelete: (id: string) => void | Promise<void>
@@ -372,6 +396,7 @@ const CustomPresetCard = React.memo(function CustomPresetCard({
         onApply={handleApply}
         aspectStyle={aspectStyle}
         intrinsicSize="auto 220px"
+        eager={horizontal}
         name={preset.name}
       >
         <CanvasPresetPreview
@@ -453,6 +478,7 @@ const PresetCardShell = React.memo(function PresetCardShell({
   aspectStyle,
   intrinsicSize,
   name,
+  eager = false,
   children,
 }: {
   active: boolean
@@ -461,10 +487,12 @@ const PresetCardShell = React.memo(function PresetCardShell({
   aspectStyle: React.CSSProperties
   intrinsicSize: string
   name: string
+  eager?: boolean
   children: React.ReactNode
 }) {
   const shellRef = React.useRef<HTMLDivElement>(null)
-  const visible = useDeferredVisibility(shellRef)
+  const deferredVisible = useDeferredVisibility(shellRef)
+  const visible = eager || deferredVisible
 
   return (
     <div
@@ -479,10 +507,14 @@ const PresetCardShell = React.memo(function PresetCardShell({
         e.preventDefault()
         onApply()
       }}
-      style={{
-        contentVisibility: "auto",
-        containIntrinsicSize: intrinsicSize,
-      }}
+      style={
+        eager
+          ? undefined
+          : {
+              contentVisibility: "auto",
+              containIntrinsicSize: intrinsicSize,
+            }
+      }
       className={cn(
         "group w-full cursor-pointer overflow-hidden rounded-[8px] border bg-white/[0.045] p-1.5 text-left transition-colors",
         active
@@ -520,12 +552,14 @@ const SinglePresetCard = React.memo(function SinglePresetCard({
   preset,
   canvas,
   aspect,
+  horizontal = false,
   active,
   onApply,
 }: {
   preset: PresentPreset
   canvas: CanvasState
   aspect: AspectState
+  horizontal?: boolean
   active: boolean
   onApply: (preset: PresentPreset) => void
 }) {
@@ -569,6 +603,7 @@ const SinglePresetCard = React.memo(function SinglePresetCard({
       onApply={handleApply}
       aspectStyle={aspectStyle}
       intrinsicSize="auto 220px"
+      eager={horizontal}
       name={preset.name}
     >
       <CanvasPresetPreview
@@ -584,12 +619,14 @@ const LayoutPresetCard = React.memo(function LayoutPresetCard({
   preset,
   canvas,
   aspect,
+  horizontal = false,
   active,
   onApply,
 }: {
   preset: LayoutPreset
   canvas: CanvasState
   aspect: AspectState
+  horizontal?: boolean
   active: boolean
   onApply: (preset: LayoutPreset) => void
 }) {
@@ -636,6 +673,7 @@ const LayoutPresetCard = React.memo(function LayoutPresetCard({
       onApply={handleApply}
       aspectStyle={aspectStyle}
       intrinsicSize="auto 220px"
+      eager={horizontal}
       name={preset.name}
     >
       <CanvasPresetPreview

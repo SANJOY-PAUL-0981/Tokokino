@@ -77,9 +77,9 @@ export const TOOLS_CATEGORIES: Category[] = [
 
 export const ALL_CATEGORIES = [...DESIGN_CATEGORIES, ...TOOLS_CATEGORIES]
 
-// Most inline panels size to their content, capped at max-h. Layout uses a
-// fixed panel height so horizontal preset scrolling never changes the sheet.
-export const TALL_CATEGORIES = new Set<CategoryId>(["layout", "layers"])
+// Layout sizes to preset-card content (aspect-ratio driven) with a viewport
+// max-h cap in mobile-controls/index.tsx. Layers keeps a fixed scroll height.
+export const TALL_CATEGORIES = new Set<CategoryId>(["layers"])
 
 export const ENHANCE_PRESETS: {
   id: EnhancePreset

@@ -422,7 +422,7 @@ export function PresentPresetsSection({
     <div
       className={cn(
         flat ? "flex flex-col" : "flex min-h-0 flex-1 flex-col",
-        flat && horizontal && "min-h-0 flex-1"
+        flat && horizontal && "shrink-0"
       )}
     >
       <AlertDialog
@@ -507,7 +507,7 @@ export function PresentPresetsSection({
           />
         )
 
-        if (horizontal) return <div className="pb-2">{body}</div>
+        if (horizontal) return body
         return (
           <ScrollArea
             className={flat ? "pr-3 pl-4" : "min-h-0 flex-1 pr-3 pl-4"}
