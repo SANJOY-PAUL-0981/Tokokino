@@ -19,7 +19,6 @@ import { motion, useReducedMotion } from "motion/react"
 
 const CONTENT_WIDTH =
   "mx-auto max-w-[76rem] w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)] md:w-[calc(100%-3rem)] lg:w-[calc(100%-4rem)] xl:w-full"
-const NAV_WIDTH = "mx-auto max-w-[83rem]"
 
 export default function Page() {
   const shouldReduceMotion = useReducedMotion()
@@ -43,7 +42,7 @@ export default function Page() {
           className="h-full w-full"
         />
       </div>
-      <div className={`sticky top-0 z-50 ${NAV_WIDTH}`}>
+      <div className={`sticky top-0 z-50 ${CONTENT_WIDTH}`}>
         <Nav />
       </div>
       <motion.div

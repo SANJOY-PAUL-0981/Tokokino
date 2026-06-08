@@ -7,6 +7,7 @@ import { useTheme } from "next-themes"
 import { ArrowRight } from "@/components/landing/landing-svgs"
 import { BrandLogo } from "@/components/editor/brand-logo"
 import { ease } from "@/components/landing/constants"
+import { RAIL_V_STYLE } from "@/components/landing/rail-styles"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 const links = [
@@ -40,7 +41,8 @@ export function Nav() {
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease }}
-        className="relative z-50 flex h-12 shrink-0 items-center justify-between bg-background/72 px-5 backdrop-blur-xl sm:px-8 md:mx-auto md:max-w-[1310px] lg:px-12"
+        className="relative z-50 flex h-12 w-full shrink-0 items-center justify-between px-5 backdrop-blur-xl sm:px-8 lg:px-12"
+        style={RAIL_V_STYLE}
       >
         <BrandLogo />
 
@@ -110,7 +112,7 @@ export function Nav() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.28, ease }}
-            className="fixed inset-x-0 top-12 bottom-0 z-40 flex flex-col overflow-y-auto px-7 pt-8 pb-12 xl:hidden"
+            className="fixed inset-x-0 top-12 bottom-0 z-40 overflow-y-auto xl:hidden"
             style={{
               backdropFilter: "blur(20px)",
               WebkitBackdropFilter: "blur(20px)",
@@ -118,81 +120,86 @@ export function Nav() {
                 "color-mix(in oklch, var(--background) 58%, transparent)",
             }}
           >
-            <nav className="flex flex-col gap-1">
-              {links.map((link, i) => (
-                <motion.div
-                  key={link.href}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.25, delay: i * 0.06, ease }}
-                >
-                  {link.href.startsWith("#") ? (
-                    <a
-                      href={link.href}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setOpen(false)
-                        setTimeout(() => scrollToHash(link.href), 50)
-                      }}
-                      className="block py-1 font-mono text-4xl font-bold tracking-tight text-foreground/80 uppercase transition-colors hover:text-primary sm:text-5xl"
-                    >
-                      {link.label}
-                    </a>
-                  ) : (
-                    <Link
-                      href={link.href}
-                      onClick={() => setOpen(false)}
-                      className="block py-1 font-mono text-4xl font-bold tracking-tight text-foreground/80 uppercase transition-colors hover:text-primary sm:text-5xl"
-                    >
-                      {link.label}
-                    </Link>
-                  )}
-                </motion.div>
-              ))}
-            </nav>
-
-            {/* Bottom CTAs */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 16 }}
-              transition={{
-                duration: 0.3,
-                delay: links.length * 0.06 + 0.05,
-                ease,
-              }}
-              className="mt-auto flex flex-col gap-3"
+            <div
+              className="mx-auto flex min-h-full w-[calc(100%-1rem)] max-w-[76rem] flex-col px-5 pt-8 pb-12 sm:w-[calc(100%-2rem)] sm:px-8 md:w-[calc(100%-3rem)] lg:w-[calc(100%-4rem)] lg:px-12"
+              style={RAIL_V_STYLE}
             >
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="flex w-full items-center justify-between rounded-xl border border-border/70 px-4 py-3 transition hover:border-foreground/40"
+              <nav className="flex flex-col gap-1">
+                {links.map((link, i) => (
+                  <motion.div
+                    key={link.href}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.25, delay: i * 0.06, ease }}
+                  >
+                    {link.href.startsWith("#") ? (
+                      <a
+                        href={link.href}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setOpen(false)
+                          setTimeout(() => scrollToHash(link.href), 50)
+                        }}
+                        className="block py-1 font-mono text-4xl font-bold tracking-tight text-foreground/80 uppercase transition-colors hover:text-primary sm:text-5xl"
+                      >
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link
+                        href={link.href}
+                        onClick={() => setOpen(false)}
+                        className="block py-1 font-mono text-4xl font-bold tracking-tight text-foreground/80 uppercase transition-colors hover:text-primary sm:text-5xl"
+                      >
+                        {link.label}
+                      </Link>
+                    )}
+                  </motion.div>
+                ))}
+              </nav>
+
+              {/* Bottom CTAs */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 16 }}
+                transition={{
+                  duration: 0.3,
+                  delay: links.length * 0.06 + 0.05,
+                  ease,
+                }}
+                className="mt-auto flex flex-col gap-3"
               >
-                <span className="font-mono text-sm font-bold text-foreground/70 uppercase">
-                  Theme
-                </span>
-                <span className="pointer-events-none">
-                  <ThemeToggle />
-                </span>
-              </button>
-              <Link
-                href="/login"
-                onClick={() => setOpen(false)}
-                className="group flex w-full items-center justify-center gap-2 rounded-xl border border-border/70 py-4 font-mono text-lg font-bold text-foreground/70 uppercase transition hover:border-foreground/40 hover:text-foreground"
-              >
-                Sign in
-                <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-              <Link
-                href="/app"
-                onClick={() => setOpen(false)}
-                className="group flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-mono text-lg font-bold text-primary-foreground uppercase transition hover:opacity-90"
-              >
-                Start editing
-                <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-            </motion.div>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="flex w-full items-center justify-between rounded-xl border border-border/70 px-4 py-3 transition hover:border-foreground/40"
+                >
+                  <span className="font-mono text-sm font-bold text-foreground/70 uppercase">
+                    Theme
+                  </span>
+                  <span className="pointer-events-none">
+                    <ThemeToggle />
+                  </span>
+                </button>
+                <Link
+                  href="/login"
+                  onClick={() => setOpen(false)}
+                  className="group flex w-full items-center justify-center gap-2 rounded-xl border border-border/70 py-4 font-mono text-lg font-bold text-foreground/70 uppercase transition hover:border-foreground/40 hover:text-foreground"
+                >
+                  Sign in
+                  <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+                <Link
+                  href="/app"
+                  onClick={() => setOpen(false)}
+                  className="group flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-mono text-lg font-bold text-primary-foreground uppercase transition hover:opacity-90"
+                >
+                  Start editing
+                  <ArrowRight className="size-5 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
