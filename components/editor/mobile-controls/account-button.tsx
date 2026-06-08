@@ -5,11 +5,13 @@ import {
   RiGalleryLine,
   RiHardDrive2Line,
   RiLogoutBoxLine,
+  RiSettings3Line,
   RiUserLine,
 } from "@remixicon/react"
 import { useRouter } from "next/navigation"
 
 import { AccountAvatar } from "@/components/editor/account-avatar"
+import { SettingsDialog } from "@/components/editor/settings/settings-dialog"
 import { StorageDialog } from "@/components/editor/storage-dialog"
 import {
   Popover,
@@ -23,6 +25,7 @@ export function MobileAccountButton() {
   const router = useRouter()
   const [open, setOpen] = React.useState(false)
   const [storageOpen, setStorageOpen] = React.useState(false)
+  const [settingsOpen, setSettingsOpen] = React.useState(false)
   const user = session?.user
 
   const triggerClass =
@@ -86,6 +89,17 @@ export function MobileAccountButton() {
           type="button"
           onClick={() => {
             setOpen(false)
+            setSettingsOpen(true)
+          }}
+          className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-[13px] text-foreground transition-colors hover:bg-accent"
+        >
+          <RiSettings3Line className="size-4 text-muted-foreground" />
+          Settings
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false)
             void signOut()
           }}
           className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-[13px] text-destructive transition-colors hover:bg-destructive/10"
@@ -95,6 +109,7 @@ export function MobileAccountButton() {
         </button>
       </PopoverContent>
       <StorageDialog open={storageOpen} onOpenChange={setStorageOpen} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </Popover>
   )
 }

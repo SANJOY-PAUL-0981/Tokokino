@@ -1,7 +1,9 @@
 "use client"
 
 import * as React from "react"
+import { toast } from "sonner"
 
+import { copyCanvasAsPng } from "../export"
 import type { CanvasState } from "../state-types"
 import { useEditorStore } from "../store"
 
@@ -23,6 +25,8 @@ function isEditableKeyboardTarget(target: EventTarget | null) {
 }
 
 export function EditorProvider({ children }: { children: React.ReactNode }) {
+  const isCopyingCanvasRef = React.useRef(false)
+
   React.useEffect(() => {
     if (!isBrowserIndexedDbAvailable()) return
 
@@ -181,6 +185,24 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
       } else if (e.key === "y" || e.key === "Y") {
         e.preventDefault()
         useEditorStore.getState().redo()
+      } else if ((e.key === "c" || e.key === "C") && !e.shiftKey && !e.altKey) {
+        e.preventDefault()
+        if (isCopyingCanvasRef.current) return
+
+        const canvasId = useEditorStore.getState().present.activeCanvasId
+        if (!canvasId) return
+
+        isCopyingCanvasRef.current = true
+        const toastId = toast.loading("Copying to clipboard…")
+        void copyCanvasAsPng(canvasId, "1080p", { watermark: true })
+          .then(() => toast.success("Copied to clipboard", { id: toastId }))
+          .catch((error) => {
+            console.error(error)
+            toast.error("Copy failed. Please try again.", { id: toastId })
+          })
+          .finally(() => {
+            isCopyingCanvasRef.current = false
+          })
       }
     }
     window.addEventListener("keydown", onKey)

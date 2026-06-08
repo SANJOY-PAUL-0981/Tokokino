@@ -6,6 +6,7 @@ import {
   RiGalleryLine,
   RiHardDrive2Line,
   RiLogoutBoxRLine,
+  RiSettings3Line,
 } from "@remixicon/react"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -18,6 +19,7 @@ import {
 import { FramePopover } from "@/components/editor/frame-popover"
 import { PresentPresetsSection } from "@/components/editor/present-presets-section"
 import { StorageDialog } from "@/components/editor/storage-dialog"
+import { SettingsDialog } from "@/components/editor/settings/settings-dialog"
 import {
   Popover,
   PopoverContent,
@@ -220,6 +222,7 @@ export function AccountTile() {
   const { data: session, isPending: isAuthPending } = useSession()
   const [expanded, setExpanded] = React.useState(false)
   const [storageOpen, setStorageOpen] = React.useState(false)
+  const [settingsOpen, setSettingsOpen] = React.useState(false)
   const [isSigningOut, setIsSigningOut] = React.useState(false)
   const [isHydrated, setIsHydrated] = React.useState(false)
 
@@ -344,6 +347,17 @@ export function AccountTile() {
           </button>
           <button
             type="button"
+            className="flex h-8 w-full touch-manipulation items-center gap-2.5 rounded-md px-2 text-xs font-medium text-foreground transition-colors outline-none [-webkit-tap-highlight-color:transparent] hover:bg-secondary/60 focus:ring-0 focus-visible:ring-0 sm:focus-visible:ring-2 sm:focus-visible:ring-primary/30"
+            onClick={() => {
+              setExpanded(false)
+              setSettingsOpen(true)
+            }}
+          >
+            <RiSettings3Line className="size-4 shrink-0 text-muted-foreground" />
+            Settings
+          </button>
+          <button
+            type="button"
             disabled={isSigningOut}
             className="flex h-8 w-full touch-manipulation items-center gap-2.5 rounded-md px-2 text-xs font-medium text-destructive transition-colors outline-none [-webkit-tap-highlight-color:transparent] hover:bg-destructive/10 focus:ring-0 focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-60 sm:focus-visible:ring-2 sm:focus-visible:ring-destructive/30"
             onClick={() => void handleSignOut()}
@@ -354,6 +368,7 @@ export function AccountTile() {
         </PopoverContent>
       </Popover>
       <StorageDialog open={storageOpen} onOpenChange={setStorageOpen} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   )
 }

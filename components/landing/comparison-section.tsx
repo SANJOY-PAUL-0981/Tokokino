@@ -60,13 +60,6 @@ const FEATURE_MATRIX = [
     shots: "cloud",
   },
   {
-    feature: "No account to export",
-    tokokino: true,
-    postspark: false,
-    pika: false,
-    shots: false,
-  },
-  {
     feature: "X (Twitter) post mockups",
     tokokino: true,
     postspark: true,

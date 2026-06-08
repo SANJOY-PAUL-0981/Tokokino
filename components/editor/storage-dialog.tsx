@@ -147,8 +147,8 @@ export function StorageDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
+      <DialogContent className="gap-4 p-5 sm:max-w-sm">
+        <DialogHeader className="pr-8">
           <DialogTitle>Storage</DialogTitle>
           <DialogDescription>
             Usage across your account. Each pool has its own limit.
@@ -171,7 +171,7 @@ export function StorageDialog({
             label="Custom presets"
           />
 
-          <div className="space-y-1.5 rounded-lg bg-secondary/30 p-3">
+          <div className="space-y-1.5 rounded-lg bg-secondary/30 px-3 pt-3">
             <p className="text-[13px] font-medium text-foreground">
               Need more space?
             </p>

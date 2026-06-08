@@ -1,5 +1,8 @@
 import { toJpeg, toBlob } from "html-to-image"
 
+import { buildExportFilename, getExportFilenameFormat } from "./export-filename"
+import { useEditorStore } from "./store"
+
 export type ExportFormat = "png" | "jpeg" | "webp"
 export type ExportResolution = "hd" | "4k" | "8k"
 export type CopyResolution = "1080p"
@@ -83,6 +86,28 @@ export function getOutputDims(
     width: Math.round(targetWidth),
     height: Math.round(dims.height * ratio),
   }
+}
+
+/** Resolve a `{TEMPLATE}` label from the active preset / aspect ratio. */
+function getTemplateLabel(canvasId: string): string {
+  try {
+    const state = useEditorStore.getState()
+    if (state.activeCustomPresetId) {
+      const preset = state.customPresets.find(
+        (p) => p.id === state.activeCustomPresetId
+      )
+      if (preset?.name) return preset.name
+    }
+    const presetId =
+      state.activeSinglePresetId ?? state.activeLayoutPresetId ?? null
+    if (presetId) return presetId
+    const canvas = state.present.canvases.find((c) => c.id === canvasId)
+    const aspect = canvas?.aspect ?? state.present.aspect
+    if (aspect?.w && aspect?.h) return `${aspect.w}x${aspect.h}`
+  } catch {
+    /* store not ready — fall through */
+  }
+  return "default"
 }
 
 function triggerDownload(url: string, filename: string) {
@@ -504,12 +529,14 @@ export async function exportCanvas(
     filter: filterExportHidden,
   } as const
 
-  const ts = new Date()
-    .toISOString()
-    .replace(/[:.]/g, "-")
-    .replace("T", "_")
-    .slice(0, 19)
-  const filename = `screenshot_${resolution}_${ts}${EXPORT_FORMAT_EXTENSION[format]}`
+  const filename = buildExportFilename({
+    format: getExportFilenameFormat(),
+    scale: resolution,
+    template: getTemplateLabel(canvasId),
+    width: outputWidth,
+    height: outputHeight,
+    extension: EXPORT_FORMAT_EXTENSION[format],
+  })
 
   try {
     await waitForExportAssets(assetUrls)
