@@ -399,9 +399,10 @@ export type TweetData = {
   author: TweetAuthor
   createdAt: string
   media?: TweetMedia[]
-  // The free syndication endpoint only exposes likes + replies reliably;
-  // reposts/views require the paid X API and are intentionally omitted.
-  metrics: { likes: number; replies: number }
+  quotedTweet?: TweetData
+  // The public syndication endpoint exposes likes/replies/reposts more often
+  // than views. Views are optional and only shown when X returns them.
+  metrics: { likes: number; replies: number; reposts: number; views?: number }
 }
 
 export type TweetTheme = "light" | "dim" | "dark"

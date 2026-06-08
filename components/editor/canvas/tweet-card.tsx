@@ -19,6 +19,8 @@ import type {
   EditorTool,
   ScreenshotLayer,
   TweetCard,
+  TweetData,
+  TweetMedia,
   TweetTheme,
 } from "@/lib/editor/store"
 import { DEFAULT_TWEET_FONT_FAMILY } from "@/lib/editor/tweet-settings"
@@ -106,6 +108,46 @@ function LikeIcon() {
   )
 }
 
+function RepostIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-[1.05em] shrink-0"
+      aria-hidden
+    >
+      <path d="M17 1l4 4-4 4" />
+      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+      <path d="M7 23l-4-4 4-4" />
+      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+    </svg>
+  )
+}
+
+function ViewsIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-[1.05em] shrink-0"
+      aria-hidden
+    >
+      <path d="M4 19V9" />
+      <path d="M10 19V5" />
+      <path d="M16 19v-8" />
+      <path d="M22 19V7" />
+    </svg>
+  )
+}
+
 function formatCount(n: number): string {
   if (!Number.isFinite(n) || n <= 0) return "0"
   if (n < 1000) return String(n)
@@ -160,10 +202,148 @@ function mediaGridClass(count: number) {
 }
 
 function mediaItemClass(count: number, index: number) {
-  if (count === 1) return "aspect-[16/9]"
+  if (count === 1) return ""
   if (count === 2) return "aspect-[1.42/1]"
   if (count === 3 && index === 0) return "row-span-2"
   return ""
+}
+
+function mediaAspect(media: TweetMedia): string | undefined {
+  if (!media.width || !media.height) return undefined
+  if (!Number.isFinite(media.width) || !Number.isFinite(media.height)) {
+    return undefined
+  }
+  if (media.width <= 0 || media.height <= 0) return undefined
+  return `${media.width} / ${media.height}`
+}
+
+type TweetMediaGridProps = {
+  id: string
+  media: NonNullable<TweetData["media"]>
+  palette: ThemePalette
+  compact?: boolean
+  maxHeight?: string
+}
+
+function TweetMediaGrid({
+  id,
+  media,
+  palette,
+  compact = false,
+  maxHeight,
+}: TweetMediaGridProps) {
+  const isSingle = media.length === 1
+  const singleMaxHeight = maxHeight ?? (compact ? "28cqh" : "62cqh")
+
+  return (
+    <div
+      className={cn(
+        compact ? "mt-3 gap-1.5 rounded-[14px]" : "mt-3 gap-2 rounded-[18px]",
+        "grid overflow-hidden border",
+        !isSingle && mediaGridClass(media.length)
+      )}
+      style={{
+        borderColor: palette.border,
+        background: palette.bg,
+        ...(isSingle
+          ? {
+              aspectRatio: mediaAspect(media[0]) ?? "16 / 9",
+              maxHeight: singleMaxHeight,
+            }
+          : {}),
+      }}
+    >
+      {media.map((item, index) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={`${id}-${item.url}`}
+          src={item.url}
+          alt={item.alt ?? ""}
+          draggable={false}
+          className={cn(
+            isSingle
+              ? "h-full min-h-0 w-full object-contain"
+              : "h-full min-h-0 w-full object-cover",
+            mediaItemClass(media.length, index)
+          )}
+        />
+      ))}
+    </div>
+  )
+}
+
+type QuoteTweetPreviewProps = {
+  tweet: TweetData
+  palette: ThemePalette
+  showAvatar: boolean
+  showImages: boolean
+}
+
+function QuoteTweetPreview({
+  tweet,
+  palette,
+  showAvatar,
+  showImages,
+}: QuoteTweetPreviewProps) {
+  const media = showImages ? (tweet.media ?? []).slice(0, 4) : []
+
+  return (
+    <div
+      className="mt-3 overflow-hidden rounded-[18px] border p-3"
+      style={{ borderColor: palette.border }}
+    >
+      <div className="flex min-w-0 items-center gap-2">
+        {showAvatar ? (
+          tweet.author.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={`${tweet.id}-quote-avatar-${tweet.author.avatarUrl}`}
+              src={tweet.author.avatarUrl}
+              alt={tweet.author.name}
+              width={32}
+              height={32}
+              className="size-8 shrink-0 rounded-full object-cover"
+              draggable={false}
+            />
+          ) : (
+            <div
+              className="size-8 shrink-0 rounded-full"
+              style={{ background: palette.border }}
+            />
+          )
+        ) : null}
+        <div className="flex min-w-0 items-baseline gap-1.5 text-[16px] leading-tight">
+          <span className="truncate font-bold" style={{ color: palette.text }}>
+            {tweet.author.name}
+          </span>
+          {tweet.author.verified ? (
+            <VerifiedBadge color={palette.link} />
+          ) : null}
+          {tweet.author.handle ? (
+            <span className="truncate" style={{ color: palette.sub }}>
+              @{tweet.author.handle}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      {tweet.text ? (
+        <p className="mt-2 text-[18px] leading-normal break-words whitespace-pre-wrap">
+          {renderTweetText(tweet.text, palette.link)}
+        </p>
+      ) : null}
+
+      {media.length > 0 ? (
+        <TweetMediaGrid
+          id={`${tweet.id}-quote`}
+          media={media}
+          palette={palette}
+          compact
+          maxHeight="26cqh"
+        />
+      ) : null}
+    </div>
+  )
 }
 
 type TweetCardViewProps = {
@@ -219,11 +399,58 @@ export function TweetCardView({
   onDelete,
 }: TweetCardViewProps) {
   const [editOpen, setEditOpen] = React.useState(false)
+  const [fitScale, setFitScale] = React.useState(1)
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  const cardRef = React.useRef<HTMLDivElement>(null)
   const replaceInputRef = React.useRef<HTMLInputElement>(null)
   const { data, theme, showMetrics, showAvatar } = tweet
   const t = THEMES[theme] ?? THEMES.dark
   const media = (tweet.showImages ?? true) ? (data.media ?? []).slice(0, 4) : []
   const showTimestamp = tweet.showTimestamp ?? true
+
+  const updateFitScale = React.useCallback(() => {
+    const container = containerRef.current
+    const card = cardRef.current
+    if (!container || !card) return
+
+    const maxWidth = container.clientWidth * 0.96
+    const maxHeight = container.clientHeight * 0.96
+    const cardWidth = card.offsetWidth
+    const cardHeight = card.scrollHeight
+    if (maxWidth <= 0 || maxHeight <= 0 || cardWidth <= 0 || cardHeight <= 0) {
+      return
+    }
+
+    const nextScale = Math.max(
+      0.28,
+      Math.min(1, maxWidth / cardWidth, maxHeight / cardHeight)
+    )
+    setFitScale((current) =>
+      Math.abs(current - nextScale) > 0.01 ? nextScale : current
+    )
+  }, [])
+
+  React.useLayoutEffect(() => {
+    updateFitScale()
+    const container = containerRef.current
+    const card = cardRef.current
+    if (!container || !card) return
+
+    const observer = new ResizeObserver(updateFitScale)
+    observer.observe(container)
+    observer.observe(card)
+
+    void document.fonts?.ready.then(updateFitScale)
+
+    return () => observer.disconnect()
+  }, [
+    data,
+    showAvatar,
+    showMetrics,
+    showTimestamp,
+    media.length,
+    updateFitScale,
+  ])
 
   const cardStyle: React.CSSProperties = {
     background: t.bg,
@@ -246,6 +473,7 @@ export function TweetCardView({
 
   return (
     <div
+      ref={containerRef}
       className="pointer-events-none absolute inset-0"
       style={{ containerType: "size" }}
     >
@@ -264,6 +492,7 @@ export function TweetCardView({
         }}
       />
       <div
+        ref={cardRef}
         data-editor-shadow-box-target
         data-tweet-card
         data-selection-border={isSelected ? "true" : undefined}
@@ -284,7 +513,8 @@ export function TweetCardView({
           ...cardStyle,
           left: `var(--editor-main-position-x, ${leftPct}%)`,
           top: `var(--editor-main-position-y, ${topPct}%)`,
-          transform: `translate(-50%, -50%) ${transform}`,
+          transform: `translate(-50%, -50%) ${transform} scale(${fitScale})`,
+          transformOrigin: "center",
         }}
       >
         <div className="flex items-start gap-3">
@@ -334,51 +564,55 @@ export function TweetCardView({
         ) : null}
 
         {media.length > 0 ? (
-          <div
-            className={cn(
-              "mt-3 grid gap-2 overflow-hidden rounded-[18px] border",
-              mediaGridClass(media.length)
-            )}
-            style={{ borderColor: t.border }}
-          >
-            {media.map((item, index) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={`${data.id}-${item.url}`}
-                src={item.url}
-                alt={item.alt ?? ""}
-                draggable={false}
-                className={cn(
-                  "h-full min-h-0 w-full object-cover",
-                  mediaItemClass(media.length, index)
-                )}
-              />
-            ))}
-          </div>
+          <TweetMediaGrid
+            id={data.id}
+            media={media}
+            palette={t}
+            maxHeight={data.quotedTweet ? "38cqh" : undefined}
+          />
         ) : null}
 
-        <div className="mt-3 flex flex-col gap-2">
-          {showMetrics ? (
-            <div
-              className="flex items-center gap-5 text-[18px]"
-              style={{ color: t.sub }}
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <ReplyIcon />
-                {formatCount(data.metrics.replies)}
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <LikeIcon />
-                {formatCount(data.metrics.likes)}
-              </span>
-            </div>
-          ) : null}
-          {showTimestamp && date ? (
-            <div className={cn("text-[16px]")} style={{ color: t.sub }}>
-              {date}
-            </div>
-          ) : null}
-        </div>
+        {data.quotedTweet ? (
+          <QuoteTweetPreview
+            tweet={data.quotedTweet}
+            palette={t}
+            showAvatar={showAvatar}
+            showImages={tweet.showImages ?? true}
+          />
+        ) : null}
+
+        {showMetrics || (showTimestamp && date) ? (
+          <div
+            className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-[18px]"
+            style={{ color: t.sub }}
+          >
+            {showMetrics ? (
+              <>
+                <span className="inline-flex items-center gap-1.5">
+                  <ReplyIcon />
+                  {formatCount(data.metrics.replies)}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <RepostIcon />
+                  {formatCount(data.metrics.reposts)}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <LikeIcon />
+                  {formatCount(data.metrics.likes)}
+                </span>
+                {data.metrics.views !== undefined ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <ViewsIcon />
+                    {formatCount(data.metrics.views)}
+                  </span>
+                ) : null}
+              </>
+            ) : null}
+            {showTimestamp && date ? (
+              <span className="text-[16px]">{date}</span>
+            ) : null}
+          </div>
+        ) : null}
 
         <InnerLightingOverlay
           style={innerLightingStyle}

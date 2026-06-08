@@ -23,9 +23,18 @@ type SyndicationTweet = {
   favorite_count?: number
   conversation_count?: number
   reply_count?: number
+  retweet_count?: number
+  quote_count?: number
+  view_count?: number | string
+  viewCount?: number | string
+  impression_count?: number | string
+  views?: {
+    count?: number | string
+  }
   user?: SyndicationUser
   photos?: SyndicationPhoto[]
   mediaDetails?: SyndicationMediaDetail[]
+  quoted_tweet?: SyndicationTweet
 }
 
 type SyndicationPhoto = {
@@ -42,6 +51,19 @@ type SyndicationMediaDetail = {
   url?: string
   width?: number
   height?: number
+  original_info?: {
+    width?: number
+    height?: number
+  }
+  sizes?: Partial<
+    Record<
+      "large" | "medium" | "small" | "thumb",
+      {
+        w?: number
+        h?: number
+      }
+    >
+  >
   ext_alt_text?: string
   alt_text?: string
 }
@@ -75,8 +97,10 @@ function normalizeMedia(raw: SyndicationTweet): TweetMedia[] {
       return {
         type: "photo",
         url,
-        width: media.width,
-        height: media.height,
+        width:
+          media.width ?? media.original_info?.width ?? media.sizes?.large?.w,
+        height:
+          media.height ?? media.original_info?.height ?? media.sizes?.large?.h,
         alt: media.ext_alt_text ?? media.alt_text,
       }
     })
@@ -95,13 +119,31 @@ function normalizeTweetText(text: string, hasMedia: boolean): string {
   return text.replace(/\s*https:\/\/t\.co\/\S+\s*$/i, "").trimEnd()
 }
 
-function normalize(raw: SyndicationTweet, id: string): TweetData | null {
+function parseMetric(value: number | string | undefined): number | undefined {
+  if (typeof value === "number")
+    return Number.isFinite(value) ? value : undefined
+  if (typeof value !== "string") return undefined
+  const parsed = Number(value.replace(/,/g, ""))
+  return Number.isFinite(parsed) ? parsed : undefined
+}
+
+function normalize(
+  raw: SyndicationTweet,
+  fallbackId: string,
+  depth = 0
+): TweetData | null {
   if (!raw || raw.__typename === "TweetTombstone" || !raw.user) return null
   const user = raw.user
   const handle = user.screen_name ?? ""
   const media = normalizeMedia(raw)
+  const id = raw.id_str ?? fallbackId
+  const quotedTweet =
+    depth === 0 && raw.quoted_tweet
+      ? normalize(raw.quoted_tweet, raw.quoted_tweet.id_str ?? "", depth + 1)
+      : null
+
   return {
-    id: raw.id_str ?? id,
+    id,
     url: handle
       ? `https://x.com/${handle}/status/${id}`
       : `https://x.com/i/status/${id}`,
@@ -114,9 +156,20 @@ function normalize(raw: SyndicationTweet, id: string): TweetData | null {
     },
     createdAt: raw.created_at ?? "",
     media,
+    ...(quotedTweet ? { quotedTweet } : {}),
     metrics: {
       likes: raw.favorite_count ?? 0,
       replies: raw.conversation_count ?? raw.reply_count ?? 0,
+      reposts: raw.retweet_count ?? raw.quote_count ?? 0,
+      ...(() => {
+        const views = parseMetric(
+          raw.views?.count ??
+            raw.view_count ??
+            raw.viewCount ??
+            raw.impression_count
+        )
+        return views === undefined ? {} : { views }
+      })(),
     },
   }
 }
