@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server"
 
-import type { TweetData, TweetMedia } from "@/lib/editor/state-types"
+import type {
+  TweetData,
+  TweetLinkPreview,
+  TweetMedia,
+} from "@/lib/editor/state-types"
 import {
   syndicationToken,
   tweetUrlSchema,
@@ -39,9 +43,35 @@ type SyndicationTweet = {
     count?: number | string
   }
   user?: SyndicationUser
+  entities?: {
+    urls?: SyndicationUrlEntity[]
+  }
+  card?: SyndicationCard
   photos?: SyndicationPhoto[]
   mediaDetails?: SyndicationMediaDetail[]
   quoted_tweet?: SyndicationTweet
+}
+
+type SyndicationUrlEntity = {
+  url?: string
+  expanded_url?: string
+  unwound_url?: string
+  display_url?: string
+}
+
+type SyndicationCardBindingValue = {
+  string_value?: string
+  scribe_key?: string
+  image_value?: {
+    url?: string
+    width?: number
+    height?: number
+  }
+}
+
+type SyndicationCard = {
+  url?: string
+  binding_values?: Record<string, SyndicationCardBindingValue>
 }
 
 type SyndicationPhoto = {
@@ -100,8 +130,10 @@ type BlueskyImageView = {
 }
 
 type BlueskyExternalView = {
+  uri?: string
   thumb?: string
   title?: string
+  description?: string
 }
 
 type BlueskyEmbedView = {
@@ -194,6 +226,75 @@ function normalizeTweetText(text: string, hasMedia: boolean): string {
   return text.replace(/\s*https:\/\/t\.co\/\S+\s*$/i, "").trimEnd()
 }
 
+function displayUrl(entity: SyndicationUrlEntity): string {
+  const display =
+    entity.display_url ?? entity.unwound_url ?? entity.expanded_url
+  if (!display) return entity.url ?? ""
+  return display.replace(/^https?:\/\//i, "")
+}
+
+function replaceUrlEntities(
+  text: string,
+  urls: SyndicationUrlEntity[] | undefined
+): string {
+  if (!urls?.length) return text
+  return urls.reduce((next, entity) => {
+    if (!entity.url) return next
+    const display = displayUrl(entity)
+    if (!display) return next
+    return next.split(entity.url).join(display)
+  }, text)
+}
+
+function domainFromUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined
+  try {
+    return new URL(url).hostname.replace(/^www\./i, "")
+  } catch {
+    return undefined
+  }
+}
+
+function normalizeCardImage(
+  value: SyndicationCardBindingValue | undefined
+): TweetMedia | undefined {
+  const image = value?.image_value
+  if (!image?.url) return undefined
+  return {
+    type: "photo",
+    url: image.url,
+    width: image.width,
+    height: image.height,
+  }
+}
+
+function normalizeLinkPreview(raw: SyndicationTweet): TweetLinkPreview | null {
+  const bindings = raw.card?.binding_values
+  if (!bindings) return null
+  const title =
+    bindings.title?.string_value ??
+    bindings.vanity_url?.string_value ??
+    bindings.domain?.string_value
+  const url =
+    raw.entities?.urls?.[0]?.expanded_url ??
+    raw.entities?.urls?.[0]?.unwound_url ??
+    raw.card?.url
+  if (!title || !url) return null
+
+  const image =
+    normalizeCardImage(bindings.summary_photo_image_original) ??
+    normalizeCardImage(bindings.thumbnail_image_original) ??
+    normalizeCardImage(bindings.photo_image_full_size_original)
+
+  return {
+    url,
+    title,
+    description: bindings.description?.string_value,
+    domain: bindings.domain?.string_value ?? domainFromUrl(url),
+    ...(image ? { image } : {}),
+  }
+}
+
 function parseMetric(value: number | string | undefined): number | undefined {
   if (typeof value === "number")
     return Number.isFinite(value) ? value : undefined
@@ -212,6 +313,11 @@ function normalize(
   const handle = user.screen_name ?? ""
   const media = normalizeMedia(raw)
   const id = raw.id_str ?? fallbackId
+  const text = replaceUrlEntities(
+    normalizeTweetText(raw.text ?? raw.full_text ?? "", media.length > 0),
+    raw.entities?.urls
+  )
+  const linkPreview = normalizeLinkPreview(raw)
   const quotedTweet =
     depth === 0 && raw.quoted_tweet
       ? normalize(raw.quoted_tweet, raw.quoted_tweet.id_str ?? "", depth + 1)
@@ -223,7 +329,7 @@ function normalize(
     url: handle
       ? `https://x.com/${handle}/status/${id}`
       : `https://x.com/i/status/${id}`,
-    text: normalizeTweetText(raw.text ?? raw.full_text ?? "", media.length > 0),
+    text,
     author: {
       name: user.name ?? handle,
       handle,
@@ -232,6 +338,7 @@ function normalize(
     },
     createdAt: raw.created_at ?? "",
     media,
+    ...(linkPreview ? { linkPreview } : {}),
     ...(quotedTweet ? { quotedTweet } : {}),
     metrics: {
       likes: raw.favorite_count ?? 0,
@@ -281,16 +388,34 @@ function normalizeBlueskyMedia(
       })
       .filter((media): media is TweetMedia => Boolean(media))
   }
-  if (type.includes("external") && embed.external?.thumb) {
-    return [
-      {
-        type: "photo",
+  return []
+}
+
+function normalizeBlueskyLinkPreview(
+  embed: BlueskyEmbedView | undefined
+): TweetLinkPreview | null {
+  if (!embed) return null
+  const type = embed.$type ?? ""
+  if (type.includes("recordWithMedia")) {
+    return normalizeBlueskyLinkPreview(embed.media)
+  }
+  if (!type.includes("external") || !embed.external?.uri) return null
+
+  const image = embed.external.thumb
+    ? {
+        type: "photo" as const,
         url: embed.external.thumb,
         alt: embed.external.title,
-      },
-    ]
+      }
+    : undefined
+
+  return {
+    url: embed.external.uri,
+    title: embed.external.title ?? domainFromUrl(embed.external.uri) ?? "",
+    description: embed.external.description,
+    domain: domainFromUrl(embed.external.uri),
+    ...(image ? { image } : {}),
   }
-  return []
 }
 
 function blueskyQuoteRecord(
@@ -311,6 +436,8 @@ function normalizeBlueskyRecord(
 ): TweetData | null {
   if (!record?.uri || !record.author) return null
   const media = (record.embeds ?? []).flatMap(normalizeBlueskyMedia)
+  const linkPreview =
+    record.embeds?.map(normalizeBlueskyLinkPreview).find(Boolean) ?? null
   const quotedRecord =
     depth === 0
       ? (record.embeds?.map(blueskyQuoteRecord).find(Boolean) ?? null)
@@ -332,6 +459,7 @@ function normalizeBlueskyRecord(
     },
     createdAt: record.value?.createdAt ?? record.indexedAt ?? "",
     media,
+    ...(linkPreview ? { linkPreview } : {}),
     ...(quotedTweet ? { quotedTweet } : {}),
     metrics: {
       likes: record.likeCount ?? 0,
@@ -363,6 +491,10 @@ function normalizeBlueskyPost(
     },
     createdAt: post.record?.createdAt ?? post.indexedAt ?? "",
     media: normalizeBlueskyMedia(post.embed),
+    ...(() => {
+      const linkPreview = normalizeBlueskyLinkPreview(post.embed)
+      return linkPreview ? { linkPreview } : {}
+    })(),
     ...(quotedTweet ? { quotedTweet } : {}),
     metrics: {
       likes: post.likeCount ?? 0,

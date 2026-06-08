@@ -392,6 +392,14 @@ export type TweetMedia = {
   alt?: string
 }
 
+export type TweetLinkPreview = {
+  url: string
+  title: string
+  description?: string
+  domain?: string
+  image?: TweetMedia
+}
+
 export type TweetData = {
   source: "x" | "bluesky"
   id: string
@@ -400,6 +408,7 @@ export type TweetData = {
   author: TweetAuthor
   createdAt: string
   media?: TweetMedia[]
+  linkPreview?: TweetLinkPreview
   quotedTweet?: TweetData
   // The public syndication endpoint exposes likes/replies/reposts more often
   // than views. Views are optional and only shown when X returns them.
@@ -415,6 +424,7 @@ export type TweetCard = {
   showAvatar: boolean
   showImages?: boolean
   showTimestamp?: boolean
+  showQuote?: boolean
   fontFamily?: string
 }
 

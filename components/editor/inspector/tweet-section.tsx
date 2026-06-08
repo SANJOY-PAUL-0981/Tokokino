@@ -64,6 +64,14 @@ export function TweetSection() {
           onCheckedChange={(v) => updateTweet({ showTimestamp: v })}
         />
       </Row>
+      {tweet.data.quotedTweet ? (
+        <Row label="Quoted post">
+          <Switch
+            checked={tweet.showQuote ?? true}
+            onCheckedChange={(v) => updateTweet({ showQuote: v })}
+          />
+        </Row>
+      ) : null}
       <Row label="Font">
         <TweetFontSelect
           value={tweet.fontFamily ?? DEFAULT_TWEET_SETTINGS.fontFamily}

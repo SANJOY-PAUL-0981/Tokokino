@@ -6,6 +6,7 @@ export type TweetCardSettings = {
   showAvatar: boolean
   showImages: boolean
   showTimestamp: boolean
+  showQuote: boolean
   fontFamily: string
 }
 
@@ -18,6 +19,7 @@ export const DEFAULT_TWEET_SETTINGS: TweetCardSettings = {
   showAvatar: true,
   showImages: true,
   showTimestamp: true,
+  showQuote: true,
   fontFamily: DEFAULT_TWEET_FONT_FAMILY,
 }
 
@@ -38,6 +40,7 @@ export function tweetSettingsFromCard(tweet: TweetCard): TweetCardSettings {
     showAvatar: tweet.showAvatar,
     showImages: tweet.showImages ?? true,
     showTimestamp: tweet.showTimestamp ?? true,
+    showQuote: tweet.showQuote ?? true,
     fontFamily: tweet.fontFamily ?? DEFAULT_TWEET_FONT_FAMILY,
   }
 }

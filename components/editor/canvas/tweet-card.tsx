@@ -7,6 +7,7 @@ import {
   RiPencilLine,
   RiTwitterXLine,
 } from "@remixicon/react"
+import unescape from "lodash/unescape"
 
 import {
   Popover,
@@ -25,6 +26,7 @@ import type {
   ScreenshotLayer,
   TweetCard,
   TweetData,
+  TweetLinkPreview,
   TweetMedia,
   TweetTheme,
 } from "@/lib/editor/store"
@@ -179,10 +181,24 @@ function formatDate(raw: string): string {
   return `${time} · ${date}`
 }
 
-const ENTITY_RE = /(https?:\/\/\S+|www\.\S+|@\w{1,15}|#[\p{L}\p{N}_]+)/gu
+/**
+ * X serves tweet text HTML-escaped (`>` → `&gt;`, `<` → `&lt;`, `&` → `&amp;`),
+ * so reverse the entities X emits (`&amp; &lt; &gt; &quot; &#39;`) via lodash's
+ * unescape. Bluesky returns raw text, so it is left untouched. Decoding here
+ * (rather than at fetch time) also fixes posts already saved with the escaped
+ * entities in persisted editor state.
+ */
+function displayText(text: string, source: TweetData["source"]): string {
+  return source === "bluesky" ? text : unescape(text)
+}
+
+const ENTITY_RE =
+  /(https?:\/\/\S+|www\.\S+|(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/\S*)?|@\w{1,15}|#[\p{L}\p{N}_]+)/giu
 
 function isEntity(token: string): boolean {
-  return /^(https?:\/\/|www\.|@\w|#[\p{L}\p{N}_])/u.test(token)
+  return /^(https?:\/\/|www\.|(?:[a-z0-9-]+\.)+[a-z]{2,}|@\w|#[\p{L}\p{N}_])/iu.test(
+    token
+  )
 }
 
 /** Renders tweet text with URLs, @mentions and #hashtags tinted in link color. */
@@ -222,12 +238,36 @@ function mediaAspect(media: TweetMedia): string | undefined {
   return `${media.width} / ${media.height}`
 }
 
+// A single image keeps its natural aspect ratio, clamped to a sane range so a
+// portrait shot doesn't blow up into a giant box and an ultra-wide shot doesn't
+// shrink to a sliver. Combined with full width + object-cover this means no side
+// whitespace, with only minimal cropping at the extremes (like X / PostSpark).
+const SINGLE_MEDIA_MIN_ASPECT = 0.8 // tallest portrait, ~4:5
+const SINGLE_MEDIA_MAX_ASPECT = 16 / 9 // widest landscape
+
+function singleMediaAspect(media: TweetMedia): number {
+  const { width, height } = media
+  if (
+    !width ||
+    !height ||
+    width <= 0 ||
+    height <= 0 ||
+    !Number.isFinite(width) ||
+    !Number.isFinite(height)
+  ) {
+    return SINGLE_MEDIA_MAX_ASPECT
+  }
+  return Math.min(
+    SINGLE_MEDIA_MAX_ASPECT,
+    Math.max(SINGLE_MEDIA_MIN_ASPECT, width / height)
+  )
+}
+
 type TweetMediaGridProps = {
   id: string
   media: NonNullable<TweetData["media"]>
   palette: ThemePalette
   compact?: boolean
-  maxHeight?: string
 }
 
 function TweetMediaGrid({
@@ -235,27 +275,46 @@ function TweetMediaGrid({
   media,
   palette,
   compact = false,
-  maxHeight,
 }: TweetMediaGridProps) {
-  const isSingle = media.length === 1
-  const singleMaxHeight = maxHeight ?? (compact ? "28cqh" : "62cqh")
+  // A single image fills the full width of the card (like X / Bluesky) and
+  // crops with object-cover, so there is never any side whitespace. The box
+  // takes the image's (clamped) aspect ratio, and the card's own fit-scaling
+  // keeps a tall portrait box from overflowing the canvas.
+  if (media.length === 1) {
+    const item = media[0]
+    return (
+      <div
+        className={cn(
+          compact ? "mt-3 rounded-[14px]" : "mt-3 rounded-[18px]",
+          "overflow-hidden border"
+        )}
+        style={{
+          borderColor: palette.border,
+          background: palette.bg,
+          aspectRatio: singleMediaAspect(item),
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={item.url}
+          alt={item.alt ?? ""}
+          draggable={false}
+          className="h-full w-full object-cover"
+        />
+      </div>
+    )
+  }
 
   return (
     <div
       className={cn(
         compact ? "mt-3 gap-1.5 rounded-[14px]" : "mt-3 gap-2 rounded-[18px]",
         "grid overflow-hidden border",
-        !isSingle && mediaGridClass(media.length)
+        mediaGridClass(media.length)
       )}
       style={{
         borderColor: palette.border,
         background: palette.bg,
-        ...(isSingle
-          ? {
-              aspectRatio: mediaAspect(media[0]) ?? "16 / 9",
-              maxHeight: singleMaxHeight,
-            }
-          : {}),
       }}
     >
       {media.map((item, index) => (
@@ -266,13 +325,110 @@ function TweetMediaGrid({
           alt={item.alt ?? ""}
           draggable={false}
           className={cn(
-            isSingle
-              ? "h-full min-h-0 w-full object-contain"
-              : "h-full min-h-0 w-full object-cover",
+            "h-full min-h-0 w-full object-cover",
             mediaItemClass(media.length, index)
           )}
         />
       ))}
+    </div>
+  )
+}
+
+function GlobeIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-[1em] shrink-0"
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20" />
+      <path d="M12 2a15.3 15.3 0 0 1 0 20" />
+      <path d="M12 2a15.3 15.3 0 0 0 0 20" />
+    </svg>
+  )
+}
+
+type LinkPreviewCardProps = {
+  preview: TweetLinkPreview
+  palette: ThemePalette
+  showImage: boolean
+  compact?: boolean
+}
+
+function LinkPreviewCard({
+  preview,
+  palette,
+  showImage,
+  compact = false,
+}: LinkPreviewCardProps) {
+  const image = showImage ? preview.image : undefined
+
+  return (
+    <div
+      className={cn(
+        "mt-3 overflow-hidden border",
+        compact ? "rounded-[14px]" : "rounded-[18px]"
+      )}
+      style={{ borderColor: palette.border }}
+    >
+      {image ? (
+        <div
+          className="overflow-hidden border-b"
+          style={{
+            borderColor: palette.border,
+            aspectRatio: mediaAspect(image) ?? "1.91 / 1",
+            maxHeight: compact ? "24cqh" : "42cqh",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={image.url}
+            alt={image.alt ?? preview.title}
+            draggable={false}
+            className="h-full w-full object-cover"
+          />
+        </div>
+      ) : null}
+      <div className={compact ? "p-3" : "p-4"}>
+        <div
+          className={cn(
+            "line-clamp-2 leading-tight font-bold",
+            compact ? "text-[16px]" : "text-[18px]"
+          )}
+          style={{ color: palette.text }}
+        >
+          {preview.title}
+        </div>
+        {preview.description ? (
+          <div
+            className={cn(
+              "mt-1 line-clamp-2 leading-snug",
+              compact ? "text-[14px]" : "text-[16px]"
+            )}
+            style={{ color: palette.text }}
+          >
+            {preview.description}
+          </div>
+        ) : null}
+        {preview.domain ? (
+          <div
+            className={cn(
+              "mt-3 flex items-center gap-1.5 truncate border-t pt-3",
+              compact ? "text-[13px]" : "text-[15px]"
+            )}
+            style={{ color: palette.sub, borderColor: palette.border }}
+          >
+            <GlobeIcon />
+            <span className="truncate">{preview.domain}</span>
+          </div>
+        ) : null}
+      </div>
     </div>
   )
 }
@@ -291,6 +447,7 @@ function QuoteTweetPreview({
   showImages,
 }: QuoteTweetPreviewProps) {
   const media = showImages ? (tweet.media ?? []).slice(0, 4) : []
+  const linkPreview = tweet.linkPreview
 
   return (
     <div
@@ -334,7 +491,7 @@ function QuoteTweetPreview({
 
       {tweet.text ? (
         <p className="mt-2 text-[18px] leading-normal break-words whitespace-pre-wrap">
-          {renderTweetText(tweet.text, palette.link)}
+          {renderTweetText(displayText(tweet.text, tweet.source), palette.link)}
         </p>
       ) : null}
 
@@ -344,7 +501,15 @@ function QuoteTweetPreview({
           media={media}
           palette={palette}
           compact
-          maxHeight="26cqh"
+        />
+      ) : null}
+
+      {linkPreview ? (
+        <LinkPreviewCard
+          preview={linkPreview}
+          palette={palette}
+          showImage={showImages}
+          compact
         />
       ) : null}
     </div>
@@ -411,7 +576,8 @@ export function TweetCardView({
   const { data, theme, showMetrics, showAvatar } = tweet
   const source = data.source ?? "x"
   const t = THEMES[theme] ?? THEMES.dark
-  const media = (tweet.showImages ?? true) ? (data.media ?? []).slice(0, 4) : []
+  const showImages = tweet.showImages ?? true
+  const media = showImages ? (data.media ?? []).slice(0, 4) : []
   const showTimestamp = tweet.showTimestamp ?? true
 
   const updateFitScale = React.useCallback(() => {
@@ -572,25 +738,28 @@ export function TweetCardView({
 
         {data.text ? (
           <p className="mt-3 text-[20px] leading-normal break-words whitespace-pre-wrap">
-            {renderTweetText(data.text, t.link)}
+            {renderTweetText(displayText(data.text, source), t.link)}
           </p>
         ) : null}
 
         {media.length > 0 ? (
-          <TweetMediaGrid
-            id={data.id}
-            media={media}
+          <TweetMediaGrid id={data.id} media={media} palette={t} />
+        ) : null}
+
+        {data.linkPreview ? (
+          <LinkPreviewCard
+            preview={data.linkPreview}
             palette={t}
-            maxHeight={data.quotedTweet ? "38cqh" : undefined}
+            showImage={showImages}
           />
         ) : null}
 
-        {data.quotedTweet ? (
+        {data.quotedTweet && (tweet.showQuote ?? true) ? (
           <QuoteTweetPreview
             tweet={data.quotedTweet}
             palette={t}
             showAvatar={showAvatar}
-            showImages={tweet.showImages ?? true}
+            showImages={showImages}
           />
         ) : null}
 
