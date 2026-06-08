@@ -40,7 +40,7 @@ export function Nav() {
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease }}
-        className="relative z-50 flex h-12 shrink-0 items-center justify-between bg-background/72 px-5 backdrop-blur-xl sm:px-8 lg:px-12"
+        className="relative z-50 flex h-12 shrink-0 items-center justify-between bg-background/72 px-5 backdrop-blur-xl sm:px-8 md:mx-auto md:max-w-[1310px] lg:px-12"
       >
         <BrandLogo />
 
